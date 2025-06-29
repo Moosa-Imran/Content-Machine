@@ -1,12 +1,12 @@
 // routes/main.js
 // Handles all application routing and server-side logic, including AI interactions.
+// REFACIORED FOR SEPARATE PAGES
 
 const express = require('express');
-const fetch = require('node-fetch'); // Using node-fetch for server-side API calls
+const fetch = require('node-fetch');
 const router = express.Router();
 
-// --- DATABASE & HELPERS (Moved from React to Backend) ---
-
+// --- DATABASE & HELPERS (These remain on the backend) ---
 const allVerifiedBusinessCases = [
     { id: 'cs01', company: "Lemonade Insurance", industry: "Insurance Tech", psychology: "Reciprocity & Honesty", problem: "Overcoming deep consumer mistrust in the insurance industry.", solution: "Donating unclaimed money to charities chosen by customers.", realStudy: "Featured in behavioral economics case studies.", findings: "This model builds trust and a sense of shared values, leading to higher customer loyalty and lower fraud rates.", verified: true, sources: ["Harvard Business School case studies", "Forbes articles on InsurTech"], source_url: "https://www.hbs.edu/faculty/Pages/item.aspx?num=53230", hashtags: ["#InsurTech", "#BehavioralEconomics", "#SocialImpact", "#Lemonade"] },
     { id: 'cs02', company: "Adagio Teas", industry: "E-commerce", psychology: "Gamification & Endowment Effect", problem: "Generating an endless supply of new products.", solution: "Allows customers to create and name their own signature tea blends, which can then be sold on the site.", realStudy: "Case studies in user-generated content and e-commerce personalization.", findings: "Customers who create blends become brand evangelists. They feel ownership (Endowment Effect) and are motivated to promote their own creations.", verified: true, sources: ["E-commerce marketing blogs", "Analysis of user-generated content platforms"], source_url: "https://www.adagio.com/", hashtags: ["#Ecommerce", "#UserGeneratedContent", "#Gamification", "#AdagioTeas"] },
@@ -25,7 +25,6 @@ const allVerifiedBusinessCases = [
     { id: 'cs15', company: "ClassPass", industry: "Fitness Tech", psychology: "Gamified Scarcity & Loss Aversion", problem: "Getting users to commit to a monthly subscription for variable fitness classes.", solution: "Using a credit-based system where classes at popular times 'cost' more credits and unused credits expire.", realStudy: "Analysis of subscription models and user engagement.", findings: "The credit system makes users feel they are 'spending' a currency, creating a sense of scarcity for popular classes. The expiring credits trigger 'Loss Aversion', motivating users to book classes to avoid 'wasting' their monthly credits.", verified: true, sources: ["Subscription economy analysis on Substack", "Product management blogs"], source_url: "https://product.substack.com/p/the-genius-of-classpass", hashtags: ["#ClassPass", "#Gamification", "#LossAversion", "#Subscription"] }
 ];
 const extraHooks = [ "You’ll probably scroll past this. And that’s exactly why it works.", "The best way to sell more? Stop trying to sell.", "This brand lost customers on purpose — and tripled revenue.", "They told customers not to buy… and sold out in 48 hours.", "Lower ratings = higher trust. Sounds backwards, but it’s science.", "Want more people to show up? Pretend you don’t care if they do.", "They removed all discounts — and people bought more.", "This ad doesn’t ask you to click… and that’s why everyone does.", "They said ‘Don’t follow us’ — 200,000 people did.", "Customers loved being rejected. Here’s how it boosted conversions.", "They made their product harder to buy — and demand exploded.", "They hid their most expensive item — and it became their bestseller.", "This brand admits it’s not for everyone. That’s what made it go viral.", "The less they posted, the more they grew. Here’s why.", "They made checkout slower. Sales jumped 19%.", "Why adding friction to the user journey increased loyalty.", "Telling customers ‘you won’t like this’ made them obsessed.", "They told customers to wait a month before buying. It backfired — in the best way.", "This site makes you click extra to see the price — and it works.", "The worst-performing product ad? It’s the one they ran again — and it blew up."];
-
 const generateMoreOptions = (businessCase, type) => {
     const { company, industry, psychology, solution, problem, findings } = businessCase;
     let templates = [];
@@ -66,15 +65,10 @@ const generateMoreOptions = (businessCase, type) => {
     return Array.from(options);
 };
 
-// --- Server-Side Gemini API Call ---
-// **Decision**: This is on the backend to protect the API key and centralize logic.
 const callGeminiAPI = async (prompt, isJson = false) => {
-    // IMPORTANT: In a real app, use environment variables for API keys.
-    const apiKey = process.env.GEMINI_API_KEY || "AIzaSyBtU5nvR3nUjPT3xVrPtTThLKt9cCdbjrM"; // Fallback for local dev
-    if (!apiKey) {
-        console.error("GEMINI_API_KEY is not set. API calls will fail.");
-        // In a real app, you might throw an error or handle this more gracefully.
-    }
+    const apiKey = process.env.GEMINI_API_KEY || "";
+    if (!apiKey) console.error("GEMINI_API_KEY is not set. API calls will fail.");
+    
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     const payload = {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -87,13 +81,11 @@ const callGeminiAPI = async (prompt, isJson = false) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-
         if (!response.ok) {
             const errorBody = await response.text();
             console.error("Gemini API Error Response:", errorBody);
             throw new Error(`API call failed with status: ${response.status}`);
         }
-
         const result = await response.json();
         if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
             let textResponse = result.candidates[0].content.parts[0].text;
@@ -106,48 +98,90 @@ const callGeminiAPI = async (prompt, isJson = false) => {
         throw new Error("Invalid API response structure");
     } catch (error) {
         console.error("Gemini API Call Error:", error);
-        throw error; // Re-throw to be caught by the route handler
+        throw error;
     }
 };
 
+// --- PAGE RENDERING ROUTES ---
 
-// --- ROUTES ---
-
-
-
-// Render the main application page
-
+/**
+ * @route   GET /
+ * @desc    Render the main dashboard page
+ */
 router.get('/', (req, res) => {
+    res.render('index', { 
+        title: 'Dashboard',
+        script: null // No specific script for the dashboard
+    });
+});
+
+/**
+ * @route   GET /reels
+ * @desc    Render the Viral Scripts page
+ */
+router.get('/reels', (req, res) => {
     try {
-        // Get the initial batch of stories
         const shuffledCases = [...allVerifiedBusinessCases].sort(() => 0.5 - Math.random());
-        const initialFeed = shuffledCases.slice(0, 10).map((businessCase, index) => {
-            const id = `preloaded-${Date.now()}-${index}`;
-            return {
-                ...businessCase,
-                id: id,
-                hooks: generateMoreOptions(businessCase, 'hooks'),
-                buildUps: generateMoreOptions(businessCase, 'buildUps'),
-                stories: generateMoreOptions(businessCase, 'stories'),
-                psychologies: generateMoreOptions(businessCase, 'psychologies'),
-            };
-        });
-        // Render the main EJS view, passing the initial data
-        res.render('index', { 
-            title: 'Content Machine',
+        const initialFeed = shuffledCases.slice(0, 10).map((businessCase, index) => ({
+            ...businessCase,
+            id: `preloaded-${Date.now()}-${index}`,
+            hooks: generateMoreOptions(businessCase, 'hooks'),
+            buildUps: generateMoreOptions(businessCase, 'buildUps'),
+            stories: generateMoreOptions(businessCase, 'stories'),
+            psychologies: generateMoreOptions(businessCase, 'psychologies'),
+        }));
+        
+        res.render('reels', { 
+            title: 'Viral Scripts',
             contentFeed: initialFeed,
-            initialTab: 'reels' // Or any default tab
+            script: 'reels.js' // Specify the JS file for this page
         });
     } catch (error) {
-        console.error("Error rendering main page:", error);
-        res.status(500).send("Error loading the application.");
+        console.error("Error rendering reels page:", error);
+        res.status(500).send("Error loading the Viral Scripts page.");
     }
 });
 
+/**
+ * @route   GET /breakdown
+ * @desc    Render the Tactic Breakdown page
+ */
+router.get('/breakdown', (req, res) => {
+    res.render('breakdown', { 
+        title: 'Tactic Breakdowns',
+        script: 'breakdown.js' 
+    });
+});
 
-// --- API Routes for Client-Side JS ---
-// Get a new batch of pre-loaded stories
+/**
+ * @route   GET /sheet
+ * @desc    Render the Analyze Sheet page
+ */
+router.get('/sheet', (req, res) => {
+    res.render('sheet', { 
+        title: 'Analyze Sheet',
+        script: 'sheet.js'
+    });
+});
 
+/**
+ * @route   GET /news
+ * @desc    Render the Industry News page
+ */
+router.get('/news', (req, res) => {
+    res.render('news', { 
+        title: 'Industry News',
+        script: 'news.js'
+    });
+});
+
+
+// --- API Routes for Client-Side JS (remain the same) ---
+
+/**
+ * @route   GET /api/new-scripts
+ * @desc    Get a new batch of pre-loaded stories
+ */
 router.get('/api/new-scripts', (req, res) => {
     try {
         const shuffledCases = [...allVerifiedBusinessCases].sort(() => 0.5 - Math.random());
@@ -164,7 +198,6 @@ router.get('/api/new-scripts', (req, res) => {
         res.status(500).json({ error: 'Failed to generate new scripts' });
     }
 });
-
 
 /**
  * @route   POST /api/verify-story

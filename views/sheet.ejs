@@ -1,8 +1,11 @@
-<!-- views/partials/sheetTab.ejs -->
+<%- include('partials/layout', { title: title, script: script, body: `
+<div class="text-center mb-8">
+    <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">Analyze Spreadsheet</h1>
+    <p class="text-lg text-gray-300 mb-4">Paste data or provide a URL to turn raw data into viral script ideas.</p>
+    <a href="/" class="text-blue-400 hover:text-blue-300 transition-colors">&larr; Back to Dashboard</a>
+</div>
 <div class="max-w-4xl mx-auto">
     <div class="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/20 shadow-lg">
-        <h2 class="text-2xl font-bold text-center mb-4 text-purple-400">Analyze Spreadsheet Data</h2>
-        <p class="text-center text-gray-400 mb-6">Paste data directly from a spreadsheet (e.g., CSV format), or provide a link to a public Google Sheet.</p>
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Paste Data (Recommended)</label>
@@ -10,12 +13,12 @@
             </div>
             <div class="text-center text-gray-500 font-semibold">OR</div>
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Analyze by URL</label>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Analyze by Public Google Sheet URL</label>
                 <input type="text" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full p-3 bg-black/20 rounded-md border border-white/20 text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"/>
             </div>
         </div>
         <div class="mt-6">
-            <button id="analyze-sheet-btn" class="w-full flex items-center justify-center gap-2 bg-purple-500 hover:bg-purple-600 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50">
+            <button id="analyze-sheet-btn" class="w-full flex items-center justify-center gap-2 bg-purple-500 hover:bg-purple-600 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="sheet" data-original-text="Analyze Data">
                 <span class="btn-icon"><i data-lucide="sheet" class="w-5 h-5"></i></span>
                 <span class="btn-text">Analyze Data</span>
             </button>
@@ -23,3 +26,4 @@
         <div id="sheet-error" class="text-red-400 text-center mt-4 hidden"></div>
     </div>
 </div>
+` }) %>

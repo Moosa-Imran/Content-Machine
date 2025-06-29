@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom Styles (optional) -->
+    <link rel="stylesheet" href="/css/style.css">
+    <link id="favicon" rel="icon" href="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" />
+</head>
+<body class="bg-gray-900 text-white font-sans">
+
+    <%- include('header') %>
+
+    <main class="container mx-auto px-4 py-8">
+        <%- body %>
+    </main>
+
+    <%- include('footer') %>
+
+    <!-- Conditionally include the page-specific client-side Javascript -->
+    <% if (script) { %>
+        <script src="/js/<%= script %>"></script>
+    <% } %>
+    
+    <script>
+        // Initialize lucide icons after page content has been rendered
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

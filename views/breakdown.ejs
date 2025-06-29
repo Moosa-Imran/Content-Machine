@@ -1,10 +1,13 @@
-<!-- views/partials/breakdownTab.ejs -->
+<%- include('partials/layout', { title: title, script: script, body: `
+<div class="text-center mb-8">
+    <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">Tactic Breakdowns</h1>
+    <p class="text-lg text-gray-300 mb-4">Select a company to reveal its secret marketing tactics with AI.</p>
+    <a href="/" class="text-blue-400 hover:text-blue-300 transition-colors">&larr; Back to Dashboard</a>
+</div>
 <div class="max-w-4xl mx-auto">
     <div class="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/20 shadow-lg">
-        <h2 class="text-2xl font-bold text-center mb-2 text-green-400">Tactic Breakdown Generator</h2>
-        <p class="text-center text-gray-400 mb-6">Select a company to reveal its secret marketing tactics.</p>
         <div class="mb-6">
-            <button id="find-companies-btn" class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50">
+            <button id="find-companies-btn" class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="search" data-original-text="Find New Companies">
                 <span class="btn-icon"><i data-lucide="search" class="w-5 h-5"></i></span>
                 <span class="btn-text">Find New Companies</span>
             </button>
@@ -16,3 +19,4 @@
         <div id="script-container" class="space-y-6 text-left bg-black/20 p-6 rounded-lg hidden"></div>
     </div>
 </div>
+` }) %>
