@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || "Content Machine" %></title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <link id="favicon" rel="icon" href="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" />
+</head>
+<body class="bg-gray-900 text-white font-sans">
+
+    <%- include('partials/header') %>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- index.ejs content starts here -->
+
+        <div class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">Content Machine</h1>
+            <p class="text-lg text-gray-300 mb-4">Build and refine fact-based viral scripts with AI assistance.</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="flex flex-wrap gap-2 mb-8 justify-center" id="main-tabs">
+            <button data-tab="reels" class="tab-button flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all active"><i data-lucide="video" class="w-4 h-4"></i> Viral Scripts</button>
+            <button data-tab="breakdown" class="tab-button flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all"><i data-lucide="brain" class="w-4 h-4"></i> Tactic Breakdowns</button>
+            <button data-tab="sheet" class="tab-button flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all"><i data-lucide="sheet" class="w-4 h-4"></i> Analyze Sheet</button>
+            <button data-tab="news" class="tab-button flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all"><i data-lucide="newspaper" class="w-4 h-4"></i> Industry News</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="tab-content">
+            <div id="reels-content" class="tab-pane active">
+                <div class="text-center mb-8">
+                    <button id="find-new-scripts-btn" class="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center mx-auto gap-2 mb-4">
+                        <span class="btn-icon"><i data-lucide="search" class="w-5 h-5"></i></span>
+                        <span class="btn-text">Find New Scripts</span>
+                    </button>
+                </div>
+                <div class="relative" id="reels-container">
+                    <div id="pagination-container" class="w-full max-w-4xl mx-auto mb-4"></div>
+                    <div id="reel-card-container">
+                        <% if (contentFeed && contentFeed.length > 0) { %>
+                            <%- include('partials/reelCard', { story: contentFeed[0], lucide: true }) %>
+                        <% } else { %>
+                            <div class="text-center text-gray-400 p-8">No scripts loaded. Click "Find New Scripts" to begin.</div>
+                        <% } %>
+                    </div>
+                    <div id="reels-loader" class="hidden flex justify-center items-center h-96">
+                        <i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-green-500"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div id="breakdown-content" class="tab-pane hidden">
+                <%- include('partials/breakdownTab') %>
+            </div>
+
+            <div id="sheet-content" class="tab-pane hidden">
+                <%- include('partials/sheetTab') %>
+            </div>
+
+            <div id="news-content" class="tab-pane hidden">
+                <%- include('partials/newsTab') %>
+            </div>
+        </div>
+
+        <!-- index.ejs content ends here -->
+    </main>
+
+    <%- include('partials/footer') %>
+
+    <!-- Client-side JavaScript -->
+    <script src="/js/main.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // Optional: Inject initialFeed from server (only if needed by JS)
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!-- views/partials/reelCard.ejs -->
+<!-- This will be used as a template by the client-side JS -->
+<div class="bg-white/5 rounded-xl p-4 sm:p-6 backdrop-blur-sm border border-white/20 shadow-lg max-w-4xl mx-auto" data-story-id="<%= story.id %>">
+    <div class="flex flex-wrap items-center gap-3 mb-6">
+        <% if (story.id.toString().startsWith('preloaded')) { %>
+            <span class="bg-gray-700 text-white px-3 py-1 rounded-full text-sm font-bold">Pre-loaded Story</span>
+        <% } else if (story.id.toString().startsWith('sheet')) { %>
+            <span class="bg-purple-700 text-white px-3 py-1 rounded-full text-sm font-bold">From Sheet</span>
+        <% } else if (story.id.toString().startsWith('news')) { %>
+            <span class="bg-blue-700 text-white px-3 py-1 rounded-full text-sm font-bold">From News</span>
+        <% } %>
+        <span class="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-3 py-1 rounded-full text-sm font-bold"><%= story.company %></span>
+        <span class="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-sm"><%= story.industry %></span>
+        <button class="verify-story-btn flex items-center gap-1.5 text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1 rounded-full font-semibold transition-colors disabled:opacity-50">
+            <span class="btn-icon"><i data-lucide="shield" class="w-4 h-4"></i></span>
+            <span class="btn-text">Verify Story</span>
+        </button>
+    </div>
+    
+    <div class="verification-container"></div> <!-- Verification result will be injected here -->
+
+    <h3 class="text-2xl font-bold mb-4 text-yellow-400">Principle: <%= story.psychology %></h3>
+    <div class="space-y-6">
+        <!-- Generative Content Sections will be rendered here -->
+    </div>
+
+    <div class="mt-6 pt-4 border-t border-white/10">
+        <div class="flex flex-wrap gap-2">
+            <% story.hashtags?.forEach(tag => { %>
+                <span class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full"><%= tag %></span>
+            <% }) %>
+        </div>
+    </div>
+    <div class="flex justify-center mt-8">
+         <button class="build-script-btn flex items-center gap-2 bg-green-500 hover:bg-green-600 px-8 py-3 rounded-lg font-semibold text-lg transition-all transform hover:scale-105"><i data-lucide="arrow-down" class="w-5 h-5"></i> Build Script</button>
+    </div>
+    
+    <div class="script-editor-container mt-8 pt-6 border-t border-white/20 hidden">
+        <!-- AI Script Editor will be injected here -->
+    </div>
+</div>

@@ -1,0 +1,33 @@
+/* public/css/style.css */
+
+/* Style for the active tab button */
+.tab-button.active {
+    background-color: #22c55e; /* green-500 */
+    color: white;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Default tab button style */
+.tab-button {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #d1d5db; /* gray-300 */
+}
+
+.tab-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Spinner animation */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
