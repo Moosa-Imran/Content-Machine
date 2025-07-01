@@ -1,9 +1,9 @@
 // routes/main.js
 // Handles all application routing and server-side logic, including AI interactions.
-// REFACIORED FOR SEPARATE PAGES
+// REFACIORED FOR SEPARATE PAGES & BUG FIXES
 
 const express = require('express');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // Use node-fetch@2 for CommonJS
 const router = express.Router();
 
 // --- DATABASE & HELPERS (These remain on the backend) ---
@@ -66,8 +66,12 @@ const generateMoreOptions = (businessCase, type) => {
 };
 
 const callGeminiAPI = async (prompt, isJson = false) => {
-    const apiKey = process.env.GEMINI_API_KEY || "";
-    if (!apiKey) console.error("GEMINI_API_KEY is not set. API calls will fail.");
+    // IMPORTANT: In a real app, use environment variables for API keys.
+    const apiKey = process.env.GEMINI_API_KEY || ""; 
+    if (!apiKey) {
+        console.error("GEMINI_API_KEY environment variable is not set. API calls will fail.");
+        throw new Error("Server is missing API Key configuration. Please set the GEMINI_API_KEY environment variable.");
+    }
     
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     const payload = {
@@ -81,11 +85,13 @@ const callGeminiAPI = async (prompt, isJson = false) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+
         if (!response.ok) {
             const errorBody = await response.text();
             console.error("Gemini API Error Response:", errorBody);
             throw new Error(`API call failed with status: ${response.status}`);
         }
+
         const result = await response.json();
         if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
             let textResponse = result.candidates[0].content.parts[0].text;
@@ -98,27 +104,18 @@ const callGeminiAPI = async (prompt, isJson = false) => {
         throw new Error("Invalid API response structure");
     } catch (error) {
         console.error("Gemini API Call Error:", error);
-        throw error;
+        throw error; // Re-throw to be caught by the route handler
     }
 };
 
 // --- PAGE RENDERING ROUTES ---
 
-/**
- * @route   GET /
- * @desc    Render the main dashboard page
- */
 router.get('/', (req, res) => {
     res.render('index', { 
         title: 'Dashboard',
-        script: null // No specific script for the dashboard
     });
 });
 
-/**
- * @route   GET /reels
- * @desc    Render the Viral Scripts page
- */
 router.get('/reels', (req, res) => {
     try {
         const shuffledCases = [...allVerifiedBusinessCases].sort(() => 0.5 - Math.random());
@@ -134,7 +131,6 @@ router.get('/reels', (req, res) => {
         res.render('reels', { 
             title: 'Viral Scripts',
             contentFeed: initialFeed,
-            script: 'reels.js' // Specify the JS file for this page
         });
     } catch (error) {
         console.error("Error rendering reels page:", error);
@@ -142,46 +138,27 @@ router.get('/reels', (req, res) => {
     }
 });
 
-/**
- * @route   GET /breakdown
- * @desc    Render the Tactic Breakdown page
- */
 router.get('/breakdown', (req, res) => {
     res.render('breakdown', { 
         title: 'Tactic Breakdowns',
-        script: 'breakdown.js' 
     });
 });
 
-/**
- * @route   GET /sheet
- * @desc    Render the Analyze Sheet page
- */
 router.get('/sheet', (req, res) => {
     res.render('sheet', { 
         title: 'Analyze Sheet',
-        script: 'sheet.js'
     });
 });
 
-/**
- * @route   GET /news
- * @desc    Render the Industry News page
- */
 router.get('/news', (req, res) => {
     res.render('news', { 
         title: 'Industry News',
-        script: 'news.js'
     });
 });
 
 
 // --- API Routes for Client-Side JS (remain the same) ---
 
-/**
- * @route   GET /api/new-scripts
- * @desc    Get a new batch of pre-loaded stories
- */
 router.get('/api/new-scripts', (req, res) => {
     try {
         const shuffledCases = [...allVerifiedBusinessCases].sort(() => 0.5 - Math.random());
@@ -199,10 +176,6 @@ router.get('/api/new-scripts', (req, res) => {
     }
 });
 
-/**
- * @route   POST /api/verify-story
- * @desc    Verify a story using Gemini API
- */
 router.post('/api/verify-story', async (req, res) => {
     const { company, solution, psychology, findings, sources } = req.body;
     const prompt = `Please verify the following business story. Check for the accuracy of the company's action, the stated psychological principle, and the claimed outcome. Provide a step-by-step verification process and a final conclusion.
@@ -211,22 +184,18 @@ router.post('/api/verify-story', async (req, res) => {
     - Tactic: ${solution}
     - Stated Psychology: ${psychology}
     - Claimed Finding: ${findings}
-    - Source: ${sources[0]}
+    - Source: ${sources ? sources[0] : 'N/A'}
     Return your verification as a JSON object with the structure: {"checks": [{"check": "string", "is_correct": boolean, "comment": "string"}], "conclusion": "string", "confidence_score": number_between_0_and_100}`;
     
     try {
         const result = await callGeminiAPI(prompt, true);
         res.json(result);
     } catch (error) {
-        console.error("Verification API Error:", error);
-        res.status(500).json({ error: 'Verification process failed.' });
+        console.error("Verification API Error:", error.message);
+        res.status(500).json({ error: `Verification process failed. Server error: ${error.message}` });
     }
 });
 
-/**
- * @route   POST /api/rewrite-script
- * @desc    Rewrite a script using Gemini API
- */
 router.post('/api/rewrite-script', async (req, res) => {
     const { finalScript, aiPrompt } = req.body;
     const fullPrompt = `Here is a script:\n\n${finalScript}\n\nPlease rewrite it based on this instruction: "${aiPrompt}". Keep the core facts but improve the style, tone, or structure as requested. Return only the rewritten script.`;
@@ -235,14 +204,10 @@ router.post('/api/rewrite-script', async (req, res) => {
         const newScript = await callGeminiAPI(fullPrompt, false);
         res.json({ newScript });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to rewrite script.' });
+        res.status(500).json({ error: `Failed to rewrite script. Server error: ${error.message}` });
     }
 });
 
-/**
- * @route   POST /api/tactic-breakdown
- * @desc    Generate a tactic breakdown for a company
- */
 router.post('/api/tactic-breakdown', async (req, res) => {
     const { companyName } = req.body;
     const prompt = `For the company '${companyName}', create a viral script that breaks down 3 of their most quirky, shocking, or unknown marketing tactics. For each tactic, identify which pillar it belongs to (Psychological triggers, Biases, Behavioural economics, or Neuromarketing). Structure the entire output as a single JSON object for a script with the following keys: 'company', 'hook', 'buildUp', 'storyBreakdown', 'concludingPsychology'.
@@ -257,29 +222,20 @@ router.post('/api/tactic-breakdown', async (req, res) => {
         const result = await callGeminiAPI(prompt, true);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ error: `Failed to generate script for ${companyName}.` });
+        res.status(500).json({ error: `Failed to generate script for ${companyName}. Server error: ${error.message}` });
     }
 });
 
-/**
- * @route   GET /api/find-companies
- * @desc    Get a list of companies for breakdown
- */
 router.get('/api/find-companies', async (req, res) => {
     const prompt = `Generate a diverse list of 5 companies known for using interesting or quirky psychological marketing tactics. Include well-known brands and some lesser-known or foreign examples. Return as a JSON array of strings. e.g., ["Apple", "Shein", "Patagonia", "Liquid Death", "KupiVip"]`;
     try {
         const result = await callGeminiAPI(prompt, true);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ error: 'Could not fetch company list.' });
+        res.status(500).json({ error: `Could not fetch company list. Server error: ${error.message}` });
     }
 });
 
-
-/**
- * @route   POST /api/analyze-sheet
- * @desc    Analyze pasted spreadsheet data
- */
 router.post('/api/analyze-sheet', async (req, res) => {
     const { pastedData, sheetUrl } = req.body;
     const hasPastedData = pastedData && pastedData.trim().length > 0;
@@ -308,30 +264,20 @@ router.post('/api/analyze-sheet', async (req, res) => {
         res.json(formattedResults);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to analyze the provided data.' });
+        res.status(500).json({ error: `Failed to analyze the provided data. Server error: ${err.message}` });
     }
 });
 
-
-/**
- * @route   GET /api/scan-news
- * @desc    Scan for relevant industry news
- */
 router.get('/api/scan-news', async (req, res) => {
     const prompt = `Find 3 recent news articles or case studies about companies using psychological triggers, cognitive biases, behavioural economics, or neuromarketing. For each, provide the title, summary, URL, the primary psychological tactic used, a brief explanation of that tactic, and a 'hot_score' (1-100) based on how quirky, controversial, or intriguing the story is. Return this as a JSON array with this structure: [{"title": "string", "summary": "string", "url": "string", "tactic": "string", "tactic_explanation": "string", "hot_score": "number"}]`;
     try {
         const results = await callGeminiAPI(prompt, true);
         res.json(results);
     } catch (err) {
-        res.status(500).json({ error: 'Could not fetch news articles.' });
+        res.status(500).json({ error: `Could not fetch news articles. Server error: ${err.message}` });
     }
 });
 
-
-/**
- * @route   POST /api/create-story-from-news
- * @desc    Create a story from a news article
- */
 router.post('/api/create-story-from-news', async (req, res) => {
     const { article } = req.body;
     const prompt = `Based on this news article titled "${article.title}" which is about using the '${article.tactic}' tactic, create a viral story script.
@@ -349,7 +295,7 @@ router.post('/api/create-story-from-news', async (req, res) => {
         };
         res.json(newStory);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to generate a story from this article.' });
+        res.status(500).json({ error: `Failed to generate a story from this article. Server error: ${err.message}` });
     }
 });
 

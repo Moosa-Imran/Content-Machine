@@ -4,17 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %></title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Custom Styles (optional) -->
     <link rel="stylesheet" href="/css/style.css">
     <link id="favicon" rel="icon" href="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" />
 </head>
 <body class="bg-gray-900 text-white font-sans">
 
-    <!-- Header include manually here if needed -->
     <%- include('partials/header') %>
 
     <main class="container mx-auto px-4 py-8">
@@ -23,19 +19,17 @@
             <p class="text-lg text-gray-300 mb-4">Generate fact-based scripts from a database of verified case studies.</p>
             <a href="/" class="text-blue-400 hover:text-blue-300 transition-colors">&larr; Back to Dashboard</a>
         </div>
-
         <div class="text-center mb-8">
             <button id="find-new-scripts-btn" class="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center mx-auto gap-2 mb-4" data-icon="search" data-original-text="Find New Scripts">
                 <span class="btn-icon"><i data-lucide="search" class="w-5 h-5"></i></span>
                 <span class="btn-text">Find New Scripts</span>
             </button>
         </div>
-
         <div class="relative" id="reels-container">
             <div id="pagination-container" class="w-full max-w-4xl mx-auto mb-4"></div>
             <div id="reel-card-container">
                 <% if (contentFeed && contentFeed.length > 0) { %>
-                    <!-- Initial card is rendered by the server -->
+                    <!-- Initial card is rendered by client-side JS -->
                 <% } else { %>
                     <div class="text-center text-gray-400 p-8">No scripts loaded. Click "Find New Scripts" to begin.</div>
                 <% } %>
@@ -44,20 +38,15 @@
                 <i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-green-500"></i>
             </div>
         </div>
-
         <!-- Embed initial data for client-side JS -->
         <script id="initial-data" type="application/json">
             <%- JSON.stringify(contentFeed || []) %>
         </script>
     </main>
 
-    <!-- Footer include manually here if needed -->
     <%- include('partials/footer') %>
 
-    <% if (script) { %>
-        <script src="/js/<%= script %>"></script>
-    <% } %>
-
+    <script src="/js/reels.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();

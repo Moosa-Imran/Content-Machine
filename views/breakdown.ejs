@@ -1,22 +1,48 @@
-<%- include('partials/layout', { title: title, script: script, body: `
-<div class="text-center mb-8">
-    <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">Tactic Breakdowns</h1>
-    <p class="text-lg text-gray-300 mb-4">Select a company to reveal its secret marketing tactics with AI.</p>
-    <a href="/" class="text-blue-400 hover:text-blue-300 transition-colors">&larr; Back to Dashboard</a>
-</div>
-<div class="max-w-4xl mx-auto">
-    <div class="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/20 shadow-lg">
-        <div class="mb-6">
-            <button id="find-companies-btn" class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="search" data-original-text="Find New Companies">
-                <span class="btn-icon"><i data-lucide="search" class="w-5 h-5"></i></span>
-                <span class="btn-text">Find New Companies</span>
-            </button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link id="favicon" rel="icon" href="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" />
+</head>
+<body class="bg-gray-900 text-white font-sans">
+
+    <%- include('partials/header') %>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">Tactic Breakdowns</h1>
+            <p class="text-lg text-gray-300 mb-4">Select a company to reveal its secret marketing tactics with AI.</p>
+            <a href="/" class="text-blue-400 hover:text-blue-300 transition-colors">&larr; Back to Dashboard</a>
         </div>
-        <div id="companies-loader" class="text-center p-4 hidden"><i data-lucide="refresh-cw" class="w-8 h-8 animate-spin mx-auto text-green-400"></i></div>
-        <div id="companies-error" class="text-red-400 text-center my-4 hidden"></div>
-        <div id="companies-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8"></div>
-        <div id="script-loader" class="text-center p-8 hidden"><i data-lucide="refresh-cw" class="w-10 h-10 animate-spin mx-auto text-yellow-400"></i><p class="mt-2 text-lg"></p></div>
-        <div id="script-container" class="space-y-6 text-left bg-black/20 p-6 rounded-lg hidden"></div>
-    </div>
-</div>
-` }) %>
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/20 shadow-lg">
+                <div class="mb-6">
+                    <button id="find-companies-btn" class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="search" data-original-text="Find New Companies">
+                        <span class="btn-icon"><i data-lucide="search" class="w-5 h-5"></i></span>
+                        <span class="btn-text">Find New Companies</span>
+                    </button>
+                </div>
+                <div id="companies-loader" class="text-center p-4 hidden"><i data-lucide="refresh-cw" class="w-8 h-8 animate-spin mx-auto text-green-400"></i></div>
+                <div id="companies-error" class="text-red-400 text-center my-4 hidden"></div>
+                <div id="companies-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8"></div>
+                <div id="script-loader" class="text-center p-8 hidden"><i data-lucide="refresh-cw" class="w-10 h-10 animate-spin mx-auto text-yellow-400"></i><p class="mt-2 text-lg"></p></div>
+                <div id="script-container" class="space-y-6 text-left bg-black/20 p-6 rounded-lg hidden"></div>
+            </div>
+        </div>
+    </main>
+    
+    <%- include('partials/footer') %>
+
+    <script src="/js/breakdown.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

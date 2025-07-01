@@ -1,54 +1,79 @@
-<%- include('partials/layout', { title: title, script: script, body: `
-<div class="text-center">
-    <div class="max-w-4xl mx-auto bg-white/5 p-8 sm:p-12 rounded-xl backdrop-blur-sm border border-white/20 shadow-lg">
-        <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
-            Welcome to the Content Machine
-        </h1>
-        <p class="text-lg text-gray-300 mb-10">Select a tool below to begin generating powerful, psychology-driven content.</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link id="favicon" rel="icon" href="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" />
+</head>
+<body class="bg-gray-900 text-white font-sans">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-            
-            <a href="/reels" class="bg-black/20 p-6 rounded-lg hover:bg-black/30 border border-transparent hover:border-green-500 transition-all duration-300 transform hover:scale-105">
-                <div class="flex items-center gap-4">
-                    <div class="bg-green-500/10 p-3 rounded-lg"><i data-lucide="video" class="w-8 h-8 text-green-400"></i></div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-white">Viral Scripts</h2>
-                        <p class="text-gray-400">Generate fact-based scripts from a database of verified case studies.</p>
-                    </div>
-                </div>
-            </a>
-            
-            <a href="/breakdown" class="bg-black/20 p-6 rounded-lg hover:bg-black/30 border border-transparent hover:border-blue-500 transition-all duration-300 transform hover:scale-105">
-                <div class="flex items-center gap-4">
-                    <div class="bg-blue-500/10 p-3 rounded-lg"><i data-lucide="brain" class="w-8 h-8 text-blue-400"></i></div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-white">Tactic Breakdowns</h2>
-                        <p class="text-gray-400">Analyze any company to reveal their secret marketing psychology.</p>
-                    </div>
-                </div>
-            </a>
+    <%- include('partials/header') %>
 
-            <a href="/sheet" class="bg-black/20 p-6 rounded-lg hover:bg-black/30 border border-transparent hover:border-purple-500 transition-all duration-300 transform hover:scale-105">
-                <div class="flex items-center gap-4">
-                    <div class="bg-purple-500/10 p-3 rounded-lg"><i data-lucide="sheet" class="w-8 h-8 text-purple-400"></i></div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-white">Analyze Sheet</h2>
-                        <p class="text-gray-400">Turn spreadsheet data into compelling content ideas instantly.</p>
-                    </div>
-                </div>
-            </a>
+    <main class="container mx-auto px-4 py-8">
+        <div class="text-center">
+            <div class="max-w-4xl mx-auto bg-white/5 p-8 sm:p-12 rounded-xl backdrop-blur-sm border border-white/20 shadow-lg">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+                    Welcome to the Content Machine
+                </h1>
+                <p class="text-lg text-gray-300 mb-10">Select a tool below to begin generating powerful, psychology-driven content.</p>
 
-            <a href="/news" class="bg-black/20 p-6 rounded-lg hover:bg-black/30 border border-transparent hover:border-yellow-500 transition-all duration-300 transform hover:scale-105">
-                <div class="flex items-center gap-4">
-                    <div class="bg-yellow-500/10 p-3 rounded-lg"><i data-lucide="newspaper" class="w-8 h-8 text-yellow-400"></i></div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-white">Industry News</h2>
-                        <p class="text-gray-400">Find the latest marketing trends and turn them into stories.</p>
-                    </div>
-                </div>
-            </a>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                    
+                    <a href="/reels" class="bg-black/20 p-6 rounded-lg hover:bg-black/30 border border-transparent hover:border-green-500 transition-all duration-300 transform hover:scale-105">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-green-500/10 p-3 rounded-lg"><i data-lucide="video" class="w-8 h-8 text-green-400"></i></div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Viral Scripts</h2>
+                                <p class="text-gray-400">Generate fact-based scripts from a database of verified case studies.</p>
+                            </div>
+                        </div>
+                    </a>
+                    
+                    <a href="/breakdown" class="bg-black/20 p-6 rounded-lg hover:bg-black/30 border border-transparent hover:border-blue-500 transition-all duration-300 transform hover:scale-105">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-blue-500/10 p-3 rounded-lg"><i data-lucide="brain" class="w-8 h-8 text-blue-400"></i></div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Tactic Breakdowns</h2>
+                                <p class="text-gray-400">Analyze any company to reveal their secret marketing psychology.</p>
+                            </div>
+                        </div>
+                    </a>
 
+                    <a href="/sheet" class="bg-black/20 p-6 rounded-lg hover:bg-black/30 border border-transparent hover:border-purple-500 transition-all duration-300 transform hover:scale-105">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-purple-500/10 p-3 rounded-lg"><i data-lucide="sheet" class="w-8 h-8 text-purple-400"></i></div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Analyze Sheet</h2>
+                                <p class="text-gray-400">Turn spreadsheet data into compelling content ideas instantly.</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="/news" class="bg-black/20 p-6 rounded-lg hover:bg-black/30 border border-transparent hover:border-yellow-500 transition-all duration-300 transform hover:scale-105">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-yellow-500/10 p-3 rounded-lg"><i data-lucide="newspaper" class="w-8 h-8 text-yellow-400"></i></div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Industry News</h2>
+                                <p class="text-gray-400">Find the latest marketing trends and turn them into stories.</p>
+                            </div>
+                        </div>
+                    </a>
+
+                </div>
+            </div>
         </div>
-    </div>
-</div>
-` }) %>
+    </main>
+
+    <%- include('partials/footer') %>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

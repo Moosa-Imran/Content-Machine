@@ -5,6 +5,9 @@ const express = require('express');
 const path = require('path');
 const mainRoutes = require('./routes/main');
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -28,4 +31,11 @@ app.use('/', mainRoutes);
 // --- Server Startup ---
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
+    console.log('This app is designed to run in a Node.js environment.');
+    console.log('--- SETUP INSTRUCTIONS ---');
+    console.log('1. Make sure you have Node.js installed.');
+    console.log('2. In your terminal, run `npm install express ejs dotenv node-fetch@2`');
+    console.log('3. Create a file named `.env` in the root of your project.');
+    console.log('4. In the `.env` file, add the line: `GEMINI_API_KEY=YOUR_API_KEY_HERE`');
+    console.log('5. Run `node server.js`');
 });

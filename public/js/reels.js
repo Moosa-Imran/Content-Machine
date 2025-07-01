@@ -14,14 +14,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INITIALIZATION ---
     const init = () => {
-        const initialDataElement = document.getElementById('initial-data');
-        if (initialDataElement) {
-            contentFeed = JSON.parse(initialDataElement.textContent);
-            currentFeedIndex = 0;
-            if (contentFeed.length > 0) {
-                renderCurrentReel();
+        // Check sessionStorage first for content redirected from other pages
+        const generatedContent = sessionStorage.getItem('generatedContent');
+        if (generatedContent) {
+            contentFeed = JSON.parse(generatedContent);
+            sessionStorage.removeItem('generatedContent'); // Clear after use
+        } else {
+            // Fallback to initial data embedded in the EJS template
+            const initialDataElement = document.getElementById('initial-data');
+            if (initialDataElement) {
+                try {
+                    contentFeed = JSON.parse(initialDataElement.textContent);
+                } catch (e) {
+                    console.error("Failed to parse initial data:", e);
+                    contentFeed = [];
+                }
             }
         }
+
+        currentFeedIndex = 0;
+        if (contentFeed.length > 0) {
+            renderCurrentReel();
+        }
+        
         attachEventListeners();
     };
     
@@ -46,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // --- API & UI HELPERS ---
-    const toggleButtonLoading = (button, isLoading) => {
+    const toggleButtonLoading = (button, isLoading, loadingText = 'Loading...') => {
         if (!button) return;
         const icon = button.querySelector('.btn-icon');
         const text = button.querySelector('.btn-text');
@@ -54,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isLoading) {
             icon.innerHTML = '<i data-lucide="refresh-cw" class="w-5 h-5 animate-spin"></i>';
-            if (text) text.textContent = 'Loading...';
+            if (text) text.textContent = loadingText;
         } else {
             icon.innerHTML = `<i data-lucide="${button.dataset.icon || 'search'}" class="w-5 h-5"></i>`;
             if (text) text.textContent = button.dataset.originalText || 'Submit';
@@ -66,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(endpoint, options);
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred' }));
+                const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred' }));
                 throw new Error(errorData.error);
             }
             return await response.json();
@@ -147,9 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const generateSectionHTML = (sec) => {
             const options = story[sec.type] || [];
             return `
-                <div>
+                <div class="section-block">
                     <div class="flex items-center justify-between gap-2 mb-3">
-                        <div class="flex items-center gap-2"><i data-lucide="${sec.icon}" class="w-5 h-5 text-${sec.color}-400"></i><span class="font-bold text-${sec.color}-400">${sec.title}</span></div>
+                        <div class="flex items-center gap-2" data-color="${sec.color}"><i data-lucide="${sec.icon}" class="w-5 h-5 text-${sec.color}-400"></i><span class="font-bold text-${sec.color}-400">${sec.title}</span></div>
                     </div>
                     <div class="space-y-2" data-section-type="${sec.type}">
                         ${options.map((option, index) => `
@@ -159,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div class="check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all ${index === 0 ? `border-${sec.color}-400 bg-${sec.color}-500` : 'border-gray-500'}">
                                         ${index === 0 ? '<i data-lucide="check-circle" class="w-3 h-3 text-white"></i>' : ''}
                                     </div>
-                                    <span class="flex-grow text-gray-300">${option.replace(/\*\*(.*?)\*\*/g, '<strong class="text-yellow-400">$1</strong>')}</span>
+                                    <span class="flex-grow text-gray-300">${(option || '').replace(/\*\*(.*?)\*\*/g, '<strong class="text-yellow-400">$1</strong>')}</span>
                                 </label>
                             </div>
                         `).join('')}
@@ -196,32 +211,38 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.selectOption = (element, type, index) => {
-        const section = element.closest(`[data-section-type="${type}"]`);
-        section.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
-        section.querySelector(`input[data-index="${index}"]`).checked = true;
+        const sectionBlock = element.closest('.section-block');
+        const sectionContainer = sectionBlock.querySelector(`[data-section-type="${type}"]`);
+        const colorDiv = sectionBlock.querySelector('[data-color]');
+        
+        if (!colorDiv) {
+            console.error("Could not find color data attribute to determine color.");
+            return;
+        }
+        const color = colorDiv.dataset.color;
 
-        section.querySelectorAll('.p-3').forEach(div => {
-            const colorMatch = div.className.match(/(red|blue|green|purple)-500/);
-            if(colorMatch) {
-                 div.classList.remove(`bg-${colorMatch[1]}-500/20`, `border-${colorMatch[1]}-500`);
-            }
-            div.classList.add('bg-black/20', 'border-transparent');
+        sectionContainer.querySelectorAll('.p-3').forEach(div => {
+            div.className = 'p-3 rounded-lg border-2 cursor-pointer transition-all bg-black/20 border-transparent hover:border-white/50';
             const iconContainer = div.querySelector('.check-icon-container');
-            iconContainer.innerHTML = '';
-            iconContainer.className = 'check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all border-gray-500';
+            if (iconContainer) {
+                iconContainer.innerHTML = '';
+                iconContainer.className = 'check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all border-gray-500';
+            }
         });
+        
+        sectionContainer.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
+        const radioInput = element.querySelector(`input[data-index="${index}"]`);
+        if (radioInput) {
+            radioInput.checked = true;
+        }
 
-        const storyCard = element.closest('[data-story-id]');
-        const optionDiv = storyCard.querySelector(`[data-section-type="${type}"]`).querySelector(`[onclick*="selectOption(this, '${type}', ${index})"]`);
-
-        const color = optionDiv.closest('[data-section-type]').querySelector('i[data-lucide]').className.match(/text-(.*?)-400/)[1] || 'gray';
-        optionDiv.classList.remove('bg-black/20', 'border-transparent');
-        optionDiv.classList.add(`bg-${color}-500/20`, `border-${color}-500`);
-        const checkDiv = optionDiv.querySelector('.check-icon-container');
-        checkDiv.classList.remove('border-gray-500');
-        checkDiv.classList.add(`border-${color}-400`, `bg-${color}-500`);
-        checkDiv.innerHTML = '<i data-lucide="check-circle" class="w-3 h-3 text-white"></i>';
-
+        element.className = `p-3 rounded-lg border-2 cursor-pointer transition-all bg-${color}-500/20 border-${color}-500`;
+        const checkDiv = element.querySelector('.check-icon-container');
+        if (checkDiv) {
+            checkDiv.className = `check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all border-${color}-400 bg-${color}-500`;
+            checkDiv.innerHTML = '<i data-lucide="check-circle" class="w-3 h-3 text-white"></i>';
+        }
+        
         lucide.createIcons();
     };
 
@@ -334,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         toggleButtonLoading(audioBtn, true);
         audioPlayerContainer.innerHTML = '';
-        const scriptText = scriptTextarea.value.split('\n\n').map(part => part.split(/:\n/)[1] || part).join(' ');
+        const scriptText = scriptTextarea.value.split('\n\n').map(part => (part.split(/:\n/)[1] || part)).join(' ');
         const VOICE_ID = 'JE0bYmphWP8pWQIcVNZr';
         const apiUrl = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
 
