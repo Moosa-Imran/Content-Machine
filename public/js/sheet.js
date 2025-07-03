@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(endpoint, options);
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred' }));
+                const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred' }));
                 throw new Error(errorData.error);
             }
             return await response.json();

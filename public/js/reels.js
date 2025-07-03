@@ -11,16 +11,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const paginationContainer = document.getElementById('pagination-container');
     const findNewScriptsBtn = document.getElementById('find-new-scripts-btn');
     const reelsLoader = document.getElementById('reels-loader');
+    const reelsContainer = document.getElementById('reels-container');
 
     // --- INITIALIZATION ---
     const init = () => {
-        // Check sessionStorage first for content redirected from other pages
+        // Check sessionStorage first
         const generatedContent = sessionStorage.getItem('generatedContent');
         if (generatedContent) {
             contentFeed = JSON.parse(generatedContent);
-            sessionStorage.removeItem('generatedContent'); // Clear after use
+            sessionStorage.removeItem('generatedContent');
         } else {
-            // Fallback to initial data embedded in the EJS template
+            // Fallback to initial data
             const initialDataElement = document.getElementById('initial-data');
             if (initialDataElement) {
                 try {
@@ -68,10 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = isLoading;
 
         if (isLoading) {
-            icon.innerHTML = '<i data-lucide="refresh-cw" class="w-5 h-5 animate-spin"></i>';
+            icon.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>';
             if (text) text.textContent = loadingText;
         } else {
-            icon.innerHTML = `<i data-lucide="${button.dataset.icon || 'search'}" class="w-5 h-5"></i>`;
+            icon.innerHTML = `<i data-lucide="${button.dataset.icon || 'search'}" class="w-4 h-4"></i>`;
             if (text) text.textContent = button.dataset.originalText || 'Submit';
         }
         lucide.createIcons();
@@ -93,43 +94,52 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- CORE LOGIC ---
     const fetchNewScripts = async () => {
-        toggleButtonLoading(findNewScriptsBtn, true);
+        toggleButtonLoading(findNewScriptsBtn, true, 'Finding...');
         reelCardContainer.innerHTML = '';
         paginationContainer.innerHTML = '';
         reelsLoader.classList.remove('hidden');
+        reelsContainer.style.minHeight = '500px'; // Prevent layout shift
         try {
             contentFeed = await apiCall('/api/new-scripts');
             currentFeedIndex = 0;
             renderCurrentReel();
         } catch (error) {
-            reelCardContainer.innerHTML = `<div class="text-center text-red-400 p-8">Failed to load scripts: ${error.message}</div>`;
+            reelCardContainer.innerHTML = `<div class="text-center text-red-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl border border-red-500/30 dark:border-red-500/50">${error.message}</div>`;
         } finally {
             toggleButtonLoading(findNewScriptsBtn, false);
             reelsLoader.classList.add('hidden');
+            reelsContainer.style.minHeight = 'auto';
         }
     };
     
     const renderCurrentReel = () => {
         if (!contentFeed || contentFeed.length === 0) {
-            reelCardContainer.innerHTML = `<div class="text-center text-gray-400 p-8">No scripts found.</div>`;
+            reelCardContainer.innerHTML = `<div class="text-center text-slate-500 dark:text-slate-400 p-8 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">No scripts found.</div>`;
             return;
         }
         const story = contentFeed[currentFeedIndex];
         reelCardContainer.innerHTML = generateReelCardHTML(story);
         updatePagination();
+        // Manually trigger the first option selection to apply styles
+        document.querySelectorAll('[data-section-type]').forEach(section => {
+            const firstOption = section.querySelector('.p-3');
+            if (firstOption) {
+                selectOption(firstOption, section.dataset.sectionType);
+            }
+        });
         lucide.createIcons();
     };
     
     const updatePagination = () => {
-        if (!contentFeed || contentFeed.length === 0) {
+        if (!contentFeed || contentFeed.length <= 1) {
             paginationContainer.innerHTML = '';
             return;
         }
         paginationContainer.innerHTML = `
-            <div class="flex items-center justify-center gap-4">
-                <button id="prev-btn" class="bg-white/10 hover:bg-white/20 p-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                <span class="text-lg font-semibold text-gray-300">Script <span class="text-yellow-400">${currentFeedIndex + 1}</span> of ${contentFeed.length}</span>
-                <button id="next-btn" class="bg-white/10 hover:bg-white/20 p-3 rounded-full transition-colors"><i data-lucide="arrow-right" class="w-6 h-6"></i></button>
+            <div class="flex items-center justify-between">
+                <button id="prev-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Script <span class="text-primary-600 dark:text-primary-400 font-bold">${currentFeedIndex + 1}</span> of ${contentFeed.length}</span>
+                <button id="next-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">${contentFeed.length - 1 === currentFeedIndex ? 'Find More' : '<i data-lucide="arrow-right" class="w-5 h-5"></i>'}</button>
             </div>`;
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
@@ -148,33 +158,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchNewScripts();
             }
         });
-        lucide.createIcons();
+        if (contentFeed.length - 1 !== currentFeedIndex) {
+            lucide.createIcons({ nodes: [nextBtn] });
+        }
     };
 
     const generateReelCardHTML = (story) => {
         const sections = [
-            { type: 'hooks', title: 'HOOK (0-8s)', icon: 'target', color: 'red' },
-            { type: 'buildUps', title: 'BUILD-UP (8-20s)', icon: 'trending-up', color: 'blue' },
-            { type: 'stories', title: 'STORY (20-45s)', icon: 'video', color: 'green' },
-            { type: 'psychologies', title: 'PSYCHOLOGY (45-60s)', icon: 'brain', color: 'purple' }
+            { type: 'hooks', title: 'Hook (0-8s)', icon: 'anchor', color: 'red' },
+            { type: 'buildUps', title: 'Build-Up (8-20s)', icon: 'trending-up', color: 'blue' },
+            { type: 'stories', title: 'Story (20-45s)', icon: 'book-open', color: 'green' },
+            { type: 'psychologies', title: 'Psychology (45-60s)', icon: 'brain-circuit', color: 'purple' }
         ];
 
         const generateSectionHTML = (sec) => {
             const options = story[sec.type] || [];
             return `
-                <div class="section-block">
-                    <div class="flex items-center justify-between gap-2 mb-3">
-                        <div class="flex items-center gap-2" data-color="${sec.color}"><i data-lucide="${sec.icon}" class="w-5 h-5 text-${sec.color}-400"></i><span class="font-bold text-${sec.color}-400">${sec.title}</span></div>
+                <div class="section-block rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <div class="flex items-center justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800" data-color="${sec.color}">
+                        <div class="flex items-center gap-2.5">
+                            <i data-lucide="${sec.icon}" class="w-5 h-5 text-${sec.color}-500 dark:text-${sec.color}-400"></i>
+                            <span class="font-semibold text-sm text-slate-700 dark:text-slate-200">${sec.title}</span>
+                        </div>
                     </div>
-                    <div class="space-y-2" data-section-type="${sec.type}">
+                    <div class="p-3 space-y-2" data-section-type="${sec.type}">
                         ${options.map((option, index) => `
-                            <div class="p-3 rounded-lg border-2 cursor-pointer transition-all ${index === 0 ? `bg-${sec.color}-500/20 border-${sec.color}-500` : 'bg-black/20 border-transparent hover:border-white/50'}" onclick="selectOption(this, '${sec.type}', ${index})">
+                            <div class="p-3 rounded-md border cursor-pointer transition-all" onclick="selectOption(this, '${sec.type}')">
                                 <label class="flex items-start text-sm cursor-pointer">
                                     <input type="radio" name="${story.id}-${sec.type}" data-index="${index}" ${index === 0 ? 'checked' : ''} class="sr-only" />
-                                    <div class="check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all ${index === 0 ? `border-${sec.color}-400 bg-${sec.color}-500` : 'border-gray-500'}">
-                                        ${index === 0 ? '<i data-lucide="check-circle" class="w-3 h-3 text-white"></i>' : ''}
-                                    </div>
-                                    <span class="flex-grow text-gray-300">${(option || '').replace(/\*\*(.*?)\*\*/g, '<strong class="text-yellow-400">$1</strong>')}</span>
+                                    <div class="check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all"></div>
+                                    <span class="flex-grow text-slate-600 dark:text-slate-300">${(option || '').replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-primary-600 dark:text-primary-400">$1</strong>')}</span>
                                 </label>
                             </div>
                         `).join('')}
@@ -183,65 +196,52 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         return `
-            <div class="bg-white/5 rounded-xl p-4 sm:p-6 backdrop-blur-sm border border-white/20 shadow-lg max-w-4xl mx-auto" data-story-id="${story.id}">
-                <div class="flex flex-wrap items-center gap-3 mb-6">
-                    ${story.id.toString().startsWith('preloaded') ? '<span class="bg-gray-700 text-white px-3 py-1 rounded-full text-sm font-bold">Pre-loaded Story</span>' : ''}
-                    ${story.id.toString().startsWith('sheet') ? '<span class="bg-purple-700 text-white px-3 py-1 rounded-full text-sm font-bold">From Sheet</span>' : ''}
-                    ${story.id.toString().startsWith('news') ? '<span class="bg-blue-700 text-white px-3 py-1 rounded-full text-sm font-bold">From News</span>' : ''}
-                    <span class="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-3 py-1 rounded-full text-sm font-bold">${story.company}</span>
-                    <span class="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-sm">${story.industry}</span>
-                    <button class="verify-story-btn flex items-center gap-1.5 text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1 rounded-full font-semibold transition-colors disabled:opacity-50" data-icon="shield" data-original-text="Verify Story">
-                        <span class="btn-icon"><i data-lucide="shield" class="w-4 h-4"></i></span>
+            <div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 card-glow max-w-4xl mx-auto" data-story-id="${story.id}">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h3 class="text-2xl font-bold text-slate-800 dark:text-white">Principle: <span class="text-primary-600 dark:text-primary-400">${story.psychology}</span></h3>
+                        <div class="flex flex-wrap items-center gap-2 mt-2">
+                           <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.company}</span>
+                           <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.industry}</span>
+                        </div>
+                    </div>
+                    <button class="verify-story-btn flex-shrink-0 flex items-center gap-1.5 text-xs bg-yellow-400/10 hover:bg-yellow-400/20 text-yellow-600 dark:text-yellow-400 px-3 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="shield-check" data-original-text="Verify Story">
+                        <span class="btn-icon"><i data-lucide="shield-check" class="w-4 h-4"></i></span>
                         <span class="btn-text">Verify Story</span>
                     </button>
                 </div>
-                <div class="verification-container"></div>
-                <h3 class="text-2xl font-bold mb-4 text-yellow-400">Principle: ${story.psychology}</h3>
-                <div class="space-y-6">${sections.map(generateSectionHTML).join('')}</div>
-                <div class="mt-6 pt-4 border-t border-white/10">
+                <div class="verification-container mb-4"></div>
+                <div class="space-y-4">${sections.map(generateSectionHTML).join('')}</div>
+                <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
                     <div class="flex flex-wrap gap-2">
-                        ${(story.hashtags || []).map(tag => `<span class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full">${tag}</span>`).join('')}
+                        ${(story.hashtags || []).map(tag => `<span class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-1 rounded-full">${tag}</span>`).join('')}
                     </div>
                 </div>
                 <div class="flex justify-center mt-8">
-                     <button class="build-script-btn flex items-center gap-2 bg-green-500 hover:bg-green-600 px-8 py-3 rounded-lg font-semibold text-lg transition-all transform hover:scale-105"><i data-lucide="arrow-down" class="w-5 h-5"></i> Build Script</button>
+                    <button class="build-script-btn flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-all transform hover:scale-105"><i data-lucide="file-text" class="w-5 h-5"></i> Build Script</button>
                 </div>
-                <div class="script-editor-container mt-8 pt-6 border-t border-white/20 hidden"></div>
+                <div class="script-editor-container mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 hidden"></div>
             </div>`;
     };
 
-    window.selectOption = (element, type, index) => {
-        const sectionBlock = element.closest('.section-block');
-        const sectionContainer = sectionBlock.querySelector(`[data-section-type="${type}"]`);
-        const colorDiv = sectionBlock.querySelector('[data-color]');
-        
-        if (!colorDiv) {
-            console.error("Could not find color data attribute to determine color.");
-            return;
-        }
-        const color = colorDiv.dataset.color;
+    window.selectOption = (element, type) => {
+        const sectionContainer = element.closest(`[data-section-type="${type}"]`);
+        const color = element.closest('.section-block').querySelector('[data-color]').dataset.color;
 
         sectionContainer.querySelectorAll('.p-3').forEach(div => {
-            div.className = 'p-3 rounded-lg border-2 cursor-pointer transition-all bg-black/20 border-transparent hover:border-white/50';
+            div.className = 'p-3 rounded-md border cursor-pointer transition-all border-slate-200 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500';
             const iconContainer = div.querySelector('.check-icon-container');
-            if (iconContainer) {
-                iconContainer.innerHTML = '';
-                iconContainer.className = 'check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all border-gray-500';
-            }
+            iconContainer.innerHTML = '';
+            iconContainer.className = 'check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all border-slate-400 dark:border-slate-500';
         });
         
-        sectionContainer.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
-        const radioInput = element.querySelector(`input[data-index="${index}"]`);
-        if (radioInput) {
-            radioInput.checked = true;
-        }
+        const radioInput = element.querySelector('input[type="radio"]');
+        radioInput.checked = true;
 
-        element.className = `p-3 rounded-lg border-2 cursor-pointer transition-all bg-${color}-500/20 border-${color}-500`;
+        element.className = `p-3 rounded-md border-2 cursor-pointer transition-all border-${color}-500 dark:border-${color}-400 bg-${color}-500/10`;
         const checkDiv = element.querySelector('.check-icon-container');
-        if (checkDiv) {
-            checkDiv.className = `check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all border-${color}-400 bg-${color}-500`;
-            checkDiv.innerHTML = '<i data-lucide="check-circle" class="w-3 h-3 text-white"></i>';
-        }
+        checkDiv.className = `check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all border-${color}-400 bg-${color}-500`;
+        checkDiv.innerHTML = '<i data-lucide="check" class="w-3 h-3 text-white"></i>';
         
         lucide.createIcons();
     };
@@ -259,32 +259,34 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const editorContainer = document.querySelector('.script-editor-container');
         editorContainer.innerHTML = `
-            <h4 class="text-xl font-bold text-center mb-4 text-yellow-400 flex items-center justify-center gap-2"><i data-lucide="edit" class="w-5 h-5"></i>AI Script Editor</h4>
-            <textarea id="final-script-textarea" class="w-full h-64 p-3 bg-black/20 rounded-md border border-white/20 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none text-sm">${scriptText}</textarea>
-            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" id="ai-rewrite-prompt" placeholder="Enter rewrite instruction..." class="w-full md:col-span-2 p-3 bg-black/20 rounded-md border border-white/20 text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm" />
-                <button class="generate-audio-btn flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="play" data-original-text="Generate Audio">
-                    <span class="btn-icon"><i data-lucide="play" class="w-5 h-5"></i></span>
-                    <span class="btn-text">Generate Audio</span>
-                </button>
-                <button class="copy-text-btn flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold transition-colors"><i data-lucide="copy" class="w-5 h-5"></i>Copy Text</button>
-                <div class="md:col-span-2">
-                     <button class="rewrite-ai-btn w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="wand-2" data-original-text="Rewrite with AI">
+            <div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800">
+                <h4 class="text-xl font-bold text-center mb-4 text-slate-800 dark:text-white flex items-center justify-center gap-2"><i data-lucide="edit" class="w-5 h-5 text-primary-500"></i>Script Editor</h4>
+                <textarea id="final-script-textarea" class="w-full h-64 p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:outline-none text-sm">${scriptText}</textarea>
+                <div class="mt-4 space-y-4">
+                    <input type="text" id="ai-rewrite-prompt" placeholder="Optional: Enter a rewrite instruction (e.g., 'make it funnier')" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm" />
+                    <button class="rewrite-ai-btn w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="wand-2" data-original-text="Rewrite with AI">
                         <span class="btn-icon"><i data-lucide="wand-2" class="w-5 h-5"></i></span>
                         <span class="btn-text">Rewrite with AI</span>
                     </button>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button class="generate-audio-btn flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="music-4" data-original-text="Generate Audio">
+                            <span class="btn-icon"><i data-lucide="music-4" class="w-5 h-5"></i></span>
+                            <span class="btn-text">Generate Audio</span>
+                        </button>
+                        <button class="copy-text-btn flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"><i data-lucide="copy" class="w-5 h-5"></i>Copy Text</button>
+                    </div>
                 </div>
-            </div>
-            <div class="audio-player-container mt-4"></div>`;
+                <div class="audio-player-container mt-4"></div>
+            </div>`;
         editorContainer.classList.remove('hidden');
         lucide.createIcons();
     };
 
     const handleVerifyStory = async (verifyBtn) => {
         const story = contentFeed[currentFeedIndex];
-        toggleButtonLoading(verifyBtn, true);
+        toggleButtonLoading(verifyBtn, true, 'Verifying...');
         const verificationContainer = document.querySelector('.verification-container');
-        verificationContainer.innerHTML = `<div class="text-center p-4 my-4 bg-black/20 rounded-lg"><p class="text-yellow-400">Verifying story with AI...</p></div>`;
+        verificationContainer.innerHTML = `<div class="text-center p-4 my-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg"><p class="text-slate-600 dark:text-slate-300">Verifying story with AI...</p></div>`;
 
         try {
             const result = await apiCall('/api/verify-story', {
@@ -293,45 +295,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(story)
             });
             verificationContainer.innerHTML = `
-                <div class="my-4 p-4 bg-black/20 rounded-lg">
-                    <h4 class="font-bold text-yellow-400 mb-2">Verification Result:</h4>
+                <div class="my-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <h4 class="font-bold text-slate-700 dark:text-white mb-2">Verification Result:</h4>
                     <ul class="space-y-2 text-sm mb-3">
                         ${result.checks.map(check => `
                             <li class="flex items-start gap-2">
-                                ${check.is_correct ? '<i data-lucide="check-circle" class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0"></i>' : '<i data-lucide="alert-triangle" class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0"></i>'}
-                                <span><strong>${check.check}:</strong> ${check.comment}</span>
+                                ${check.is_correct ? '<i data-lucide="check-circle-2" class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0"></i>' : '<i data-lucide="alert-triangle" class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0"></i>'}
+                                <span class="text-slate-600 dark:text-slate-300"><strong>${check.check}:</strong> ${check.comment}</span>
                             </li>`).join('')}
                     </ul>
-                    <p class="text-sm font-semibold p-2 rounded ${result.confidence_score > 75 ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}">
+                    <p class="text-sm font-semibold p-2 rounded ${result.confidence_score > 75 ? 'bg-green-500/10 text-green-700 dark:text-green-300' : 'bg-red-500/10 text-red-700 dark:text-red-300'}">
                         <strong>Conclusion:</strong> ${result.conclusion} (Confidence: ${result.confidence_score}%)
                     </p>
                 </div>`;
             lucide.createIcons();
         } catch (error) {
-            verificationContainer.innerHTML = `<div class="text-center text-red-400 p-4 my-4 bg-black/20 rounded-lg">${error.message}</div>`;
+            verificationContainer.innerHTML = `<div class="text-center text-red-500 p-4 my-2 bg-red-500/10 rounded-lg border border-red-500/30">${error.message}</div>`;
         } finally {
             toggleButtonLoading(verifyBtn, false);
-        }
-    };
-
-    const handleAiRewrite = async (rewriteBtn) => {
-        const promptInput = document.getElementById('ai-rewrite-prompt');
-        const scriptTextarea = document.getElementById('final-script-textarea');
-        if (!promptInput.value.trim()) return;
-
-        toggleButtonLoading(rewriteBtn, true);
-        try {
-            const result = await apiCall('/api/rewrite-script', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ finalScript: scriptTextarea.value, aiPrompt: promptInput.value })
-            });
-            scriptTextarea.value = result.newScript;
-            promptInput.value = '';
-        } catch(error) {
-            scriptTextarea.value += `\n\n[AI rewrite failed: ${error.message}]`;
-        } finally {
-            toggleButtonLoading(rewriteBtn, false);
         }
     };
     
@@ -353,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        toggleButtonLoading(audioBtn, true);
+        toggleButtonLoading(audioBtn, true, 'Generating...');
         audioPlayerContainer.innerHTML = '';
         const scriptText = scriptTextarea.value.split('\n\n').map(part => (part.split(/:\n/)[1] || part)).join(' ');
         const VOICE_ID = 'JE0bYmphWP8pWQIcVNZr';
@@ -370,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = URL.createObjectURL(audioBlob);
             audioPlayerContainer.innerHTML = `<audio controls src="${url}" class="w-full">Your browser does not support the audio element.</audio>`;
         } catch (error) {
-            audioPlayerContainer.innerHTML = `<p class="text-red-400">Failed to generate audio: ${error.message}</p>`;
+            audioPlayerContainer.innerHTML = `<p class="text-red-500 dark:text-red-400">Failed to generate audio: ${error.message}</p>`;
         } finally {
             toggleButtonLoading(audioBtn, false);
         }

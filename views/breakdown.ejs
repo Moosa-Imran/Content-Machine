@@ -1,48 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/css/style.css">
-    <link id="favicon" rel="icon" href="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" />
-</head>
-<body class="bg-gray-900 text-white font-sans">
+<%- include('partials/head') %>
 
-    <%- include('partials/header') %>
+<%- include('partials/header') %>
 
-    <main class="container mx-auto px-4 py-8">
-        <div class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">Tactic Breakdowns</h1>
-            <p class="text-lg text-gray-300 mb-4">Select a company to reveal its secret marketing tactics with AI.</p>
-            <a href="/" class="text-blue-400 hover:text-blue-300 transition-colors">&larr; Back to Dashboard</a>
+<main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-500 to-green-500 dark:from-blue-400 dark:to-green-400 bg-clip-text text-transparent">Tactic Breakdowns</h1>
+                <p class="mt-1 text-slate-500 dark:text-slate-400">Select a company to reveal its secret marketing tactics with AI.</p>
+            </div>
+            <a href="/" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                Back to Dashboard
+            </a>
         </div>
-        <div class="max-w-4xl mx-auto">
-            <div class="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/20 shadow-lg">
-                <div class="mb-6">
-                    <button id="find-companies-btn" class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="search" data-original-text="Find New Companies">
-                        <span class="btn-icon"><i data-lucide="search" class="w-5 h-5"></i></span>
-                        <span class="btn-text">Find New Companies</span>
-                    </button>
+
+        <!-- Main Content Area -->
+        <div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 card-glow">
+            <!-- Company Selection -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-3 text-slate-700 dark:text-slate-200">Select a Company to Analyze</h2>
+                <div id="companies-loader" class="text-center p-4 hidden">
+                    <div class="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
+                        <i data-lucide="refresh-cw" class="w-5 h-5 animate-spin"></i>
+                        <span>Finding companies...</span>
+                    </div>
                 </div>
-                <div id="companies-loader" class="text-center p-4 hidden"><i data-lucide="refresh-cw" class="w-8 h-8 animate-spin mx-auto text-green-400"></i></div>
-                <div id="companies-error" class="text-red-400 text-center my-4 hidden"></div>
-                <div id="companies-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8"></div>
-                <div id="script-loader" class="text-center p-8 hidden"><i data-lucide="refresh-cw" class="w-10 h-10 animate-spin mx-auto text-yellow-400"></i><p class="mt-2 text-lg"></p></div>
-                <div id="script-container" class="space-y-6 text-left bg-black/20 p-6 rounded-lg hidden"></div>
+                <div id="companies-error" class="text-red-500 text-center my-4 hidden"></div>
+                <div id="companies-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-4"></div>
+                <button id="find-companies-btn" class="w-full flex items-center justify-center gap-2 mt-4 px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-500/10 hover:bg-primary-500/20 rounded-lg focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" data-icon="search" data-original-text="Find More Companies">
+                    <span class="btn-icon"><i data-lucide="search" class="w-4 h-4"></i></span>
+                    <span class="btn-text">Find More Companies</span>
+                </button>
+            </div>
+
+            <!-- Divider -->
+            <hr class="border-slate-200 dark:border-slate-800 my-6">
+
+            <!-- Script/Breakdown Display -->
+            <div id="script-loader" class="text-center p-8 hidden">
+                 <div class="flex flex-col items-center gap-4">
+                    <i data-lucide="refresh-cw" class="w-10 h-10 animate-spin text-primary-500"></i>
+                    <p class="text-slate-600 dark:text-slate-300 font-medium"></p>
+                </div>
+            </div>
+            <div id="script-container" class="space-y-6 text-left hidden">
+                <!-- Analysis results will be injected here -->
             </div>
         </div>
-    </main>
-    
-    <%- include('partials/footer') %>
+    </div>
+</main>
 
-    <script src="/js/breakdown.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-        });
-    </script>
-</body>
-</html>
+<script src="/js/breakdown.js"></script>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    // Initialize Lucide Icons
+                    lucide.createIcons();
+        
+                    // --- Theme Toggler ---
+                    const themeToggle = document.getElementById('theme-toggle');
+                    const htmlEl = document.documentElement;
+        
+                    themeToggle.addEventListener('click', () => {
+                        const isDark = htmlEl.classList.toggle('dark');
+                        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                        lucide.createIcons(); // Re-render icons if they change between modes
+                    });
+        
+                    // --- Mobile Sidebar Logic ---
+                    const mobileMenuButton = document.getElementById('mobile-menu-button');
+                    const sidebar = document.getElementById('sidebar');
+                    const sidebarCloseButton = document.getElementById('sidebar-close-button');
+                    const sidebarOverlay = document.getElementById('sidebar-overlay');
+        
+                    const openSidebar = () => {
+                        sidebar.classList.remove('-translate-x-full');
+                        sidebarOverlay.classList.remove('hidden');
+                    };
+        
+                    const closeSidebar = () => {
+                        sidebar.classList.add('-translate-x-full');
+                        sidebarOverlay.classList.add('hidden');
+                    };
+        
+                    mobileMenuButton.addEventListener('click', openSidebar);
+                    sidebarCloseButton.addEventListener('click', closeSidebar);
+                    sidebarOverlay.addEventListener('click', closeSidebar);
+                });
+            </script>
+
+<%- include('partials/footer') %>
