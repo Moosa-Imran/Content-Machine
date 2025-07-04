@@ -93,29 +93,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         toggleButtonLoading(createStoriesBtn, true, 'Creating...');
         try {
-            const newStories = await apiCall('/api/create-stories-from-news', {
+            const formattedStories = await apiCall('/api/create-stories-from-news', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ articles: selectedArticles })
             });
 
-            const extraHooks = await apiCall('/api/get-extra-hooks');
+            const validStories = formattedStories.filter(story => story && story.hooks && story.buildUps);
+            if(validStories.length === 0) {
+                throw new Error("AI failed to generate valid stories from the selected news.");
+            }
 
-            const formattedStories = newStories.map(story => ({
-                ...story,
-                id: `db-${story._id}`,
-                hooks: generateMoreOptions(story, 'hooks', extraHooks),
-                buildUps: generateMoreOptions(story, 'buildUps'),
-                stories: generateMoreOptions(story, 'stories'),
-                psychologies: generateMoreOptions(story, 'psychologies'),
-            }));
-
-            contentFeed = [...formattedStories, ...contentFeed];
+            // **CHANGE**: Replace the content feed instead of prepending to it.
+            contentFeed = validStories;
             currentFeedIndex = 0;
             renderCurrentReel();
             newsModal.classList.add('hidden');
         } catch (error) {
-            alert('Failed to create stories.');
+            console.error("Error in handleCreateStoriesClick:", error);
+            alert(`Failed to create stories: ${error.message}`);
         } finally {
             toggleButtonLoading(createStoriesBtn, false);
         }
@@ -174,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const story = contentFeed[currentFeedIndex];
         reelCardContainer.innerHTML = generateReelCardHTML(story);
         updatePagination();
-        // Manually trigger the first option selection to apply styles
         document.querySelectorAll('[data-section-type]').forEach(section => {
             const firstOption = section.querySelector('.p-3');
             if (firstOption) {
@@ -226,6 +221,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         const generateSectionHTML = (sec) => {
+            // Guard clause to prevent error if a section is malformed
+            if (!sec || !sec.type) {
+                console.error("generateSectionHTML was called with an invalid section:", sec);
+                return ''; 
+            }
             const options = story[sec.type] || [];
             return `
                 <div class="section-block rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">

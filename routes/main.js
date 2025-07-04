@@ -3,6 +3,7 @@
 
 const express = require('express');
 const router = express.Router();
+const fetch = require('node-fetch'); // Ensure node-fetch is imported
 
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
@@ -100,37 +101,27 @@ router.get('/api/new-scripts', async (req, res) => {
     }
 });
 
-router.get('/api/fetch-news-for-story-creation', (req, res) => {
-    // In a real application, you would use the Google Search API here
-    // For now, we'll return a hardcoded list based on the search results
-    const articles = [
-        {
-            title: "Top 10 Digital Marketing Trends in 2024-2025 | Limely",
-            url: "https://www.limely.co.uk/blog/top-10-digital-marketing-trends-in-2024-2025",
-            summary: "The rise of visual search technology is transforming the way consumers find products online. AI-powered image searches are becoming increasingly sophisticated, enabling users to search the web using images rather than text."
-        },
-        {
-            title: "9 Top Marketing Trends of 2025 | Coursera",
-            url: "https://www.coursera.org/articles/marketing-trends",
-            summary: "AI advancements have made a big impact on marketing. According to HubSpot's State of Marketing Report 2025, 92 percent of marketers stated that AI has already had an impact on their role, with one in five marketers planning to use AI agents to automate their marketing strategies."
-        },
-        {
-            title: "Psychological Pricing: 10 Strategies to Boost Sales (2025) - Shopify Australia",
-            url: "https://www.shopify.com/au/blog/psychological-pricing",
-            summary: "Charm pricing, the most heavily taught psychological pricing strategy, removes one cent from the rounded dollar price of an item to trick the brain into thinking it costs less. So if $4 becomes $3.99, the customer is more likely to see and remember the $3, instead of rounding up to $4."
-        },
-        {
-            title: "20 Key Consumer Behavior Trends (2024 & 2025) - Intelligence Node",
-            url: "https://www.intelligencenode.com/blog/key-consumer-behavior-trends/",
-            summary: "Nearly 49% of all consumers buy products after seeing influencer posts. For younger generations, especially Gen Z, influencers play a massive role in shaping decisions. The trick for brands is to pick influencers who feel like a natural fit."
-        },
-        {
-            title: "Neuromarketing research: Innovative methods - Noldus",
-            url: "https://noldus.com/blog/neuromarketing",
-            summary: "Neuromarketing, the science of understanding how consumers brains respond to marketing stimuli, has surged in popularity. This interdisciplinary field blends marketing, neuroscience, and psychology to uncover the hidden factors influencing consumer behavior."
+router.get('/api/fetch-news-for-story-creation', async (req, res) => {
+    try {
+        const newsServerUrl = 'https://news-server-opal.vercel.app/';
+        const response = await fetch(newsServerUrl);
+        if (!response.ok) {
+            throw new Error(`News server responded with status: ${response.status}`);
         }
-    ];
-    res.json(articles);
+        const articles = await response.json();
+        
+        const formattedArticles = articles.map(article => ({
+            title: article.title,
+            url: article.url,
+            summary: article.description,
+            source: article.source
+        }));
+
+        res.json(formattedArticles);
+    } catch (error) {
+        console.error("Error fetching from news server:", error);
+        res.status(500).json({ error: 'Failed to fetch news articles from the custom server.' });
+    }
 });
 
 router.post('/api/create-stories-from-news', async (req, res) => {
@@ -147,7 +138,7 @@ router.post('/api/create-stories-from-news', async (req, res) => {
             const prompt = `Based on the following news article, create a business case study.
             Article Title: ${article.title}
             Article URL: ${article.url}
-            Article Summary: ${article.summary}
+            Article Description: ${article.summary}
 
             Generate a JSON object with the following structure:
             {
@@ -165,15 +156,36 @@ router.post('/api/create-stories-from-news', async (req, res) => {
             }`;
 
             const result = await callGeminiAPI(prompt, true);
-            newBusinessCases.push(result);
+            
+            const caseToAdd = Array.isArray(result) ? result[0] : result;
+            if (caseToAdd && typeof caseToAdd === 'object' && !Array.isArray(caseToAdd)) {
+                newBusinessCases.push(caseToAdd);
+            } else {
+                console.warn(`Skipping invalid result from Gemini for article: ${article.title}`);
+            }
         }
 
-        const collection = db.collection('Business_Cases');
-        const insertResult = await collection.insertMany(newBusinessCases);
-        
-        const newDocs = await collection.find({ _id: { $in: Object.values(insertResult.insertedIds) } }).toArray();
+        if (newBusinessCases.length > 0) {
+            const collection = db.collection('Business_Cases');
+            const insertResult = await collection.insertMany(newBusinessCases);
+            const newDocs = await collection.find({ _id: { $in: Object.values(insertResult.insertedIds) } }).toArray();
+            
+            // **FIX**: Fetch extra hooks and format the new stories before sending
+            const extraHooks = await getExtraHooks();
+            const formattedStories = newDocs.map((story) => ({
+                ...story,
+                id: `db-${story._id.toString()}`,
+                hooks: generateMoreOptions(story, 'hooks', extraHooks),
+                buildUps: generateMoreOptions(story, 'buildUps'),
+                stories: generateMoreOptions(story, 'stories'),
+                psychologies: generateMoreOptions(story, 'psychologies'),
+            }));
+            
+            res.status(201).json(formattedStories);
+        } else {
+            res.status(200).json([]);
+        }
 
-        res.status(201).json(newDocs);
     } catch (error) {
         console.error('Error creating stories from news:', error);
         res.status(500).json({ error: 'Failed to create stories from news.' });

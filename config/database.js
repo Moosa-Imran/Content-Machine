@@ -4,7 +4,7 @@
 const { MongoClient } = require('mongodb');
 
 // Connection URI - It's best to use an environment variable for this.
-const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
+const uri = process.env.MONGODB_URI || "mongodb+srv://mi228334:notcanon321go@cluster0.lhs4vzn.mongodb.net";
 const client = new MongoClient(uri);
 
 let db;
