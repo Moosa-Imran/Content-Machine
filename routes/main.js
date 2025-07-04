@@ -1,112 +1,28 @@
 // routes/main.js
-// Handles all application routing and server-side logic, including AI interactions.
-// REFACIORED FOR SEPARATE PAGES & BUG FIXES
+// Handles all application routing and orchestrates calls to services and utilities.
 
 const express = require('express');
-const fetch = require('node-fetch'); // Use node-fetch@2 for CommonJS
 const router = express.Router();
 
-// --- DATABASE & HELPERS (These remain on the backend) ---
-const allVerifiedBusinessCases = [
-    { id: 'cs01', company: "Lemonade Insurance", industry: "Insurance Tech", psychology: "Reciprocity & Honesty", problem: "Overcoming deep consumer mistrust in the insurance industry.", solution: "Donating unclaimed money to charities chosen by customers.", realStudy: "Featured in behavioral economics case studies.", findings: "This model builds trust and a sense of shared values, leading to higher customer loyalty and lower fraud rates.", verified: true, sources: ["Harvard Business School case studies", "Forbes articles on InsurTech"], source_url: "https://www.hbs.edu/faculty/Pages/item.aspx?num=53230", hashtags: ["#InsurTech", "#BehavioralEconomics", "#SocialImpact", "#Lemonade"] },
-    { id: 'cs02', company: "Adagio Teas", industry: "E-commerce", psychology: "Gamification & Endowment Effect", problem: "Generating an endless supply of new products.", solution: "Allows customers to create and name their own signature tea blends, which can then be sold on the site.", realStudy: "Case studies in user-generated content and e-commerce personalization.", findings: "Customers who create blends become brand evangelists. They feel ownership (Endowment Effect) and are motivated to promote their own creations.", verified: true, sources: ["E-commerce marketing blogs", "Analysis of user-generated content platforms"], source_url: "https://www.adagio.com/", hashtags: ["#Ecommerce", "#UserGeneratedContent", "#Gamification", "#AdagioTeas"] },
-    { id: 'cs03', company: "Chewy.com", industry: "E-commerce (Pet Supplies)", psychology: "Reciprocity & Peak-End Rule", problem: "Building extreme customer loyalty in a competitive market.", solution: "Empowering customer service reps to send hand-painted pet portraits and sympathy flowers after a pet passes away.", realStudy: "Widely cited example in customer service and CX strategy analyses.", findings: "These unexpected, high-emotion gestures create incredibly powerful, positive memories (Peak-End Rule), generating massive organic marketing and lifetime loyalty.", verified: true, sources: ["Forbes articles on customer experience", "Harvard Business Review analysis of customer loyalty"], source_url: "https://www.forbes.com/sites/shephyken/2021/11/21/chewys-formula-for-amazing-customer-service/", hashtags: ["#CustomerExperience", "#CX", "#BrandLoyalty", "#Chewy"] },
-    { id: 'cs04', company: "IKEA", industry: "Retail", psychology: "The IKEA Effect & Sunk Cost Fallacy", problem: "Getting customers to value flat-pack furniture and increasing their commitment to a purchase.", solution: "Requiring customers to assemble the furniture themselves.", realStudy: "Dan Ariely's research at Duke University.", findings: "The effort invested in building the furniture (sunk cost) makes customers value the finished product significantly more than if it came pre-assembled.", verified: true, sources: ["Book: 'Predictably Irrational' by Dan Ariely", "Duke University research papers"], source_url: "https://www.danariely.com/the-ikea-effect-when-labor-leads-to-love/", hashtags: ["#IKEAEffect", "#BehavioralScience", "#RetailStrategy", "#IKEA"] },
-    { id: 'cs05', company: "Starbucks", industry: "Food & Beverage", psychology: "Status Anxiety & The 'Third Place'", problem: "Selling mass-market coffee at a premium price.", solution: "Using Italian-sounding size names (Grande, Venti) and creating a comfortable 'third place' environment between work and home.", realStudy: "Sociological studies on consumer behavior and branding.", findings: "The foreign names add a layer of sophistication and create a unique in-group language, while the 'third place' concept fosters community and makes the higher price feel justified by the experience.", verified: true, sources: ["Book: 'The Starbucks Experience'", "Analysis by Prof. Bryant Simon"], source_url: "https://www.theguardian.com/lifeandstyle/2012/jan/07/starbucks-coffee-rules-bryant-simon", hashtags: ["#Starbucks", "#Branding", "#ThirdPlace", "#ConsumerPsychology"] },
-    { id: 'cs06', company: "Trader Joe's", industry: "Grocery", psychology: "Paradox of Choice & Scarcity", problem: "Competing with massive supermarkets that offer endless options.", solution: "Offering a drastically limited selection of unique, private-label items and frequently rotating stock.", realStudy: "Analysis based on Barry Schwartz's 'Paradox of Choice' theory.", findings: "A smaller selection reduces shopper anxiety and decision fatigue. The rotating stock creates a sense of urgency and scarcity, encouraging customers to buy items 'before they're gone.'", verified: true, sources: ["Book: 'The Paradox of Choice' by Barry Schwartz", "CNBC analysis of Trader Joe's business model"], source_url: "https://www.cnbc.com/2022/01/15/how-trader-joes-convinces-you-to-buy-its-products.html", hashtags: ["#TraderJoes", "#ParadoxOfChoice", "#Scarcity", "#Retail"] },
-    { id: 'cs07', company: "TikTok", industry: "Social Media", psychology: "Variable Reward Schedule", problem: "Maximizing user engagement and time spent on the app.", solution: "An algorithm that delivers a mix of highly engaging videos and mediocre ones in an unpredictable pattern.", realStudy: "Based on B.F. Skinner's research on operant conditioning.", findings: "Like a slot machine, a great video's unpredictable nature keeps users scrolling, seeking the next dopamine hit. It's more addictive than a predictable feed.", verified: true, sources: ["Center for Humane Technology analysis", "WSJ 'The TikTok Algorithm' documentary"], source_url: "https://www.humanetech.com/key-issues", hashtags: ["#TikTok", "#SocialMedia", "#AddictionByDesign", "#Dopamine"] },
-    { id: 'cs08', company: "Casper", industry: "E-commerce (Mattresses)", psychology: "Cognitive Dissonance Reduction", problem: "Convincing customers to buy a large, important item like a mattress without trying it first.", solution: "Offering an extremely generous 100-night free trial and hassle-free return policy.", realStudy: "Case study in overcoming online purchase barriers.", findings: "The free trial removes the purchase risk. Once the mattress is in their home, the 'Endowment Effect' kicks in, making it feel like theirs. The hassle of returning it, combined with cognitive dissonance (admitting they made a bad choice), results in a very low return rate.", verified: true, sources: ["Inc Magazine articles", "HBS case studies"], source_url: "https://www.inc.com/magazine/201705/burt-helm/casper-mattress-philip-krim.html", hashtags: ["#Casper", "#Ecommerce", "#CognitiveDissonance", "#FreeTrial"] },
-    { id: 'cs09', company: "HelloFresh", industry: "Meal Kit", psychology: "Choice Architecture", problem: "Making home cooking feel easy and preventing decision fatigue.", solution: "Pre-selecting recipes and pre-portioning all ingredients.", realStudy: "Application of nudge theory in product design.", findings: "By removing the most difficult parts of cooking (planning and shopping), they make the process feel achievable. Users are nudged towards cooking instead of ordering takeout.", verified: true, sources: ["Behavioral Scientist articles", "Meal kit industry analysis"], source_url: "https://behavioralscientist.org/how-meal-kits-hack-your-habits/", hashtags: ["#HelloFresh", "#NudgeTheory", "#ChoiceArchitecture"] },
-    { id: 'cs10', company: "Tinder", industry: "Social Tech", psychology: "The Swipe Mechanic & Egorov Effect", problem: "Making dating apps fast, engaging, and addictive.", solution: "The simple 'swipe right/left' interface.", realStudy: "Based on principles of variable rewards and simplified choice.", findings: "The swipe is a form of variable reward schedule. The 'It's a Match!' screen provides a powerful dopamine hit. The simplicity reduces cognitive load and turns decision-making into a game.", verified: true, sources: ["UX design analysis blogs", "Psychology Today articles"], source_url: "https://www.psychologytoday.com/us/blog/love-and-modern-life/202203/the-psychology-tinders-swipe-right-or-left-feature", hashtags: ["#Tinder", "#UXDesign", "#Gamification", "#DatingApps"] },
-    { id: 'cs11', company: "Amazon", industry: "E-commerce", psychology: "One-Click Ordering & Frictionless Purchasing", problem: "Maximizing the conversion rate between seeing a product and buying it.", solution: "Patenting and implementing the '1-Click' buy button.", realStudy: "A classic example of reducing friction in user experience.", findings: "By removing the steps of entering shipping and payment info, Amazon dramatically reduced the time for a customer to second-guess their impulse purchase, significantly boosting sales.", verified: true, sources: ["Nielsen Norman Group UX analysis", "Patents filed by Amazon"], source_url: "https://www.nngroup.com/articles/1-click-ordering/", hashtags: ["#Amazon", "#UX", "#Frictionless", "#Ecommerce"] },
-    { id: 'cs12', company: "Ryanair", industry: "Airline", psychology: "Drip Pricing & Ancillary Revenue", problem: "Appearing to have the lowest price while maximizing revenue.", solution: "Advertising an extremely low base fare and then adding charges for every optional service (seat selection, bags, etc.) throughout the booking process.", realStudy: "Studies on consumer behavior regarding hidden fees.", findings: "Once a customer is committed to the initial low price (anchoring), they are more likely to accept the small additional fees. This 'drip pricing' model often results in a final price higher than competitors, but the initial perception is of a bargain.", verified: true, sources: ["The Guardian travel section", "Studies on airline pricing strategies"], source_url: "https://www.theguardian.com/money/2023/aug/25/ryanair-how-to-avoid-the-extra-charges", hashtags: ["#Ryanair", "#DripPricing", "#BehavioralEconomics", "#TravelHacks"] },
-    { id: 'cs13', company: "McDonald's", industry: "Fast Food", psychology: "Sensory Marketing & Consistency", problem: "Ensuring a globally consistent brand experience that drives repeat purchases.", solution: "Strict control over store layout, smell (from cooking processes), and sound to create a familiar and predictable environment worldwide.", realStudy: "Sensory marketing research by Martin Lindstrom.", findings: "The consistent smell and environment trigger deep-seated brand associations and feelings of comfort and reliability, making it a low-risk, predictable choice for consumers anywhere.", verified: true, sources: ["Book: 'Brand Sense' by Martin Lindstrom", "QSR Magazine"], source_url: "https://www.qsrmagazine.com/outside-insights/sensory-marketing-how-brands-can-tap-all-five-senses/", hashtags: ["#McDonalds", "#SensoryMarketing", "#Branding", "#FastFood"] },
-    { id: 'cs14', company: "Costco", industry: "Retail", psychology: "Treasure Hunt & Bulk Buying Bias", problem: "Encouraging frequent visits and large purchases.", solution: "A constantly rotating, limited-stock selection of non-essential 'treasure' items placed in the center of the store, and selling essentials in bulk.", realStudy: "Retail psychology studies on warehouse club models.", findings: "The 'Treasure Hunt' creates a fear of missing out (FOMO) and a reason to visit often. The bulk packaging makes customers feel they are getting an excellent deal, even if they purchase more than they need.", verified: true, sources: ["CNBC analysis", "The Wall Street Journal"], source_url: "https://www.cnbc.com/2018/09/26/the-psychological-reasons-you-cant-stop-shopping-at-costco.html", hashtags: ["#Costco", "#TreasureHunt", "#RetailPsychology", "#BulkBuy"] },
-    { id: 'cs15', company: "ClassPass", industry: "Fitness Tech", psychology: "Gamified Scarcity & Loss Aversion", problem: "Getting users to commit to a monthly subscription for variable fitness classes.", solution: "Using a credit-based system where classes at popular times 'cost' more credits and unused credits expire.", realStudy: "Analysis of subscription models and user engagement.", findings: "The credit system makes users feel they are 'spending' a currency, creating a sense of scarcity for popular classes. The expiring credits trigger 'Loss Aversion', motivating users to book classes to avoid 'wasting' their monthly credits.", verified: true, sources: ["Subscription economy analysis on Substack", "Product management blogs"], source_url: "https://product.substack.com/p/the-genius-of-classpass", hashtags: ["#ClassPass", "#Gamification", "#LossAversion", "#Subscription"] }
-];
-const extraHooks = [ "You’ll probably scroll past this. And that’s exactly why it works.", "The best way to sell more? Stop trying to sell.", "This brand lost customers on purpose — and tripled revenue.", "They told customers not to buy… and sold out in 48 hours.", "Lower ratings = higher trust. Sounds backwards, but it’s science.", "Want more people to show up? Pretend you don’t care if they do.", "They removed all discounts — and people bought more.", "This ad doesn’t ask you to click… and that’s why everyone does.", "They said ‘Don’t follow us’ — 200,000 people did.", "Customers loved being rejected. Here’s how it boosted conversions.", "They made their product harder to buy — and demand exploded.", "They hid their most expensive item — and it became their bestseller.", "This brand admits it’s not for everyone. That’s what made it go viral.", "The less they posted, the more they grew. Here’s why.", "They made checkout slower. Sales jumped 19%.", "Why adding friction to the user journey increased loyalty.", "Telling customers ‘you won’t like this’ made them obsessed.", "They told customers to wait a month before buying. It backfired — in the best way.", "This site makes you click extra to see the price — and it works.", "The worst-performing product ad? It’s the one they ran again — and it blew up."];
-const generateMoreOptions = (businessCase, type) => {
-    const { company, industry, psychology, solution, problem, findings } = businessCase;
-    let templates = [];
-    if (type === 'hooks') {
-        const dynamicHooks = [
-            () => `How ${company} used ${psychology.split('&')[0].trim()} to solve a common ${industry} problem.`,
-            () => `This company's secret isn't their product. It's this simple psychological trick.`,
-            () => `If you think you're immune to marketing, wait until you see how ${company} changed their business.`
-        ];
-        const allHookOptions = [...extraHooks, ...dynamicHooks.map(fn => fn())];
-        const shuffled = allHookOptions.sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, 3);
-    } else if (type === 'buildUps') {
-        templates = [
-            () => `When a study published in '${businessCase.sources[0]}' analyzed this, they found a shocking correlation.`,
-            () => `This works because of a cognitive bias that affects 99% of us, whether we realize it or not.`,
-            () => `This isn't a new idea, but the way ${company} applied it is genius.`
-        ];
-    } else if (type === 'stories') {
-        templates = [
-            () => `${company} used a classic psychological tactic: **${psychology}**. They knew that by ${solution.toLowerCase()}, customers would feel a powerful, subconscious urge to respond. The result was clear: ${findings}.`,
-            () => `The core of their strategy was **${psychology}**. Instead of a direct approach to solving '${problem.toLowerCase()}', they changed the environment. By ${solution.toLowerCase()}, they subtly guided customer behavior, leading to incredible results.`,
-            () => `This is a textbook case of **${psychology.split('&')[0].trim()}** in the wild. The problem was ${problem.toLowerCase()}. The genius solution was ${solution.toLowerCase()}, which directly triggers this cognitive bias. Unsurprisingly, it worked: ${findings}.`
-        ];
-    } else if (type === 'psychologies') {
-        templates = [
-            () => `It all comes down to **${psychology}**. Our brains are wired to react this way because of our evolutionary need to fit in and trust others.`,
-            () => `This is a textbook example of **${psychology.split('&')[0].trim()}**. It's about influencing decision-making by creating a specific emotional or social context, rather than just focusing on the product's features.`,
-            () => `Why does this work? **${psychology}**. The company didn't change its product, it changed the psychological frame around the product, making it feel more valuable, trustworthy, or urgent.`
-        ];
-    }
-    const options = new Set();
-    while (options.size < 3 && templates.length > 0) {
-        const randomIndex = Math.floor(Math.random() * templates.length);
-        options.add(templates[randomIndex]());
-        templates.splice(randomIndex, 1);
-    }
-    return Array.from(options);
+// --- MODULE IMPORTS ---
+const { getDB } = require('../config/database');
+const { generateMoreOptions } = require('../utils/scriptGenerator');
+const { callGeminiAPI } = require('../services/aiService');
+
+// --- HELPER FUNCTION to get data from DB ---
+const getBusinessCases = async (limit = 10) => {
+    const db = getDB();
+    const pipeline = [{ $sample: { size: limit } }];
+    const cases = await db.collection('Business_Cases').aggregate(pipeline).toArray();
+    return cases;
 };
 
-const callGeminiAPI = async (prompt, isJson = false) => {
-    // IMPORTANT: In a real app, use environment variables for API keys.
-    const apiKey = process.env.GEMINI_API_KEY || ""; 
-    if (!apiKey) {
-        console.error("GEMINI_API_KEY environment variable is not set. API calls will fail.");
-        throw new Error("Server is missing API Key configuration. Please set the GEMINI_API_KEY environment variable.");
-    }
-    
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-    const payload = {
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        ...(isJson && { generationConfig: { responseMimeType: "application/json" } })
-    };
-
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            console.error("Gemini API Error Response:", errorBody);
-            throw new Error(`API call failed with status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
-            let textResponse = result.candidates[0].content.parts[0].text;
-            if (isJson) {
-                textResponse = textResponse.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-                return JSON.parse(textResponse);
-            }
-            return textResponse;
-        }
-        throw new Error("Invalid API response structure");
-    } catch (error) {
-        console.error("Gemini API Call Error:", error);
-        throw error; // Re-throw to be caught by the route handler
-    }
+const getExtraHooks = async () => {
+    const db = getDB();
+    const generalData = await db.collection('General').findOne({});
+    return generalData ? generalData.hooks : [];
 };
+
 
 // --- PAGE RENDERING ROUTES ---
 
@@ -116,13 +32,17 @@ router.get('/', (req, res) => {
     });
 });
 
-router.get('/reels', (req, res) => {
+router.get('/reels', async (req, res) => {
     try {
-        const shuffledCases = [...allVerifiedBusinessCases].sort(() => 0.5 - Math.random());
-        const initialFeed = shuffledCases.slice(0, 10).map((businessCase, index) => ({
+        const [businessCases, extraHooks] = await Promise.all([
+            getBusinessCases(10),
+            getExtraHooks()
+        ]);
+        
+        const initialFeed = businessCases.map((businessCase, index) => ({
             ...businessCase,
-            id: `preloaded-${Date.now()}-${index}`,
-            hooks: generateMoreOptions(businessCase, 'hooks'),
+            id: `db-${businessCase._id.toString()}`,
+            hooks: generateMoreOptions(businessCase, 'hooks', extraHooks),
             buildUps: generateMoreOptions(businessCase, 'buildUps'),
             stories: generateMoreOptions(businessCase, 'stories'),
             psychologies: generateMoreOptions(businessCase, 'psychologies'),
@@ -157,15 +77,19 @@ router.get('/news', (req, res) => {
 });
 
 
-// --- API Routes for Client-Side JS (remain the same) ---
+// --- API ROUTES ---
 
-router.get('/api/new-scripts', (req, res) => {
+router.get('/api/new-scripts', async (req, res) => {
     try {
-        const shuffledCases = [...allVerifiedBusinessCases].sort(() => 0.5 - Math.random());
-        const newBatch = shuffledCases.slice(0, 10).map((businessCase, index) => ({
+        const [businessCases, extraHooks] = await Promise.all([
+            getBusinessCases(10),
+            getExtraHooks()
+        ]);
+
+        const newBatch = businessCases.map((businessCase, index) => ({
             ...businessCase,
-            id: `preloaded-${Date.now()}-${index}`,
-            hooks: generateMoreOptions(businessCase, 'hooks'),
+            id: `db-${businessCase._id.toString()}`,
+            hooks: generateMoreOptions(businessCase, 'hooks', extraHooks),
             buildUps: generateMoreOptions(businessCase, 'buildUps'),
             stories: generateMoreOptions(businessCase, 'stories'),
             psychologies: generateMoreOptions(businessCase, 'psychologies'),
@@ -176,6 +100,96 @@ router.get('/api/new-scripts', (req, res) => {
     }
 });
 
+router.get('/api/fetch-news-for-story-creation', (req, res) => {
+    // In a real application, you would use the Google Search API here
+    // For now, we'll return a hardcoded list based on the search results
+    const articles = [
+        {
+            title: "Top 10 Digital Marketing Trends in 2024-2025 | Limely",
+            url: "https://www.limely.co.uk/blog/top-10-digital-marketing-trends-in-2024-2025",
+            summary: "The rise of visual search technology is transforming the way consumers find products online. AI-powered image searches are becoming increasingly sophisticated, enabling users to search the web using images rather than text."
+        },
+        {
+            title: "9 Top Marketing Trends of 2025 | Coursera",
+            url: "https://www.coursera.org/articles/marketing-trends",
+            summary: "AI advancements have made a big impact on marketing. According to HubSpot's State of Marketing Report 2025, 92 percent of marketers stated that AI has already had an impact on their role, with one in five marketers planning to use AI agents to automate their marketing strategies."
+        },
+        {
+            title: "Psychological Pricing: 10 Strategies to Boost Sales (2025) - Shopify Australia",
+            url: "https://www.shopify.com/au/blog/psychological-pricing",
+            summary: "Charm pricing, the most heavily taught psychological pricing strategy, removes one cent from the rounded dollar price of an item to trick the brain into thinking it costs less. So if $4 becomes $3.99, the customer is more likely to see and remember the $3, instead of rounding up to $4."
+        },
+        {
+            title: "20 Key Consumer Behavior Trends (2024 & 2025) - Intelligence Node",
+            url: "https://www.intelligencenode.com/blog/key-consumer-behavior-trends/",
+            summary: "Nearly 49% of all consumers buy products after seeing influencer posts. For younger generations, especially Gen Z, influencers play a massive role in shaping decisions. The trick for brands is to pick influencers who feel like a natural fit."
+        },
+        {
+            title: "Neuromarketing research: Innovative methods - Noldus",
+            url: "https://noldus.com/blog/neuromarketing",
+            summary: "Neuromarketing, the science of understanding how consumers brains respond to marketing stimuli, has surged in popularity. This interdisciplinary field blends marketing, neuroscience, and psychology to uncover the hidden factors influencing consumer behavior."
+        }
+    ];
+    res.json(articles);
+});
+
+router.post('/api/create-stories-from-news', async (req, res) => {
+    const { articles } = req.body;
+    if (!articles || !Array.isArray(articles) || articles.length === 0) {
+        return res.status(400).json({ error: 'No articles provided.' });
+    }
+
+    try {
+        const db = getDB();
+        const newBusinessCases = [];
+
+        for (const article of articles) {
+            const prompt = `Based on the following news article, create a business case study.
+            Article Title: ${article.title}
+            Article URL: ${article.url}
+            Article Summary: ${article.summary}
+
+            Generate a JSON object with the following structure:
+            {
+                "company": "A relevant company or 'A Company'",
+                "industry": "A relevant industry",
+                "psychology": "The core psychological principle discussed",
+                "problem": "The problem the company was trying to solve",
+                "solution": "The solution or tactic used",
+                "realStudy": "A brief mention of the study or research",
+                "findings": "The key findings or results",
+                "verified": false,
+                "sources": ["${article.url}"],
+                "source_url": "${article.url}",
+                "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3"]
+            }`;
+
+            const result = await callGeminiAPI(prompt, true);
+            newBusinessCases.push(result);
+        }
+
+        const collection = db.collection('Business_Cases');
+        const insertResult = await collection.insertMany(newBusinessCases);
+        
+        const newDocs = await collection.find({ _id: { $in: Object.values(insertResult.insertedIds) } }).toArray();
+
+        res.status(201).json(newDocs);
+    } catch (error) {
+        console.error('Error creating stories from news:', error);
+        res.status(500).json({ error: 'Failed to create stories from news.' });
+    }
+});
+
+router.get('/api/get-extra-hooks', async (req, res) => {
+    try {
+        const extraHooks = await getExtraHooks();
+        res.json(extraHooks);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get extra hooks.' });
+    }
+});
+
+// ... (rest of the API routes)
 router.post('/api/verify-story', async (req, res) => {
     const { company, solution, psychology, findings, sources } = req.body;
     const prompt = `Please verify the following business story. Check for the accuracy of the company's action, the stated psychological principle, and the claimed outcome. Provide a step-by-step verification process and a final conclusion.
@@ -191,7 +205,6 @@ router.post('/api/verify-story', async (req, res) => {
         const result = await callGeminiAPI(prompt, true);
         res.json(result);
     } catch (error) {
-        console.error("Verification API Error:", error.message);
         res.status(500).json({ error: `Verification process failed. Server error: ${error.message}` });
     }
 });
@@ -298,5 +311,6 @@ router.post('/api/create-story-from-news', async (req, res) => {
         res.status(500).json({ error: `Failed to generate a story from this article. Server error: ${err.message}` });
     }
 });
+
 
 module.exports = router;

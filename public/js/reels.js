@@ -12,16 +12,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const findNewScriptsBtn = document.getElementById('find-new-scripts-btn');
     const reelsLoader = document.getElementById('reels-loader');
     const reelsContainer = document.getElementById('reels-container');
+    const newsModal = document.getElementById('news-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const newsArticlesList = document.getElementById('news-articles-list');
+    const createStoriesBtn = document.getElementById('create-stories-btn');
 
     // --- INITIALIZATION ---
     const init = () => {
-        // Check sessionStorage first
         const generatedContent = sessionStorage.getItem('generatedContent');
         if (generatedContent) {
             contentFeed = JSON.parse(generatedContent);
             sessionStorage.removeItem('generatedContent');
         } else {
-            // Fallback to initial data
             const initialDataElement = document.getElementById('initial-data');
             if (initialDataElement) {
                 try {
@@ -43,10 +45,83 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- EVENT LISTENERS ---
     const attachEventListeners = () => {
-        findNewScriptsBtn?.addEventListener('click', fetchNewScripts);
+        findNewScriptsBtn?.addEventListener('click', handleFindNewScriptsClick);
         reelCardContainer.addEventListener('click', handleCardClick);
+        closeModalBtn?.addEventListener('click', () => newsModal.classList.add('hidden'));
+        createStoriesBtn?.addEventListener('click', handleCreateStoriesClick);
     };
 
+    const handleFindNewScriptsClick = async () => {
+        toggleButtonLoading(findNewScriptsBtn, true, 'Finding...');
+        reelsLoader.classList.remove('hidden');
+        try {
+            const articles = await apiCall('/api/fetch-news-for-story-creation');
+            populateNewsModal(articles);
+            newsModal.classList.remove('hidden');
+        } catch (error) {
+            alert('Failed to fetch news articles.');
+        } finally {
+            toggleButtonLoading(findNewScriptsBtn, false);
+            reelsLoader.classList.add('hidden');
+        }
+    };
+
+    const populateNewsModal = (articles) => {
+        newsArticlesList.innerHTML = articles.map((article, index) => `
+            <label for="article-${index}" class="block p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500">
+                <div class="flex items-start gap-4">
+                    <input type="checkbox" id="article-${index}" class="mt-1" data-article='${JSON.stringify(article)}'>
+                    <div>
+                        <h4 class="font-semibold text-slate-800 dark:text-white">${article.title}</h4>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">${article.summary}</p>
+                        <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">Read More</a>
+                    </div>
+                </div>
+            </label>
+        `).join('');
+        lucide.createIcons();
+    };
+
+    const handleCreateStoriesClick = async () => {
+        const selectedArticles = Array.from(newsArticlesList.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(checkbox => JSON.parse(checkbox.dataset.article));
+
+        if (selectedArticles.length === 0) {
+            alert('Please select at least one article to create stories from.');
+            return;
+        }
+
+        toggleButtonLoading(createStoriesBtn, true, 'Creating...');
+        try {
+            const newStories = await apiCall('/api/create-stories-from-news', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ articles: selectedArticles })
+            });
+
+            const extraHooks = await apiCall('/api/get-extra-hooks');
+
+            const formattedStories = newStories.map(story => ({
+                ...story,
+                id: `db-${story._id}`,
+                hooks: generateMoreOptions(story, 'hooks', extraHooks),
+                buildUps: generateMoreOptions(story, 'buildUps'),
+                stories: generateMoreOptions(story, 'stories'),
+                psychologies: generateMoreOptions(story, 'psychologies'),
+            }));
+
+            contentFeed = [...formattedStories, ...contentFeed];
+            currentFeedIndex = 0;
+            renderCurrentReel();
+            newsModal.classList.add('hidden');
+        } catch (error) {
+            alert('Failed to create stories.');
+        } finally {
+            toggleButtonLoading(createStoriesBtn, false);
+        }
+    };
+    
+    // ... (rest of the existing reels.js code)
     const handleCardClick = (e) => {
         const buildBtn = e.target.closest('.build-script-btn');
         const verifyBtn = e.target.closest('.verify-story-btn');
@@ -61,7 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (audioBtn) handleGenerateAudio(audioBtn);
     };
     
-    // --- API & UI HELPERS ---
     const toggleButtonLoading = (button, isLoading, loadingText = 'Loading...') => {
         if (!button) return;
         const icon = button.querySelector('.btn-icon');
@@ -89,26 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error(`API call to ${endpoint} failed:`, error);
             throw error;
-        }
-    };
-    
-    // --- CORE LOGIC ---
-    const fetchNewScripts = async () => {
-        toggleButtonLoading(findNewScriptsBtn, true, 'Finding...');
-        reelCardContainer.innerHTML = '';
-        paginationContainer.innerHTML = '';
-        reelsLoader.classList.remove('hidden');
-        reelsContainer.style.minHeight = '500px'; // Prevent layout shift
-        try {
-            contentFeed = await apiCall('/api/new-scripts');
-            currentFeedIndex = 0;
-            renderCurrentReel();
-        } catch (error) {
-            reelCardContainer.innerHTML = `<div class="text-center text-red-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl border border-red-500/30 dark:border-red-500/50">${error.message}</div>`;
-        } finally {
-            toggleButtonLoading(findNewScriptsBtn, false);
-            reelsLoader.classList.add('hidden');
-            reelsContainer.style.minHeight = 'auto';
         }
     };
     
@@ -155,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentFeedIndex++;
                 renderCurrentReel();
             } else {
-                fetchNewScripts();
+                handleFindNewScriptsClick();
             }
         });
         if (contentFeed.length - 1 !== currentFeedIndex) {
