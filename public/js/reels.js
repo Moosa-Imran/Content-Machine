@@ -59,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const fetchNewsForModal = async () => {
-        // Show a loader inside the popup
         newsArticlesList.innerHTML = `
             <div class="flex justify-center items-center h-full py-20">
                 <i data-lucide="refresh-cw" class="w-8 h-8 animate-spin text-primary-500"></i>
@@ -69,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const articles = await apiCall('/api/fetch-news-for-story-creation');
             populateNewsModal(articles);
-            newsArticlesList.scrollTop = 0; // Reset scroll on refresh
+            newsArticlesList.scrollTop = 0;
         } catch (error) {
             newsArticlesList.innerHTML = `<p class="text-center text-red-500 p-4">Failed to load news. Please try again.</p>`;
         }
@@ -80,18 +79,22 @@ document.addEventListener('DOMContentLoaded', () => {
             newsArticlesList.innerHTML = `<p class="text-center text-slate-500 p-4">No relevant news found at the moment.</p>`;
             return;
         }
-        newsArticlesList.innerHTML = articles.map((article, index) => `
-            <label for="article-${index}" class="block p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500">
-                <div class="flex items-start gap-4">
-                    <input type="checkbox" id="article-${index}" class="mt-1" data-article='${JSON.stringify(article)}'>
-                    <div>
-                        <h4 class="font-semibold text-slate-800 dark:text-white">${article.title}</h4>
-                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">${article.summary}</p>
-                        <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">Read More</a>
+        newsArticlesList.innerHTML = articles.map((article, index) => {
+            // **FIX**: Escape single quotes in the JSON string to prevent HTML attribute errors.
+            const escapedArticle = JSON.stringify(article).replace(/'/g, "&apos;");
+            return `
+                <label for="article-${index}" class="block p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500">
+                    <div class="flex items-start gap-4">
+                        <input type="checkbox" id="article-${index}" class="mt-1" data-article='${escapedArticle}'>
+                        <div>
+                            <h4 class="font-semibold text-slate-800 dark:text-white">${article.title}</h4>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">${article.summary}</p>
+                            <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">Read More</a>
+                        </div>
                     </div>
-                </div>
-            </label>
-        `).join('');
+                </label>
+            `;
+        }).join('');
     };
 
     const handleCreateStoriesClick = async () => {
@@ -128,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // ... (rest of the existing reels.js code)
     const handleCardClick = (e) => {
         const buildBtn = e.target.closest('.build-script-btn');
         const verifyBtn = e.target.closest('.verify-story-btn');
