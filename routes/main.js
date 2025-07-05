@@ -103,24 +103,34 @@ router.get('/api/new-scripts', async (req, res) => {
 
 router.get('/api/fetch-news-for-story-creation', async (req, res) => {
     try {
+        // 1. Fetch news from the external server
         const newsServerUrl = 'https://news-server-opal.vercel.app/';
         const response = await fetch(newsServerUrl);
         if (!response.ok) {
             throw new Error(`News server responded with status: ${response.status}`);
         }
-        const articles = await response.json();
-        
-        const formattedArticles = articles.map(article => ({
+        const fetchedArticles = await response.json();
+
+        // 2. Get existing source URLs from the database
+        const db = getDB();
+        const existingCases = await db.collection('Business_Cases').find({}, { projection: { source_url: 1 } }).toArray();
+        const existingSourceUrls = new Set(existingCases.map(doc => doc.source_url));
+
+        // 3. Filter out news articles that already exist as sources
+        const uniqueArticles = fetchedArticles.filter(article => !existingSourceUrls.has(article.url));
+
+        // 4. Format the unique articles for the client
+        const formattedArticles = uniqueArticles.map(article => ({
             title: article.title,
             url: article.url,
-            summary: article.description,
+            summary: article.description, // Mapping description to summary
             source: article.source
         }));
 
         res.json(formattedArticles);
     } catch (error) {
-        console.error("Error fetching from news server:", error);
-        res.status(500).json({ error: 'Failed to fetch news articles from the custom server.' });
+        console.error("Error fetching or filtering news:", error);
+        res.status(500).json({ error: 'Failed to fetch news articles.' });
     }
 });
 
@@ -170,7 +180,6 @@ router.post('/api/create-stories-from-news', async (req, res) => {
             const insertResult = await collection.insertMany(newBusinessCases);
             const newDocs = await collection.find({ _id: { $in: Object.values(insertResult.insertedIds) } }).toArray();
             
-            // **FIX**: Fetch extra hooks and format the new stories before sending
             const extraHooks = await getExtraHooks();
             const formattedStories = newDocs.map((story) => ({
                 ...story,
@@ -226,7 +235,7 @@ router.post('/api/rewrite-script', async (req, res) => {
     const fullPrompt = `Here is a script:\n\n${finalScript}\n\nPlease rewrite it based on this instruction: "${aiPrompt}". Keep the core facts but improve the style, tone, or structure as requested. Return only the rewritten script.`;
     
     try {
-        const newScript = await callGeminiAPI(fullPrompt, false);
+        const newScript = await callGeminiAPI(prompt, false);
         res.json({ newScript });
     } catch (error) {
         res.status(500).json({ error: `Failed to rewrite script. Server error: ${error.message}` });

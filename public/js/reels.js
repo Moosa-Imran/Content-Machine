@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeModalBtn = document.getElementById('close-modal-btn');
     const newsArticlesList = document.getElementById('news-articles-list');
     const createStoriesBtn = document.getElementById('create-stories-btn');
+    const refreshNewsBtn = document.getElementById('refresh-news-btn');
 
     // --- INITIALIZATION ---
     const init = () => {
@@ -45,28 +46,40 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- EVENT LISTENERS ---
     const attachEventListeners = () => {
-        findNewScriptsBtn?.addEventListener('click', handleFindNewScriptsClick);
+        findNewScriptsBtn?.addEventListener('click', openNewsModalAndFetch);
         reelCardContainer.addEventListener('click', handleCardClick);
         closeModalBtn?.addEventListener('click', () => newsModal.classList.add('hidden'));
         createStoriesBtn?.addEventListener('click', handleCreateStoriesClick);
+        refreshNewsBtn?.addEventListener('click', fetchNewsForModal);
     };
 
-    const handleFindNewScriptsClick = async () => {
-        toggleButtonLoading(findNewScriptsBtn, true, 'Finding...');
-        reelsLoader.classList.remove('hidden');
+    const openNewsModalAndFetch = async () => {
+        newsModal.classList.remove('hidden');
+        await fetchNewsForModal();
+    };
+
+    const fetchNewsForModal = async () => {
+        // Show a loader inside the popup
+        newsArticlesList.innerHTML = `
+            <div class="flex justify-center items-center h-full py-20">
+                <i data-lucide="refresh-cw" class="w-8 h-8 animate-spin text-primary-500"></i>
+            </div>`;
+        lucide.createIcons();
+
         try {
             const articles = await apiCall('/api/fetch-news-for-story-creation');
             populateNewsModal(articles);
-            newsModal.classList.remove('hidden');
+            newsArticlesList.scrollTop = 0; // Reset scroll on refresh
         } catch (error) {
-            alert('Failed to fetch news articles.');
-        } finally {
-            toggleButtonLoading(findNewScriptsBtn, false);
-            reelsLoader.classList.add('hidden');
+            newsArticlesList.innerHTML = `<p class="text-center text-red-500 p-4">Failed to load news. Please try again.</p>`;
         }
     };
 
     const populateNewsModal = (articles) => {
+        if (!articles || articles.length === 0) {
+            newsArticlesList.innerHTML = `<p class="text-center text-slate-500 p-4">No relevant news found at the moment.</p>`;
+            return;
+        }
         newsArticlesList.innerHTML = articles.map((article, index) => `
             <label for="article-${index}" class="block p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500">
                 <div class="flex items-start gap-4">
@@ -79,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </label>
         `).join('');
-        lucide.createIcons();
     };
 
     const handleCreateStoriesClick = async () => {
@@ -104,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error("AI failed to generate valid stories from the selected news.");
             }
 
-            // **CHANGE**: Replace the content feed instead of prepending to it.
             contentFeed = validStories;
             currentFeedIndex = 0;
             renderCurrentReel();
@@ -204,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentFeedIndex++;
                 renderCurrentReel();
             } else {
-                handleFindNewScriptsClick();
+                openNewsModalAndFetch();
             }
         });
         if (contentFeed.length - 1 !== currentFeedIndex) {
@@ -221,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         const generateSectionHTML = (sec) => {
-            // Guard clause to prevent error if a section is malformed
             if (!sec || !sec.type) {
                 console.error("generateSectionHTML was called with an invalid section:", sec);
                 return ''; 
@@ -350,7 +360,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             verificationContainer.innerHTML = `
                 <div class="my-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <h4 class="font-bold text-slate-700 dark:text-white mb-2">Verification Result:</h4>
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-bold text-slate-700 dark:text-white">Verification Result:</h4>
+                        ${story.source_url ? `<a href="${story.source_url}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-md font-semibold transition-colors"><i data-lucide="link" class="w-4 h-4"></i>View Source</a>` : ''}
+                    </div>
                     <ul class="space-y-2 text-sm mb-3">
                         ${result.checks.map(check => `
                             <li class="flex items-start gap-2">
