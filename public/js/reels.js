@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // News Modal Listeners
         closeModalBtn?.addEventListener('click', () => {
             newsModal.classList.add('hidden');
-            resetFilterState(); // Reset filter state when closing the modal
+            resetFilterState();
         });
         createStoriesBtn?.addEventListener('click', handleCreateStoriesClick);
         refreshNewsBtn?.addEventListener('click', () => fetchNewsForModal());
@@ -72,11 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const resetFilterState = () => {
-        // Reset form fields to their default state
         searchKeywordsInput.value = '';
         searchCategorySelect.value = 'business';
-        
-        // Reset the active filter flag and update the UI indicator
         if (isCustomSearchActive) {
             isCustomSearchActive = false;
             updateFilterIndicator();
@@ -86,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleResetSearch = () => {
         customSearchModal.classList.add('hidden');
         resetFilterState();
-        fetchNewsForModal(); // Fetch default news
+        fetchNewsForModal();
     };
 
     const updateFilterIndicator = () => {
@@ -197,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentFeedIndex = 0;
             renderCurrentReel();
             newsModal.classList.add('hidden');
-            resetFilterState(); // Reset filter state on success
+            resetFilterState();
         } catch (error) {
             console.error("Error in handleCreateStoriesClick:", error);
             alert(`Failed to create stories: ${error.message}`);
@@ -206,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // ... (rest of the file remains the same)
     const handleCardClick = (e) => {
         const buildBtn = e.target.closest('.build-script-btn');
         const verifyBtn = e.target.closest('.verify-story-btn');

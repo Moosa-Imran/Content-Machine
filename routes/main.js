@@ -3,19 +3,20 @@
 
 const express = require('express');
 const router = express.Router();
-const fetch = require('node-fetch'); // Ensure node-fetch is imported
+const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
 
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
 const { generateMoreOptions } = require('../utils/scriptGenerator');
 const { callGeminiAPI } = require('../services/aiService');
 
-// --- HELPER FUNCTION to get data from DB ---
+// --- HELPER FUNCTIONS ---
 const getBusinessCases = async (limit = 10) => {
     const db = getDB();
     const pipeline = [{ $sample: { size: limit } }];
-    const cases = await db.collection('Business_Cases').aggregate(pipeline).toArray();
-    return cases;
+    return await db.collection('Business_Cases').aggregate(pipeline).toArray();
 };
 
 const getExtraHooks = async () => {
@@ -24,23 +25,16 @@ const getExtraHooks = async () => {
     return generalData ? generalData.hooks : [];
 };
 
-
 // --- PAGE RENDERING ROUTES ---
-
-router.get('/', (req, res) => {
-    res.render('index', { 
-        title: 'Dashboard',
-    });
-});
+router.get('/', (req, res) => res.render('index', { title: 'Dashboard' }));
+router.get('/breakdown', (req, res) => res.render('breakdown', { title: 'Tactic Breakdowns' }));
+router.get('/sheet', (req, res) => res.render('sheet', { title: 'Analyze Sheet' }));
+router.get('/news', (req, res) => res.render('news', { title: 'Industry News' }));
 
 router.get('/reels', async (req, res) => {
     try {
-        const [businessCases, extraHooks] = await Promise.all([
-            getBusinessCases(10),
-            getExtraHooks()
-        ]);
-        
-        const initialFeed = businessCases.map((businessCase, index) => ({
+        const [businessCases, extraHooks] = await Promise.all([getBusinessCases(10), getExtraHooks()]);
+        const initialFeed = businessCases.map((businessCase) => ({
             ...businessCase,
             id: `db-${businessCase._id.toString()}`,
             hooks: generateMoreOptions(businessCase, 'hooks', extraHooks),
@@ -48,46 +42,75 @@ router.get('/reels', async (req, res) => {
             stories: generateMoreOptions(businessCase, 'stories'),
             psychologies: generateMoreOptions(businessCase, 'psychologies'),
         }));
-        
-        res.render('reels', { 
-            title: 'Viral Scripts',
-            contentFeed: initialFeed,
-        });
+        res.render('reels', { title: 'Viral Scripts', contentFeed: initialFeed });
     } catch (error) {
         console.error("Error rendering reels page:", error);
         res.status(500).send("Error loading the Viral Scripts page.");
     }
 });
 
-router.get('/breakdown', (req, res) => {
-    res.render('breakdown', { 
-        title: 'Tactic Breakdowns',
+router.get('/framework', (req, res) => {
+    res.render('framework', { 
+        title: 'Script Framework',
     });
 });
-
-router.get('/sheet', (req, res) => {
-    res.render('sheet', { 
-        title: 'Analyze Sheet',
-    });
-});
-
-router.get('/news', (req, res) => {
-    res.render('news', { 
-        title: 'Industry News',
-    });
-});
-
 
 // --- API ROUTES ---
 
+router.get('/api/get-framework', async (req, res) => {
+    try {
+        const extraHooks = await getExtraHooks();
+        const frameworkData = {
+            hooks: {
+                title: "Hooks (0-8s)",
+                description: "The opening lines designed to grab the viewer's attention immediately. The system combines dynamically generated hooks based on the specific case study with a list of proven, generic viral hooks.",
+                templates: [
+                    "How <span class='text-primary-500 font-mono'>{company}</span> used <span class='text-primary-500 font-mono'>{psychology}</span> to solve a common <span class='text-primary-500 font-mono'>{industry}</span> problem.",
+                    "This company's secret isn't their product. It's this simple psychological trick.",
+                    "If you think you're immune to marketing, wait until you see how <span class='text-primary-500 font-mono'>{company}</span> changed their business."
+                ],
+                extraHooks: extraHooks
+            },
+            buildUps: {
+                title: "Build-Ups (8-20s)",
+                description: "These lines create anticipation and bridge the hook to the main story, often by referencing a source or a common cognitive bias.",
+                templates: [
+                    "When a study published in '<span class='text-primary-500 font-mono'>{source}</span>' analyzed this, they found a shocking correlation.",
+                    "This works because of a cognitive bias that affects 99% of us, whether we realize it or not.",
+                    "This isn't a new idea, but the way <span class='text-primary-500 font-mono'>{company}</span> applied it is genius."
+                ]
+            },
+            stories: {
+                 title: "Stories (20-45s)",
+                 description: "This is the core narrative, explaining the company's problem, their clever solution, and the results, all framed around the key psychological principle.",
+                 templates: [
+                    "<span class='text-primary-500 font-mono'>{company}</span> used a classic psychological tactic: **<span class='text-primary-500 font-mono'>{psychology}</span>**. They knew that by <span class='text-primary-500 font-mono'>{solution}</span>, customers would feel a powerful, subconscious urge to respond. The result was clear: <span class='text-primary-500 font-mono'>{findings}</span>.",
+                    "The core of their strategy was **<span class='text-primary-500 font-mono'>{psychology}</span>**. Instead of a direct approach to solving '<span class='text-primary-500 font-mono'>{problem}</span>', they changed the environment. By <span class='text-primary-500 font-mono'>{solution}</span>, they subtly guided customer behavior, leading to incredible results.",
+                    "This is a textbook case of **<span class='text-primary-500 font-mono'>{psychology}</span>** in the wild. The problem was <span class='text-primary-500 font-mono'>{problem}</span>. The genius solution was <span class='text-primary-500 font-mono'>{solution}</span>, which directly triggers this cognitive bias. Unsurprisingly, it worked: <span class='text-primary-500 font-mono'>{findings}</span>."
+                 ]
+            },
+            psychologies: {
+                title: "Psychologies (45-60s)",
+                description: "The concluding part of the script, which explains the 'why' behind the tactic's success, reinforcing the psychological principle.",
+                templates: [
+                    "It all comes down to **<span class='text-primary-500 font-mono'>{psychology}</span>**. Our brains are wired to react this way because of our evolutionary need to fit in and trust others.",
+                    "This is a textbook example of **<span class='text-primary-500 font-mono'>{psychology}</span>**. It's about influencing decision-making by creating a specific emotional or social context, rather than just focusing on the product's features.",
+                    "Why does this work? **<span class='text-primary-500 font-mono'>{psychology}</span>**. The company didn't change its product, it changed the psychological frame around the product, making it feel more valuable, trustworthy, or urgent."
+                ]
+            }
+        };
+        res.json(frameworkData);
+    } catch (error) {
+        console.error("Error generating framework data:", error);
+        res.status(500).json({ error: 'Could not load the script framework.' });
+    }
+});
+
+// ... (rest of the file remains the same)
 router.get('/api/new-scripts', async (req, res) => {
     try {
-        const [businessCases, extraHooks] = await Promise.all([
-            getBusinessCases(10),
-            getExtraHooks()
-        ]);
-
-        const newBatch = businessCases.map((businessCase, index) => ({
+        const [businessCases, extraHooks] = await Promise.all([getBusinessCases(10), getExtraHooks()]);
+        const newBatch = businessCases.map((businessCase) => ({
             ...businessCase,
             id: `db-${businessCase._id.toString()}`,
             hooks: generateMoreOptions(businessCase, 'hooks', extraHooks),
@@ -103,25 +126,17 @@ router.get('/api/new-scripts', async (req, res) => {
 
 router.get('/api/fetch-news-for-story-creation', async (req, res) => {
     try {
-        const baseUrl = 'https://news-server-opal.vercel.app';
-        let path = '/'; // Default path
+        let newsServerUrl = 'https://news-server-opal.vercel.app/';
         const { keyword, category } = req.query;
-        const params = new URLSearchParams();
 
-        if (keyword) params.append('keyword', keyword);
-        if (category) params.append('category', category);
-
-        // **FIX**: If custom parameters exist, change the path to /news
-        if (params.toString()) {
-            path = '/news';
-        }
-        
-        let finalUrl = `${baseUrl}${path}`;
-        if (params.toString()) {
-            finalUrl += `?${params.toString()}`;
+        if (keyword || category) {
+            const params = new URLSearchParams();
+            if (keyword) params.append('keyword', keyword);
+            if (category) params.append('category', category);
+            newsServerUrl += `news?${params.toString()}`;
         }
 
-        const response = await fetch(finalUrl);
+        const response = await fetch(newsServerUrl);
         if (!response.ok) {
             throw new Error(`News server responded with status: ${response.status}`);
         }
@@ -223,7 +238,6 @@ router.get('/api/get-extra-hooks', async (req, res) => {
     }
 });
 
-// ... (rest of the API routes)
 router.post('/api/verify-story', async (req, res) => {
     const { company, solution, psychology, findings, sources } = req.body;
     const prompt = `Please verify the following business story. Check for the accuracy of the company's action, the stated psychological principle, and the claimed outcome. Provide a step-by-step verification process and a final conclusion.

@@ -1,0 +1,28 @@
+<%- include('partials/head') %>
+
+<%- include('partials/header') %>
+
+<main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-cyan-500 to-teal-500 dark:from-cyan-400 dark:to-teal-400 bg-clip-text text-transparent">Script Generation Framework</h1>
+                <p class="mt-1 text-slate-500 dark:text-slate-400">An inside look at the templates used to generate script components.</p>
+            </div>
+            <a href="/" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="framework-container" class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 card-glow">
+            <!-- Framework content will be injected here by framework.js -->
+        </div>
+    </div>
+</main>
+
+<script src="/js/framework.js"></script>
+
+<%- include('partials/footer') %>
