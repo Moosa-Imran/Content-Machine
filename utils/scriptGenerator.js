@@ -1,44 +1,60 @@
 // utils/scriptGenerator.js
 // Contains helper functions for generating creative content from case studies.
 
-const generateMoreOptions = (businessCase, type, extraHooks = []) => {
-    const { company, industry, psychology, solution, problem, findings } = businessCase;
-    let templates = [];
+// This function is now synchronous and expects the framework to be passed in.
+const generateMoreOptions = (businessCase, type, framework, extraHooks = []) => {
+    // Defensive check for the framework object
+    if (!framework || typeof framework !== 'object') {
+        console.error("Invalid or missing framework provided to generateMoreOptions");
+        return [];
+    }
+    
+    const { company, industry, psychology, solution, problem, findings, sources } = businessCase;
+    
+    // A safe way to replace placeholders like {company} without using eval().
+    const fillTemplate = (template) => {
+        // Ensure template is a string before trying to replace
+        if (typeof template !== 'string') {
+            console.warn('Encountered non-string template:', template);
+            return '';
+        }
+        const source = sources && sources.length > 0 ? sources[0] : 'a recent study';
+        // Handle cases where psychology might have multiple parts, e.g., "Reciprocity & Honesty"
+        const mainPsychology = psychology ? psychology.split('&')[0].trim() : 'a psychological principle';
+
+        return template
+            .replace(/{company}/g, company || 'A Company')
+            .replace(/{industry}/g, industry || 'an industry')
+            .replace(/{psychology}/g, mainPsychology)
+            .replace(/{solution}/g, solution ? solution.toLowerCase() : 'a clever tactic')
+            .replace(/{problem}/g, problem ? problem.toLowerCase() : 'a common problem')
+            .replace(/{findings}/g, findings || 'significant results')
+            .replace(/{source}/g, source);
+    };
+
     if (type === 'hooks') {
-        const dynamicHooks = [
-            () => `How ${company} used ${psychology.split('&')[0].trim()} to solve a common ${industry} problem.`,
-            () => `This company's secret isn't their product. It's this simple psychological trick.`,
-            () => `If you think you're immune to marketing, wait until you see how ${company} changed their business.`
-        ];
-        const allHookOptions = [...extraHooks, ...dynamicHooks.map(fn => fn())];
+        // Defensive check to ensure framework.hooks is an array
+        const frameworkHooks = Array.isArray(framework.hooks) ? framework.hooks : [];
+        const dynamicHooks = frameworkHooks.map(fillTemplate);
+        
+        // Defensive check for extraHooks
+        const safeExtraHooks = Array.isArray(extraHooks) ? extraHooks : [];
+        
+        const allHookOptions = [...safeExtraHooks, ...dynamicHooks];
         const shuffled = allHookOptions.sort(() => 0.5 - Math.random());
         return shuffled.slice(0, 3);
-    } else if (type === 'buildUps') {
-        templates = [
-            () => `When a study published in '${businessCase.sources[0]}' analyzed this, they found a shocking correlation.`,
-            () => `This works because of a cognitive bias that affects 99% of us, whether we realize it or not.`,
-            () => `This isn't a new idea, but the way ${company} applied it is genius.`
-        ];
-    } else if (type === 'stories') {
-        templates = [
-            () => `${company} used a classic psychological tactic: **${psychology}**. They knew that by ${solution.toLowerCase()}, customers would feel a powerful, subconscious urge to respond. The result was clear: ${findings}.`,
-            () => `The core of their strategy was **${psychology}**. Instead of a direct approach to solving '${problem.toLowerCase()}', they changed the environment. By ${solution.toLowerCase()}, they subtly guided customer behavior, leading to incredible results.`,
-            () => `This is a textbook case of **${psychology.split('&')[0].trim()}** in the wild. The problem was ${problem.toLowerCase()}. The genius solution was ${solution.toLowerCase()}, which directly triggers this cognitive bias. Unsurprisingly, it worked: ${findings}.`
-        ];
-    } else if (type === 'psychologies') {
-        templates = [
-            () => `It all comes down to **${psychology}**. Our brains are wired to react this way because of our evolutionary need to fit in and trust others.`,
-            () => `This is a textbook example of **${psychology.split('&')[0].trim()}**. It's about influencing decision-making by creating a specific emotional or social context, rather than just focusing on the product's features.`,
-            () => `Why does this work? **${psychology}**. The company didn't change its product, it changed the psychological frame around the product, making it feel more valuable, trustworthy, or urgent.`
-        ];
+    } 
+    
+    // Defensive check for other types
+    const templatesSource = framework[type];
+    if (!Array.isArray(templatesSource)) {
+        console.warn(`Framework type '${type}' is not an array.`, templatesSource);
+        return [];
     }
-    const options = new Set();
-    while (options.size < 3 && templates.length > 0) {
-        const randomIndex = Math.floor(Math.random() * templates.length);
-        options.add(templates[randomIndex]());
-        templates.splice(randomIndex, 1);
-    }
-    return Array.from(options);
+
+    const templates = templatesSource.map(fillTemplate);
+    const shuffledTemplates = templates.sort(() => 0.5 - Math.random());
+    return shuffledTemplates.slice(0, 3);
 };
 
 module.exports = {

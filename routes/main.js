@@ -4,8 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const fetch = require('node-fetch');
-const fs = require('fs');
-const path = require('path');
+const { ObjectId } = require('mongodb');
 
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
@@ -25,6 +24,25 @@ const getExtraHooks = async () => {
     return generalData ? generalData.hooks : [];
 };
 
+const getFramework = async () => {
+    try {
+        const db = getDB();
+        let framework = await db.collection('Frameworks').findOne({ name: 'active' });
+        if (!framework) {
+            framework = await db.collection('Frameworks').findOne({ name: 'default' });
+        }
+        if (!framework) {
+            throw new Error("No framework found in the database. Please seed the default framework.");
+        }
+        // Also fetch extra hooks and attach them to the framework object
+        framework.extraHooks = await getExtraHooks();
+        return framework;
+    } catch (error) {
+        console.error("Error fetching framework from DB:", error);
+        throw error;
+    }
+};
+
 // --- PAGE RENDERING ROUTES ---
 router.get('/', (req, res) => res.render('index', { title: 'Dashboard' }));
 router.get('/breakdown', (req, res) => res.render('breakdown', { title: 'Tactic Breakdowns' }));
@@ -33,16 +51,24 @@ router.get('/news', (req, res) => res.render('news', { title: 'Industry News' })
 
 router.get('/reels', async (req, res) => {
     try {
-        const [businessCases, extraHooks] = await Promise.all([getBusinessCases(10), getExtraHooks()]);
+        const [businessCases, framework] = await Promise.all([
+            getBusinessCases(10),
+            getFramework()
+        ]);
+        
         const initialFeed = businessCases.map((businessCase) => ({
             ...businessCase,
             id: `db-${businessCase._id.toString()}`,
-            hooks: generateMoreOptions(businessCase, 'hooks', extraHooks),
-            buildUps: generateMoreOptions(businessCase, 'buildUps'),
-            stories: generateMoreOptions(businessCase, 'stories'),
-            psychologies: generateMoreOptions(businessCase, 'psychologies'),
+            hooks: generateMoreOptions(businessCase, 'hooks', framework, framework.extraHooks),
+            buildUps: generateMoreOptions(businessCase, 'buildUps', framework),
+            stories: generateMoreOptions(businessCase, 'stories', framework),
+            psychologies: generateMoreOptions(businessCase, 'psychologies', framework),
         }));
-        res.render('reels', { title: 'Viral Scripts', contentFeed: initialFeed });
+        
+        res.render('reels', { 
+            title: 'Viral Scripts',
+            contentFeed: initialFeed,
+        });
     } catch (error) {
         console.error("Error rendering reels page:", error);
         res.status(500).send("Error loading the Viral Scripts page.");
@@ -51,72 +77,25 @@ router.get('/reels', async (req, res) => {
 
 router.get('/framework', (req, res) => {
     res.render('framework', { 
-        title: 'Script Framework',
+        title: 'Script Framework Editor',
     });
 });
 
 // --- API ROUTES ---
-
-router.get('/api/get-framework', async (req, res) => {
-    try {
-        const extraHooks = await getExtraHooks();
-        const frameworkData = {
-            hooks: {
-                title: "Hooks (0-8s)",
-                description: "The opening lines designed to grab the viewer's attention immediately. The system combines dynamically generated hooks based on the specific case study with a list of proven, generic viral hooks.",
-                templates: [
-                    "How <span class='text-primary-500 font-mono'>{company}</span> used <span class='text-primary-500 font-mono'>{psychology}</span> to solve a common <span class='text-primary-500 font-mono'>{industry}</span> problem.",
-                    "This company's secret isn't their product. It's this simple psychological trick.",
-                    "If you think you're immune to marketing, wait until you see how <span class='text-primary-500 font-mono'>{company}</span> changed their business."
-                ],
-                extraHooks: extraHooks
-            },
-            buildUps: {
-                title: "Build-Ups (8-20s)",
-                description: "These lines create anticipation and bridge the hook to the main story, often by referencing a source or a common cognitive bias.",
-                templates: [
-                    "When a study published in '<span class='text-primary-500 font-mono'>{source}</span>' analyzed this, they found a shocking correlation.",
-                    "This works because of a cognitive bias that affects 99% of us, whether we realize it or not.",
-                    "This isn't a new idea, but the way <span class='text-primary-500 font-mono'>{company}</span> applied it is genius."
-                ]
-            },
-            stories: {
-                 title: "Stories (20-45s)",
-                 description: "This is the core narrative, explaining the company's problem, their clever solution, and the results, all framed around the key psychological principle.",
-                 templates: [
-                    "<span class='text-primary-500 font-mono'>{company}</span> used a classic psychological tactic: **<span class='text-primary-500 font-mono'>{psychology}</span>**. They knew that by <span class='text-primary-500 font-mono'>{solution}</span>, customers would feel a powerful, subconscious urge to respond. The result was clear: <span class='text-primary-500 font-mono'>{findings}</span>.",
-                    "The core of their strategy was **<span class='text-primary-500 font-mono'>{psychology}</span>**. Instead of a direct approach to solving '<span class='text-primary-500 font-mono'>{problem}</span>', they changed the environment. By <span class='text-primary-500 font-mono'>{solution}</span>, they subtly guided customer behavior, leading to incredible results.",
-                    "This is a textbook case of **<span class='text-primary-500 font-mono'>{psychology}</span>** in the wild. The problem was <span class='text-primary-500 font-mono'>{problem}</span>. The genius solution was <span class='text-primary-500 font-mono'>{solution}</span>, which directly triggers this cognitive bias. Unsurprisingly, it worked: <span class='text-primary-500 font-mono'>{findings}</span>."
-                 ]
-            },
-            psychologies: {
-                title: "Psychologies (45-60s)",
-                description: "The concluding part of the script, which explains the 'why' behind the tactic's success, reinforcing the psychological principle.",
-                templates: [
-                    "It all comes down to **<span class='text-primary-500 font-mono'>{psychology}</span>**. Our brains are wired to react this way because of our evolutionary need to fit in and trust others.",
-                    "This is a textbook example of **<span class='text-primary-500 font-mono'>{psychology}</span>**. It's about influencing decision-making by creating a specific emotional or social context, rather than just focusing on the product's features.",
-                    "Why does this work? **<span class='text-primary-500 font-mono'>{psychology}</span>**. The company didn't change its product, it changed the psychological frame around the product, making it feel more valuable, trustworthy, or urgent."
-                ]
-            }
-        };
-        res.json(frameworkData);
-    } catch (error) {
-        console.error("Error generating framework data:", error);
-        res.status(500).json({ error: 'Could not load the script framework.' });
-    }
-});
-
-// ... (rest of the file remains the same)
 router.get('/api/new-scripts', async (req, res) => {
     try {
-        const [businessCases, extraHooks] = await Promise.all([getBusinessCases(10), getExtraHooks()]);
+        const [businessCases, framework] = await Promise.all([
+            getBusinessCases(10),
+            getFramework()
+        ]);
+
         const newBatch = businessCases.map((businessCase) => ({
             ...businessCase,
             id: `db-${businessCase._id.toString()}`,
-            hooks: generateMoreOptions(businessCase, 'hooks', extraHooks),
-            buildUps: generateMoreOptions(businessCase, 'buildUps'),
-            stories: generateMoreOptions(businessCase, 'stories'),
-            psychologies: generateMoreOptions(businessCase, 'psychologies'),
+            hooks: generateMoreOptions(businessCase, 'hooks', framework, framework.extraHooks),
+            buildUps: generateMoreOptions(businessCase, 'buildUps', framework),
+            stories: generateMoreOptions(businessCase, 'stories', framework),
+            psychologies: generateMoreOptions(businessCase, 'psychologies', framework),
         }));
         res.json(newBatch);
     } catch (error) {
@@ -124,6 +103,57 @@ router.get('/api/new-scripts', async (req, res) => {
     }
 });
 
+router.get('/api/get-framework', async (req, res) => {
+    try {
+        const framework = await getFramework();
+        res.json(framework);
+    } catch (error) {
+        res.status(500).json({ error: 'Could not load the script framework.' });
+    }
+});
+
+router.post('/api/save-framework', async (req, res) => {
+    try {
+        const db = getDB();
+        const { framework } = req.body;
+        
+        // Separate extraHooks from the main framework data
+        const { extraHooks, ...mainFramework } = framework;
+
+        // Save the main framework templates
+        await db.collection('Frameworks').updateOne(
+            { name: 'active' }, 
+            { $set: { ...mainFramework, name: 'active' } },
+            { upsert: true }
+        );
+
+        // Save the extra hooks to the General collection
+        await db.collection('General').updateOne(
+            {}, // Assuming there's only one document in this collection
+            { $set: { hooks: extraHooks } },
+            { upsert: true }
+        );
+
+        res.json({ success: true, message: 'Framework and hooks saved successfully.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to save the framework.' });
+    }
+});
+
+router.post('/api/reset-framework', async (req, res) => {
+    try {
+        const db = getDB();
+        await db.collection('Frameworks').deleteOne({ name: 'active' });
+        // You might also want to reset the General hooks collection to its default state
+        // For now, we'll just reset the main framework.
+        res.json({ success: true, message: 'Framework has been reset to default.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to reset the framework.' });
+    }
+});
+
+
+// ... (rest of the file remains the same)
 router.get('/api/fetch-news-for-story-creation', async (req, res) => {
     try {
         let newsServerUrl = 'https://news-server-opal.vercel.app/';
@@ -208,14 +238,14 @@ router.post('/api/create-stories-from-news', async (req, res) => {
             const insertResult = await collection.insertMany(newBusinessCases);
             const newDocs = await collection.find({ _id: { $in: Object.values(insertResult.insertedIds) } }).toArray();
             
-            const extraHooks = await getExtraHooks();
+            const [extraHooks, framework] = await Promise.all([getExtraHooks(), getFramework()]);
             const formattedStories = newDocs.map((story) => ({
                 ...story,
                 id: `db-${story._id.toString()}`,
-                hooks: generateMoreOptions(story, 'hooks', extraHooks),
-                buildUps: generateMoreOptions(story, 'buildUps'),
-                stories: generateMoreOptions(story, 'stories'),
-                psychologies: generateMoreOptions(story, 'psychologies'),
+                hooks: generateMoreOptions(story, 'hooks', framework, extraHooks),
+                buildUps: generateMoreOptions(story, 'buildUps', framework),
+                stories: generateMoreOptions(story, 'stories', framework),
+                psychologies: generateMoreOptions(story, 'psychologies', framework),
             }));
             
             res.status(201).json(formattedStories);

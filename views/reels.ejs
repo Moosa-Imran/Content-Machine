@@ -70,10 +70,10 @@
             <!-- Articles will be injected here -->
         </div>
         <div class="p-4 border-t border-slate-200 dark:border-slate-800 mt-auto grid grid-cols-2 gap-4">
-            <button id="view-framework-btn" class="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-6 py-3 rounded-lg font-semibold transition-colors">
-                <i data-lucide="file-text" class="w-5 h-5"></i>
-                View Framework
-            </button>
+            <a href="/framework" class="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-6 py-3 rounded-lg font-semibold transition-colors">
+                <i data-lucide="file-edit" class="w-5 h-5"></i>
+                Edit Framework
+            </a>
             <button id="create-stories-btn" class="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="wand-2" data-original-text="Create Stories from Selected">
                 <span class="btn-icon"><i data-lucide="wand-2" class="w-5 h-5"></i></span>
                 <span class="btn-text">Create Stories from Selected</span>
@@ -117,21 +117,6 @@
             <button id="reset-search-btn" title="Reset Filters" class="flex-shrink-0 p-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
                 <i data-lucide="rotate-ccw" class="w-5 h-5 text-slate-600 dark:text-slate-300"></i>
             </button>
-        </div>
-    </div>
-</div>
-
-<!-- Framework Modal -->
-<div id="framework-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[52] hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-        <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Script Generation Framework</h2>
-            <button id="close-framework-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
-            </button>
-        </div>
-        <div id="framework-content" class="p-6 space-y-6 overflow-y-auto">
-            <!-- Framework content will be injected here -->
         </div>
     </div>
 </div>

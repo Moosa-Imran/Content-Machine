@@ -203,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
+    // ... (rest of the file remains the same)
     const handleCardClick = (e) => {
         const buildBtn = e.target.closest('.build-script-btn');
         const verifyBtn = e.target.closest('.verify-story-btn');

@@ -9,9 +9,6 @@ const mainRoutes = require('./routes/main');
 // Load environment variables from .env file
 require('dotenv').config();
 
-// Connect to MongoDB
-connectDB();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -33,15 +30,28 @@ app.use(express.json());
 app.use('/', mainRoutes);
 
 // --- Server Startup ---
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-    console.log('This app is designed to run in a Node.js environment.');
-    console.log('--- SETUP INSTRUCTIONS ---');
-    console.log('1. Make sure you have Node.js and MongoDB installed and running.');
-    console.log('2. In your terminal, run `npm install express ejs dotenv node-fetch@2 mongodb`');
-    console.log('3. Create a file named `.env` in the root of your project.');
-    console.log('4. In the `.env` file, add your keys:');
-    console.log('   GEMINI_API_KEY=YOUR_GEMINI_API_KEY');
-    console.log('   MONGODB_URI=YOUR_MONGODB_CONNECTION_STRING');
-    console.log('5. Run `node server.js`');
-});
+const startServer = async () => {
+    try {
+        // First, connect to the database
+        await connectDB();
+        
+        // Then, start the Express server
+        app.listen(PORT, () => {
+            console.log(`Server is running on http://localhost:${PORT}`);
+            console.log('This app is designed to run in a Node.js environment.');
+            console.log('--- SETUP INSTRUCTIONS ---');
+            console.log('1. Make sure you have Node.js and MongoDB installed and running.');
+            console.log('2. In your terminal, run `npm install express ejs dotenv node-fetch@2 mongodb`');
+            console.log('3. Create a file named `.env` in the root of your project.');
+            console.log('4. In the `.env` file, add your keys:');
+            console.log('   GEMINI_API_KEY=YOUR_GEMINI_API_KEY');
+            console.log('   MONGODB_URI=YOUR_MONGODB_CONNECTION_STRING');
+            console.log('5. Run `node server.js`');
+        });
+    } catch (error) {
+        console.error("Failed to connect to the database. Server did not start.", error);
+        process.exit(1);
+    }
+};
+
+startServer();
