@@ -69,5 +69,41 @@
 </div>
 
 <script src="/js/framework.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                // Initialize Lucide Icons
+                lucide.createIcons();
+
+                // --- Theme Toggler ---
+                const themeToggle = document.getElementById('theme-toggle');
+                const htmlEl = document.documentElement;
+
+                themeToggle.addEventListener('click', () => {
+                    const isDark = htmlEl.classList.toggle('dark');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    lucide.createIcons(); // Re-render icons if they change between modes
+                });
+
+                // --- Mobile Sidebar Logic ---
+                const mobileMenuButton = document.getElementById('mobile-menu-button');
+                const sidebar = document.getElementById('sidebar');
+                const sidebarCloseButton = document.getElementById('sidebar-close-button');
+                const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+                const openSidebar = () => {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebarOverlay.classList.remove('hidden');
+                };
+
+                const closeSidebar = () => {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebarOverlay.classList.add('hidden');
+                };
+
+                mobileMenuButton.addEventListener('click', openSidebar);
+                sidebarCloseButton.addEventListener('click', closeSidebar);
+                sidebarOverlay.addEventListener('click', closeSidebar);
+            });
+        </script>
 
 <%- include('partials/footer') %>
