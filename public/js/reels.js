@@ -5,18 +5,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- STATE MANAGEMENT ---
     let contentFeed = [];
     let currentFeedIndex = 0;
+    let isCustomSearchActive = false;
     
     // --- ELEMENT SELECTORS ---
     const reelCardContainer = document.getElementById('reel-card-container');
     const paginationContainer = document.getElementById('pagination-container');
     const findNewScriptsBtn = document.getElementById('find-new-scripts-btn');
     const reelsLoader = document.getElementById('reels-loader');
-    const reelsContainer = document.getElementById('reels-container');
     const newsModal = document.getElementById('news-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const newsArticlesList = document.getElementById('news-articles-list');
     const createStoriesBtn = document.getElementById('create-stories-btn');
     const refreshNewsBtn = document.getElementById('refresh-news-btn');
+    const customSearchBtn = document.getElementById('custom-search-btn');
+    const customSearchModal = document.getElementById('custom-search-modal');
+    const closeSearchModalBtn = document.getElementById('close-search-modal-btn');
+    const executeSearchBtn = document.getElementById('execute-search-btn');
+    const searchKeywordsInput = document.getElementById('search-keywords');
+    const searchCategorySelect = document.getElementById('search-category');
+    const resetSearchBtn = document.getElementById('reset-search-btn');
 
     // --- INITIALIZATION ---
     const init = () => {
@@ -48,9 +55,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const attachEventListeners = () => {
         findNewScriptsBtn?.addEventListener('click', openNewsModalAndFetch);
         reelCardContainer.addEventListener('click', handleCardClick);
-        closeModalBtn?.addEventListener('click', () => newsModal.classList.add('hidden'));
+        
+        // News Modal Listeners
+        closeModalBtn?.addEventListener('click', () => {
+            newsModal.classList.add('hidden');
+            resetFilterState(); // Reset filter state when closing the modal
+        });
         createStoriesBtn?.addEventListener('click', handleCreateStoriesClick);
-        refreshNewsBtn?.addEventListener('click', fetchNewsForModal);
+        refreshNewsBtn?.addEventListener('click', () => fetchNewsForModal());
+        customSearchBtn?.addEventListener('click', () => customSearchModal.classList.remove('hidden'));
+
+        // Custom Search Modal Listeners
+        closeSearchModalBtn?.addEventListener('click', () => customSearchModal.classList.add('hidden'));
+        executeSearchBtn?.addEventListener('click', handleExecuteCustomSearch);
+        resetSearchBtn?.addEventListener('click', handleResetSearch);
+    };
+
+    const resetFilterState = () => {
+        // Reset form fields to their default state
+        searchKeywordsInput.value = '';
+        searchCategorySelect.value = 'business';
+        
+        // Reset the active filter flag and update the UI indicator
+        if (isCustomSearchActive) {
+            isCustomSearchActive = false;
+            updateFilterIndicator();
+        }
+    };
+
+    const handleResetSearch = () => {
+        customSearchModal.classList.add('hidden');
+        resetFilterState();
+        fetchNewsForModal(); // Fetch default news
+    };
+
+    const updateFilterIndicator = () => {
+        const indicator = customSearchBtn.querySelector('.filter-indicator');
+        if (isCustomSearchActive) {
+            if (!indicator) {
+                customSearchBtn.classList.add('relative');
+                customSearchBtn.insertAdjacentHTML('beforeend', '<span class="filter-indicator absolute top-0 right-0 block h-2 w-2 rounded-full bg-primary-500 ring-2 ring-white dark:ring-slate-900"></span>');
+            }
+            refreshNewsBtn.classList.add('hidden');
+        } else {
+            if (indicator) {
+                indicator.remove();
+            }
+            refreshNewsBtn.classList.remove('hidden');
+        }
     };
 
     const openNewsModalAndFetch = async () => {
@@ -58,7 +110,30 @@ document.addEventListener('DOMContentLoaded', () => {
         await fetchNewsForModal();
     };
 
-    const fetchNewsForModal = async () => {
+    const handleExecuteCustomSearch = () => {
+        const keywords = searchKeywordsInput.value
+            .split(',')
+            .map(kw => kw.trim())
+            .filter(kw => kw)
+            .join(' ');
+
+        const category = searchCategorySelect.value;
+        
+        const queryParams = new URLSearchParams();
+        if (keywords) {
+            queryParams.append('keyword', keywords);
+        }
+        if (category) {
+            queryParams.append('category', category);
+        }
+        
+        customSearchModal.classList.add('hidden');
+        isCustomSearchActive = true;
+        updateFilterIndicator();
+        fetchNewsForModal(queryParams.toString());
+    };
+
+    const fetchNewsForModal = async (queryParams = '') => {
         newsArticlesList.innerHTML = `
             <div class="flex justify-center items-center h-full py-20">
                 <i data-lucide="refresh-cw" class="w-8 h-8 animate-spin text-primary-500"></i>
@@ -66,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
 
         try {
-            const articles = await apiCall('/api/fetch-news-for-story-creation');
+            const articles = await apiCall(`/api/fetch-news-for-story-creation?${queryParams}`);
             populateNewsModal(articles);
             newsArticlesList.scrollTop = 0;
         } catch (error) {
@@ -76,11 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const populateNewsModal = (articles) => {
         if (!articles || articles.length === 0) {
-            newsArticlesList.innerHTML = `<p class="text-center text-slate-500 p-4">No relevant news found at the moment.</p>`;
+            newsArticlesList.innerHTML = `<p class="text-center text-slate-500 p-4">No relevant news found for this query.</p>`;
             return;
         }
         newsArticlesList.innerHTML = articles.map((article, index) => {
-            // **FIX**: Escape single quotes in the JSON string to prevent HTML attribute errors.
             const escapedArticle = JSON.stringify(article).replace(/'/g, "&apos;");
             return `
                 <label for="article-${index}" class="block p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500">
@@ -123,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentFeedIndex = 0;
             renderCurrentReel();
             newsModal.classList.add('hidden');
+            resetFilterState(); // Reset filter state on success
         } catch (error) {
             console.error("Error in handleCreateStoriesClick:", error);
             alert(`Failed to create stories: ${error.message}`);
@@ -131,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
+    // ... (rest of the file remains the same)
     const handleCardClick = (e) => {
         const buildBtn = e.target.closest('.build-script-btn');
         const verifyBtn = e.target.closest('.verify-story-btn');

@@ -103,27 +103,40 @@ router.get('/api/new-scripts', async (req, res) => {
 
 router.get('/api/fetch-news-for-story-creation', async (req, res) => {
     try {
-        // 1. Fetch news from the external server
-        const newsServerUrl = 'https://news-server-opal.vercel.app/';
-        const response = await fetch(newsServerUrl);
+        const baseUrl = 'https://news-server-opal.vercel.app';
+        let path = '/'; // Default path
+        const { keyword, category } = req.query;
+        const params = new URLSearchParams();
+
+        if (keyword) params.append('keyword', keyword);
+        if (category) params.append('category', category);
+
+        // **FIX**: If custom parameters exist, change the path to /news
+        if (params.toString()) {
+            path = '/news';
+        }
+        
+        let finalUrl = `${baseUrl}${path}`;
+        if (params.toString()) {
+            finalUrl += `?${params.toString()}`;
+        }
+
+        const response = await fetch(finalUrl);
         if (!response.ok) {
             throw new Error(`News server responded with status: ${response.status}`);
         }
-        const fetchedArticles = await response.json();
-
-        // 2. Get existing source URLs from the database
+        const articles = await response.json();
+        
         const db = getDB();
         const existingCases = await db.collection('Business_Cases').find({}, { projection: { source_url: 1 } }).toArray();
         const existingSourceUrls = new Set(existingCases.map(doc => doc.source_url));
 
-        // 3. Filter out news articles that already exist as sources
-        const uniqueArticles = fetchedArticles.filter(article => !existingSourceUrls.has(article.url));
+        const uniqueArticles = (articles.articles || articles).filter(article => !existingSourceUrls.has(article.url));
 
-        // 4. Format the unique articles for the client
         const formattedArticles = uniqueArticles.map(article => ({
             title: article.title,
             url: article.url,
-            summary: article.description, // Mapping description to summary
+            summary: article.description,
             source: article.source
         }));
 
