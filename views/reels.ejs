@@ -11,7 +11,7 @@
                 <p class="mt-1 text-slate-500 dark:text-slate-400">Generate fact-based scripts from verified case studies or the latest news.</p>
             </div>
             <div class="flex items-center gap-4">
-                 <a href="/" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <a href="/" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     Back to Dashboard
                 </a>
@@ -55,8 +55,8 @@
         <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
             <div class="flex items-center gap-3">
                 <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Freshly Fetched News</h2>
-                <button id="refresh-news-btn" title="Refresh with default topics" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                    <i data-lucide="refresh-cw" class="w-5 h-5 text-slate-500"></i>
+                <button id="refresh-news-btn" title="Shuffle News" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i data-lucide="shuffle" class="w-5 h-5 text-slate-500"></i>
                 </button>
                 <button id="custom-search-btn" title="Custom Search" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
                     <i data-lucide="sliders-horizontal" class="w-5 h-5 text-slate-500"></i>
@@ -92,21 +92,50 @@
             </button>
         </div>
         <div class="p-6 space-y-4">
-            <div>
-                <label for="search-keywords" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Keywords (comma-separated)</label>
-                <input type="text" id="search-keywords" placeholder="e.g., pricing psychology, charm pricing" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+            <!-- Prompt Section -->
+            <div class="text-center">
+                <button id="use-prompt-btn" class="w-full flex items-center justify-center gap-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-500/20 dark:hover:bg-purple-500/30 text-purple-700 dark:text-purple-300 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors">
+                    <i data-lucide="wand-2" class="w-4 h-4"></i>
+                    Use a Prompt Instead
+                </button>
             </div>
-            <div>
-                <label for="search-category" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Category</label>
-                <select id="search-category" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary-500 focus:outline-none">
-                    <option value="business">Business</option>
-                    <option value="technology">Technology</option>
-                    <option value="entertainment">Entertainment</option>
-                    <option value="general">General</option>
-                    <option value="health">Health</option>
-                    <option value="science">Science</option>
-                    <option value="sports">Sports</option>
-                </select>
+            <div id="prompt-container" class="hidden space-y-2">
+                <label for="prompt-textarea" class="block text-sm font-medium text-slate-700 dark:text-slate-200">Your Prompt</label>
+                <textarea id="prompt-textarea" placeholder="e.g., 'Find me news about how luxury brands use scarcity to drive sales'" class="w-full h-24 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 focus:outline-none"></textarea>
+                <button id="generate-filters-btn" class="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors" data-icon="wand-2" data-original-text="Generate Filters">
+                    <span class="btn-icon"><i data-lucide="wand-2" class="w-4 h-4"></i></span>
+                    <span class="btn-text">Generate Filters</span>
+                </button>
+            </div>
+
+            <!-- Divider -->
+            <div class="relative flex py-2 items-center">
+                <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+                <span class="flex-shrink mx-4 text-xs text-slate-400 dark:text-slate-500 uppercase">Or</span>
+                <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+            </div>
+
+            <!-- Manual Filters Section -->
+            <div id="manual-filters-container" class="space-y-4">
+                <div>
+                    <label for="search-keywords" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Keywords</label>
+                    <div class="relative">
+                         <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
+                        <input type="text" id="search-keywords" placeholder="e.g., pricing psychology, charm pricing" class="w-full pl-9 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Categories</label>
+                    <div id="search-category-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <% const categories = ["business", "technology", "entertainment", "general", "health", "science", "sports"]; %>
+                        <% categories.forEach(cat => { %>
+                            <label for="cat-<%= cat %>" class="flex items-center gap-2 p-2 rounded-md border border-slate-300 dark:border-slate-700 has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500 cursor-pointer">
+                                <input type="checkbox" id="cat-<%= cat %>" name="search_category" value="<%= cat %>" class="w-4 h-4 text-primary-600 bg-slate-100 border-slate-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600">
+                                <span class="text-sm text-slate-700 dark:text-slate-300 capitalize"><%= cat %></span>
+                            </label>
+                        <% }); %>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center gap-3">
@@ -122,32 +151,32 @@
 </div>
 
 <script src="/js/reels.js"></script>
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                lucide.createIcons();
+                const themeToggle = document.getElementById('theme-toggle');
+                const htmlEl = document.documentElement;
+                themeToggle.addEventListener('click', () => {
+                    htmlEl.classList.toggle('dark');
+                    localStorage.setItem('theme', htmlEl.classList.contains('dark') ? 'dark' : 'light');
                     lucide.createIcons();
-                    const themeToggle = document.getElementById('theme-toggle');
-                    const htmlEl = document.documentElement;
-                    themeToggle.addEventListener('click', () => {
-                        htmlEl.classList.toggle('dark');
-                        localStorage.setItem('theme', htmlEl.classList.contains('dark') ? 'dark' : 'light');
-                        lucide.createIcons();
-                    });
-                    const mobileMenuButton = document.getElementById('mobile-menu-button');
-                    const sidebar = document.getElementById('sidebar');
-                    const sidebarCloseButton = document.getElementById('sidebar-close-button');
-                    const sidebarOverlay = document.getElementById('sidebar-overlay');
-                    const openSidebar = () => {
-                        sidebar.classList.remove('-translate-x-full');
-                        sidebarOverlay.classList.remove('hidden');
-                    };
-                    const closeSidebar = () => {
-                        sidebar.classList.add('-translate-x-full');
-                        sidebarOverlay.classList.add('hidden');
-                    };
-                    mobileMenuButton.addEventListener('click', openSidebar);
-                    sidebarCloseButton.addEventListener('click', closeSidebar);
-                    sidebarOverlay.addEventListener('click', closeSidebar);
                 });
-            </script>
+                const mobileMenuButton = document.getElementById('mobile-menu-button');
+                const sidebar = document.getElementById('sidebar');
+                const sidebarCloseButton = document.getElementById('sidebar-close-button');
+                const sidebarOverlay = document.getElementById('sidebar-overlay');
+                const openSidebar = () => {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebarOverlay.classList.remove('hidden');
+                };
+                const closeSidebar = () => {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebarOverlay.classList.add('hidden');
+                };
+                mobileMenuButton.addEventListener('click', openSidebar);
+                sidebarCloseButton.addEventListener('click', closeSidebar);
+                sidebarOverlay.addEventListener('click', closeSidebar);
+            });
+        </script>
 
 <%- include('partials/footer') %>

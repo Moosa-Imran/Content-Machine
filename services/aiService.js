@@ -46,6 +46,50 @@ const callGeminiAPI = async (prompt, isJson = false) => {
     }
 };
 
+const generateAudio = async (text) => {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const voiceId = process.env.ELEVENLABS_VOICE_ID;
+
+    if (!apiKey || !voiceId) {
+        console.error("ElevenLabs API Key or Voice ID is not set in environment variables.");
+        throw new Error("Server is missing audio generation configuration.");
+    }
+
+    const apiUrl = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+    const payload = {
+        text: text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75
+        }
+    };
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Accept': 'audio/mpeg',
+                'Content-Type': 'application/json',
+                'xi-api-key': apiKey
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error("ElevenLabs API Error:", errorBody);
+            throw new Error(`ElevenLabs API responded with status: ${response.statusText}`);
+        }
+
+        return response.body; // Return the audio stream
+    } catch (error) {
+        console.error("ElevenLabs API Call Error:", error);
+        throw error;
+    }
+};
+
 module.exports = {
-    callGeminiAPI
+    callGeminiAPI,
+    generateAudio
 };

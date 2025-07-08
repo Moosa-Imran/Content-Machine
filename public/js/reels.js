@@ -6,6 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let contentFeed = [];
     let currentFeedIndex = 0;
     let isCustomSearchActive = false;
+    let newsArticles = []; // To store all fetched news articles for pagination
+    let selectedArticles = {}; // To store selected articles across pages
+    let currentNewsPage = 1;
+    const articlesPerPage = 10;
+    const DEFAULT_KEYWORDS = "consumer psychology,behavioral economics,marketing psychology,neuromarketing,cognitive bias,pricing psychology,sensory marketing,social engineering,retail psychology,shopping behavior,behavioral design";
+    const DEFAULT_CATEGORIES = ["business", "technology", "general"];
     
     // --- ELEMENT SELECTORS ---
     const reelCardContainer = document.getElementById('reel-card-container');
@@ -22,8 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSearchModalBtn = document.getElementById('close-search-modal-btn');
     const executeSearchBtn = document.getElementById('execute-search-btn');
     const searchKeywordsInput = document.getElementById('search-keywords');
-    const searchCategorySelect = document.getElementById('search-category');
+    const searchCategoryContainer = document.getElementById('search-category-container');
     const resetSearchBtn = document.getElementById('reset-search-btn');
+    const usePromptBtn = document.getElementById('use-prompt-btn');
+    const promptContainer = document.getElementById('prompt-container');
+    const promptTextarea = document.getElementById('prompt-textarea');
+    const generateFiltersBtn = document.getElementById('generate-filters-btn');
+    const manualFiltersContainer = document.getElementById('manual-filters-container');
 
     // --- INITIALIZATION ---
     const init = () => {
@@ -59,24 +70,89 @@ document.addEventListener('DOMContentLoaded', () => {
         // News Modal Listeners
         closeModalBtn?.addEventListener('click', () => {
             newsModal.classList.add('hidden');
-            resetFilterState();
         });
         createStoriesBtn?.addEventListener('click', handleCreateStoriesClick);
-        refreshNewsBtn?.addEventListener('click', () => fetchNewsForModal());
-        customSearchBtn?.addEventListener('click', () => customSearchModal.classList.remove('hidden'));
+        refreshNewsBtn?.addEventListener('click', handleShuffleNews);
+        customSearchBtn?.addEventListener('click', () => {
+            setDefaultFilters();
+            customSearchModal.classList.remove('hidden');
+        });
+        newsArticlesList.addEventListener('change', handleArticleSelection);
 
         // Custom Search Modal Listeners
         closeSearchModalBtn?.addEventListener('click', () => customSearchModal.classList.add('hidden'));
         executeSearchBtn?.addEventListener('click', handleExecuteCustomSearch);
         resetSearchBtn?.addEventListener('click', handleResetSearch);
+        usePromptBtn?.addEventListener('click', togglePromptUI);
+        generateFiltersBtn?.addEventListener('click', handleGenerateFilters);
+    };
+
+    const togglePromptUI = () => {
+        const isHidden = promptContainer.classList.toggle('hidden');
+        const isDisabled = !isHidden;
+        
+        manualFiltersContainer.style.opacity = isDisabled ? '0.5' : '1';
+        manualFiltersContainer.querySelectorAll('input, button').forEach(el => el.disabled = isDisabled);
+    };
+
+    const handleGenerateFilters = async () => {
+        const userPrompt = promptTextarea.value;
+        if (!userPrompt.trim()) {
+            alert('Please enter a prompt.');
+            return;
+        }
+
+        toggleButtonLoading(generateFiltersBtn, true, 'Generating...');
+        try {
+            const result = await apiCall('/api/generate-filters-from-prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userPrompt })
+            });
+
+            if (result.keywords) {
+                searchKeywordsInput.value = result.keywords;
+            }
+            if (result.categories && Array.isArray(result.categories)) {
+                searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = result.categories.includes(cb.value);
+                });
+            }
+            
+            togglePromptUI(); // Hide prompt UI and re-enable manual filters
+
+        } catch (error) {
+            alert(`Failed to generate filters: ${error.message}`);
+        } finally {
+            toggleButtonLoading(generateFiltersBtn, false);
+        }
+    };
+
+    const setDefaultFilters = () => {
+        searchKeywordsInput.value = DEFAULT_KEYWORDS.replace(/,/g, ', ');
+        searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = DEFAULT_CATEGORIES.includes(cb.value);
+        });
     };
 
     const resetFilterState = () => {
-        searchKeywordsInput.value = '';
-        searchCategorySelect.value = 'business';
+        setDefaultFilters();
         if (isCustomSearchActive) {
             isCustomSearchActive = false;
             updateFilterIndicator();
+        }
+    };
+
+    const handleShuffleNews = () => {
+        if (newsArticles.length > 0) {
+            for (let i = newsArticles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newsArticles[i], newsArticles[j]] = [newsArticles[j], newsArticles[i]];
+            }
+            selectedArticles = {};
+            currentNewsPage = 1;
+            populateNewsModal();
+            newsArticlesList.scrollTop = 0;
         }
     };
 
@@ -112,20 +188,22 @@ document.addEventListener('DOMContentLoaded', () => {
             .split(',')
             .map(kw => kw.trim())
             .filter(kw => kw)
-            .join(' ');
+            .join(',');
 
-        const category = searchCategorySelect.value;
+        const selectedCategories = Array.from(searchCategoryContainer.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(cb => cb.value)
+            .join(',');
         
         const queryParams = new URLSearchParams();
         if (keywords) {
             queryParams.append('keyword', keywords);
         }
-        if (category) {
-            queryParams.append('category', category);
+        if (selectedCategories) {
+            queryParams.append('category', selectedCategories);
         }
         
         customSearchModal.classList.add('hidden');
-        isCustomSearchActive = true;
+        isCustomSearchActive = !!(keywords || selectedCategories);
         updateFilterIndicator();
         fetchNewsForModal(queryParams.toString());
     };
@@ -139,24 +217,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const articles = await apiCall(`/api/fetch-news-for-story-creation?${queryParams}`);
-            populateNewsModal(articles);
+            newsArticles = articles;
+            selectedArticles = {};
+            currentNewsPage = 1;
+            populateNewsModal();
             newsArticlesList.scrollTop = 0;
         } catch (error) {
             newsArticlesList.innerHTML = `<p class="text-center text-red-500 p-4">Failed to load news. Please try again.</p>`;
         }
     };
 
-    const populateNewsModal = (articles) => {
-        if (!articles || articles.length === 0) {
+    const handleArticleSelection = (e) => {
+        if (e.target.type === 'checkbox') {
+            const articleData = JSON.parse(e.target.dataset.article);
+            if (e.target.checked) {
+                selectedArticles[articleData.url] = articleData;
+            } else {
+                delete selectedArticles[articleData.url];
+            }
+        }
+    };
+
+    const populateNewsModal = () => {
+        if (!newsArticles || newsArticles.length === 0) {
             newsArticlesList.innerHTML = `<p class="text-center text-slate-500 p-4">No relevant news found for this query.</p>`;
             return;
         }
-        newsArticlesList.innerHTML = articles.map((article, index) => {
+
+        const startIndex = (currentNewsPage - 1) * articlesPerPage;
+        const endIndex = startIndex + articlesPerPage;
+        const paginatedArticles = newsArticles.slice(startIndex, endIndex);
+
+        newsArticlesList.innerHTML = paginatedArticles.map((article, index) => {
             const escapedArticle = JSON.stringify(article).replace(/'/g, "&apos;");
+            const isChecked = selectedArticles[article.url] ? 'checked' : '';
             return `
-                <label for="article-${index}" class="block p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500">
+                <label for="article-${startIndex + index}" class="block p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500">
                     <div class="flex items-start gap-4">
-                        <input type="checkbox" id="article-${index}" class="mt-1" data-article='${escapedArticle}'>
+                        <input type="checkbox" id="article-${startIndex + index}" class="mt-1" data-article='${escapedArticle}' ${isChecked}>
                         <div>
                             <h4 class="font-semibold text-slate-800 dark:text-white">${article.title}</h4>
                             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">${article.summary}</p>
@@ -166,13 +264,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 </label>
             `;
         }).join('');
+
+        renderNewsPagination();
+    };
+
+    const renderNewsPagination = () => {
+        const totalPages = Math.ceil(newsArticles.length / articlesPerPage);
+        const existingPagination = newsArticlesList.querySelector('.news-pagination-container');
+        if (existingPagination) {
+            existingPagination.remove();
+        }
+
+        if (totalPages <= 1) return;
+
+        const paginationHTML = `
+            <div class="news-pagination-container flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button id="news-prev-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </button>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    Page ${currentNewsPage} of ${totalPages}
+                </span>
+                <button id="news-next-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+        `;
+
+        newsArticlesList.insertAdjacentHTML('beforeend', paginationHTML);
+        lucide.createIcons();
+
+        const prevBtn = document.getElementById('news-prev-btn');
+        const nextBtn = document.getElementById('news-next-btn');
+
+        if (currentNewsPage > 1) {
+            prevBtn.disabled = false;
+            prevBtn.addEventListener('click', () => {
+                currentNewsPage--;
+                populateNewsModal();
+                newsArticlesList.scrollTop = 0;
+            }, { once: true });
+        }
+
+        if (currentNewsPage < totalPages) {
+            nextBtn.disabled = false;
+            nextBtn.addEventListener('click', () => {
+                currentNewsPage++;
+                populateNewsModal();
+                newsArticlesList.scrollTop = 0;
+            }, { once: true });
+        }
     };
 
     const handleCreateStoriesClick = async () => {
-        const selectedArticles = Array.from(newsArticlesList.querySelectorAll('input[type="checkbox"]:checked'))
-            .map(checkbox => JSON.parse(checkbox.dataset.article));
+        const articlesToCreate = Object.values(selectedArticles);
 
-        if (selectedArticles.length === 0) {
+        if (articlesToCreate.length === 0) {
             alert('Please select at least one article to create stories from.');
             return;
         }
@@ -182,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const formattedStories = await apiCall('/api/create-stories-from-news', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ articles: selectedArticles })
+                body: JSON.stringify({ articles: articlesToCreate })
             });
 
             const validStories = formattedStories.filter(story => story && story.hooks && story.buildUps);
@@ -203,7 +350,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // ... (rest of the file remains the same)
     const handleCardClick = (e) => {
         const buildBtn = e.target.closest('.build-script-btn');
         const verifyBtn = e.target.closest('.verify-story-btn');
@@ -225,10 +371,14 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = isLoading;
 
         if (isLoading) {
-            icon.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>';
+            if (icon) {
+                icon.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>';
+            }
             if (text) text.textContent = loadingText;
         } else {
-            icon.innerHTML = `<i data-lucide="${button.dataset.icon || 'search'}" class="w-4 h-4"></i>`;
+            if (icon) {
+                icon.innerHTML = `<i data-lucide="${button.dataset.icon || 'search'}" class="w-4 h-4"></i>`;
+            }
             if (text) text.textContent = button.dataset.originalText || 'Submit';
         }
         lucide.createIcons();
@@ -421,6 +571,38 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
+    const handleAiRewrite = async (rewriteBtn) => {
+        const aiPromptInput = document.getElementById('ai-rewrite-prompt');
+        const finalScriptTextarea = document.getElementById('final-script-textarea');
+        if (!aiPromptInput || !finalScriptTextarea) return;
+
+        const aiPrompt = aiPromptInput.value;
+        const finalScript = finalScriptTextarea.value;
+
+        if (!aiPrompt) {
+            alert('Please enter a rewrite instruction.');
+            return;
+        }
+
+        toggleButtonLoading(rewriteBtn, true, 'Rewriting...');
+        try {
+            const result = await apiCall('/api/rewrite-script', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ finalScript, aiPrompt })
+            });
+            if (result && result.newScript) {
+                finalScriptTextarea.value = result.newScript;
+            } else {
+                throw new Error('AI did not return a new script.');
+            }
+        } catch (error) {
+            alert(`Failed to rewrite script: ${error.message}`);
+        } finally {
+            toggleButtonLoading(rewriteBtn, false);
+        }
+    };
+
     const handleVerifyStory = async (verifyBtn) => {
         const story = contentFeed[currentFeedIndex];
         toggleButtonLoading(verifyBtn, true, 'Verifying...');
@@ -470,25 +652,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const scriptTextarea = document.getElementById('final-script-textarea');
         const audioPlayerContainer = document.querySelector('.audio-player-container');
         
-        const ELEVENLABS_API_KEY = prompt("Please enter your ElevenLabs API Key:", "");
-        if (!ELEVENLABS_API_KEY) {
-            alert("An ElevenLabs API key is required for audio generation.");
-            return;
-        }
-
         toggleButtonLoading(audioBtn, true, 'Generating...');
         audioPlayerContainer.innerHTML = '';
         const scriptText = scriptTextarea.value.split('\n\n').map(part => (part.split(/:\n/)[1] || part)).join(' ');
-        const VOICE_ID = 'JE0bYmphWP8pWQIcVNZr';
-        const apiUrl = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
 
         try {
-            const response = await fetch(apiUrl, {
+            const response = await fetch('/api/generate-audio', {
                 method: 'POST',
-                headers: { 'Accept': 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': ELEVENLABS_API_KEY },
-                body: JSON.stringify({ text: scriptText, model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.5, similarity_boost: 0.75 } })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scriptText })
             });
-            if (!response.ok) throw new Error(`ElevenLabs API responded with status: ${response.statusText}`);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to generate audio' }));
+                throw new Error(errorData.error);
+            }
+
             const audioBlob = await response.blob();
             const url = URL.createObjectURL(audioBlob);
             audioPlayerContainer.innerHTML = `<audio controls src="${url}" class="w-full">Your browser does not support the audio element.</audio>`;

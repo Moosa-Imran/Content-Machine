@@ -9,7 +9,7 @@ const { ObjectId } = require('mongodb');
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
 const { generateMoreOptions } = require('../utils/scriptGenerator');
-const { callGeminiAPI } = require('../services/aiService');
+const { callGeminiAPI, generateAudio } = require('../services/aiService');
 
 // --- HELPER FUNCTIONS ---
 const getBusinessCases = async (limit = 10) => {
@@ -152,21 +152,29 @@ router.post('/api/reset-framework', async (req, res) => {
     }
 });
 
+// Default search parameters for news fetching
+const DEFAULT_KEYWORDS = [
+    "consumer psychology", "behavioral economics", "marketing psychology",
+    "neuromarketing", "cognitive bias", "pricing psychology",
+    "sensory marketing", "social engineering", "retail psychology",
+    "shopping behavior", "behavioral design"
+].join(',');
+const DEFAULT_CATEGORIES = ["business", "technology", "general"].join(',');
 
-// ... (rest of the file remains the same)
+// Updated route to fetch news articles
 router.get('/api/fetch-news-for-story-creation', async (req, res) => {
     try {
-        let newsServerUrl = 'https://news-server-opal.vercel.app/';
-        const { keyword, category } = req.query;
+        const newsServerUrl = 'http://localhost:3001/news';
+        
+        // Use provided keywords/categories, or fall back to defaults
+        const keyword = req.query.keyword || DEFAULT_KEYWORDS;
+        const category = req.query.category || DEFAULT_CATEGORIES;
 
-        if (keyword || category) {
-            const params = new URLSearchParams();
-            if (keyword) params.append('keyword', keyword);
-            if (category) params.append('category', category);
-            newsServerUrl += `news?${params.toString()}`;
-        }
-
-        const response = await fetch(newsServerUrl);
+        const params = new URLSearchParams({ keyword, category });
+        
+        const finalUrl = `${newsServerUrl}?${params.toString()}`;
+        
+        const response = await fetch(finalUrl);
         if (!response.ok) {
             throw new Error(`News server responded with status: ${response.status}`);
         }
@@ -191,6 +199,7 @@ router.get('/api/fetch-news-for-story-creation', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch news articles.' });
     }
 });
+
 
 router.post('/api/create-stories-from-news', async (req, res) => {
     const { articles } = req.body;
@@ -292,7 +301,7 @@ router.post('/api/rewrite-script', async (req, res) => {
     const fullPrompt = `Here is a script:\n\n${finalScript}\n\nPlease rewrite it based on this instruction: "${aiPrompt}". Keep the core facts but improve the style, tone, or structure as requested. Return only the rewritten script.`;
     
     try {
-        const newScript = await callGeminiAPI(prompt, false);
+        const newScript = await callGeminiAPI(fullPrompt, false);
         res.json({ newScript });
     } catch (error) {
         res.status(500).json({ error: `Failed to rewrite script. Server error: ${error.message}` });
@@ -314,6 +323,57 @@ router.post('/api/tactic-breakdown', async (req, res) => {
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: `Failed to generate script for ${companyName}. Server error: ${error.message}` });
+    }
+});
+
+router.post('/api/generate-filters-from-prompt', async (req, res) => {
+    const { userPrompt } = req.body;
+    if (!userPrompt) {
+        return res.status(400).json({ error: 'A prompt is required.' });
+    }
+
+    const validCategories = ["business", "technology", "entertainment", "general", "health", "science", "sports"];
+    
+    const promptForAI = `
+        From the user's request: "${userPrompt}", extract relevant search keywords and news categories.
+        - The keywords should be a concise, comma-separated string of the most important terms.
+        - The categories must be an array containing only strings from this allowed list: ${JSON.stringify(validCategories)}.
+        
+        Return ONLY a single, valid JSON object with this exact structure:
+        {
+          "keywords": "keyword1, keyword2",
+          "categories": ["category1", "category2"]
+        }
+    `;
+
+    try {
+        const result = await callGeminiAPI(promptForAI, true);
+        if (result && typeof result.keywords === 'string' && Array.isArray(result.categories)) {
+            // Further validation to ensure categories are valid
+            const validResultCategories = result.categories.filter(cat => validCategories.includes(cat));
+            res.json({ keywords: result.keywords, categories: validResultCategories });
+        } else {
+            console.warn("AI returned an invalid data structure:", result);
+            throw new Error("AI returned data in an unexpected format.");
+        }
+    } catch (error) {
+        console.error('Error in /api/generate-filters-from-prompt:', error);
+        res.status(500).json({ error: 'Failed to generate filters using the provided prompt.' });
+    }
+});
+
+router.post('/api/generate-audio', async (req, res) => {
+    const { scriptText } = req.body;
+    if (!scriptText) {
+        return res.status(400).json({ error: 'No script text provided.' });
+    }
+
+    try {
+        const audioStream = await generateAudio(scriptText);
+        res.setHeader('Content-Type', 'audio/mpeg');
+        audioStream.pipe(res);
+    } catch (error) {
+        res.status(500).json({ error: `Failed to generate audio. Server error: ${error.message}` });
     }
 });
 
