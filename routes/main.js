@@ -12,7 +12,7 @@ const { generateMoreOptions } = require('../utils/scriptGenerator');
 const { callGeminiAPI, generateAudio } = require('../services/aiService');
 
 // --- HELPER FUNCTIONS ---
-const getBusinessCases = async (limit = 10) => {
+const getBusinessCases = async (limit = 3) => {
     const db = getDB();
     const pipeline = [{ $sample: { size: limit } }];
     return await db.collection('Business_Cases').aggregate(pipeline).toArray();
@@ -34,8 +34,6 @@ const getFramework = async () => {
         if (!framework) {
             throw new Error("No framework found in the database. Please seed the default framework.");
         }
-        // Also fetch extra hooks and attach them to the framework object
-        framework.extraHooks = await getExtraHooks();
         return framework;
     } catch (error) {
         console.error("Error fetching framework from DB:", error);
@@ -52,18 +50,26 @@ router.get('/news', (req, res) => res.render('news', { title: 'Industry News' })
 router.get('/reels', async (req, res) => {
     try {
         const [businessCases, framework] = await Promise.all([
-            getBusinessCases(10),
+            getBusinessCases(3), // Reduced from 10 to 3
             getFramework()
         ]);
         
-        const initialFeed = businessCases.map((businessCase) => ({
-            ...businessCase,
-            id: `db-${businessCase._id.toString()}`,
-            hooks: generateMoreOptions(businessCase, 'hooks', framework, framework.extraHooks),
-            buildUps: generateMoreOptions(businessCase, 'buildUps', framework),
-            stories: generateMoreOptions(businessCase, 'stories', framework),
-            psychologies: generateMoreOptions(businessCase, 'psychologies', framework),
-        }));
+        const initialFeed = [];
+        for (const businessCase of businessCases) {
+            const hooks = await generateMoreOptions(businessCase, 'hooks', framework);
+            const buildUps = await generateMoreOptions(businessCase, 'buildUps', framework);
+            const stories = await generateMoreOptions(businessCase, 'stories', framework);
+            const psychologies = await generateMoreOptions(businessCase, 'psychologies', framework);
+
+            initialFeed.push({
+                ...businessCase,
+                id: `db-${businessCase._id.toString()}`,
+                hooks,
+                buildUps,
+                stories,
+                psychologies,
+            });
+        }
         
         res.render('reels', { 
             title: 'Viral Scripts',
@@ -85,20 +91,29 @@ router.get('/framework', (req, res) => {
 router.get('/api/new-scripts', async (req, res) => {
     try {
         const [businessCases, framework] = await Promise.all([
-            getBusinessCases(10),
+            getBusinessCases(3), // Reduced from 10 to 3
             getFramework()
         ]);
 
-        const newBatch = businessCases.map((businessCase) => ({
-            ...businessCase,
-            id: `db-${businessCase._id.toString()}`,
-            hooks: generateMoreOptions(businessCase, 'hooks', framework, framework.extraHooks),
-            buildUps: generateMoreOptions(businessCase, 'buildUps', framework),
-            stories: generateMoreOptions(businessCase, 'stories', framework),
-            psychologies: generateMoreOptions(businessCase, 'psychologies', framework),
-        }));
+        const newBatch = [];
+        for (const businessCase of businessCases) {
+            const hooks = await generateMoreOptions(businessCase, 'hooks', framework);
+            const buildUps = await generateMoreOptions(businessCase, 'buildUps', framework);
+            const stories = await generateMoreOptions(businessCase, 'stories', framework);
+            const psychologies = await generateMoreOptions(businessCase, 'psychologies', framework);
+
+            newBatch.push({
+                ...businessCase,
+                id: `db-${businessCase._id.toString()}`,
+                hooks,
+                buildUps,
+                stories,
+                psychologies,
+            });
+        }
         res.json(newBatch);
     } catch (error) {
+        console.error("Error in /api/new-scripts:", error);
         res.status(500).json({ error: 'Failed to generate new scripts' });
     }
 });
@@ -117,24 +132,13 @@ router.post('/api/save-framework', async (req, res) => {
         const db = getDB();
         const { framework } = req.body;
         
-        // Separate extraHooks from the main framework data
-        const { extraHooks, ...mainFramework } = framework;
-
-        // Save the main framework templates
         await db.collection('Frameworks').updateOne(
             { name: 'active' }, 
-            { $set: { ...mainFramework, name: 'active' } },
+            { $set: { ...framework, name: 'active' } },
             { upsert: true }
         );
 
-        // Save the extra hooks to the General collection
-        await db.collection('General').updateOne(
-            {}, // Assuming there's only one document in this collection
-            { $set: { hooks: extraHooks } },
-            { upsert: true }
-        );
-
-        res.json({ success: true, message: 'Framework and hooks saved successfully.' });
+        res.json({ success: true, message: 'Framework saved successfully.' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to save the framework.' });
     }
@@ -144,8 +148,6 @@ router.post('/api/reset-framework', async (req, res) => {
     try {
         const db = getDB();
         await db.collection('Frameworks').deleteOne({ name: 'active' });
-        // You might also want to reset the General hooks collection to its default state
-        // For now, we'll just reset the main framework.
         res.json({ success: true, message: 'Framework has been reset to default.' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to reset the framework.' });
@@ -166,7 +168,6 @@ router.get('/api/fetch-news-for-story-creation', async (req, res) => {
     try {
         const newsServerUrl = 'https://news-server-opal.vercel.app/news';
         
-        // Use provided keywords/categories, or fall back to defaults
         const keyword = req.query.keyword || DEFAULT_KEYWORDS;
         const category = req.query.category || DEFAULT_CATEGORIES;
 
@@ -212,9 +213,8 @@ router.post('/api/create-stories-from-news', async (req, res) => {
         const newBusinessCases = [];
 
         for (const article of articles) {
-            let articleContent = article.summary; // Fallback content
+            let articleContent = article.summary;
             
-            // Try to scrape the full article content
             try {
                 const scraperResponse = await fetch('http://localhost:3010/api/scrape', {
                     method: 'POST',
@@ -225,7 +225,7 @@ router.post('/api/create-stories-from-news', async (req, res) => {
                 if (scraperResponse.ok) {
                     const scrapedData = await scraperResponse.json();
                     if (scrapedData.status === 'success' && scrapedData.data.articleBody) {
-                        articleContent = scrapedData.data.articleBody; // Use full content if successful
+                        articleContent = scrapedData.data.articleBody;
                     }
                 }
             } catch (scrapeError) {
@@ -274,15 +274,23 @@ router.post('/api/create-stories-from-news', async (req, res) => {
             const insertResult = await collection.insertMany(newBusinessCases);
             const newDocs = await collection.find({ _id: { $in: Object.values(insertResult.insertedIds) } }).toArray();
             
-            const [extraHooks, framework] = await Promise.all([getExtraHooks(), getFramework()]);
-            const formattedStories = newDocs.map((story) => ({
-                ...story,
-                id: `db-${story._id.toString()}`,
-                hooks: generateMoreOptions(story, 'hooks', framework, extraHooks),
-                buildUps: generateMoreOptions(story, 'buildUps', framework),
-                stories: generateMoreOptions(story, 'stories', framework),
-                psychologies: generateMoreOptions(story, 'psychologies', framework),
-            }));
+            const framework = await getFramework();
+            const formattedStories = [];
+            for (const story of newDocs) {
+                const hooks = await generateMoreOptions(story, 'hooks', framework);
+                const buildUps = await generateMoreOptions(story, 'buildUps', framework);
+                const stories = await generateMoreOptions(story, 'stories', framework);
+                const psychologies = await generateMoreOptions(story, 'psychologies', framework);
+                
+                formattedStories.push({
+                    ...story,
+                    id: `db-${story._id.toString()}`,
+                    hooks,
+                    buildUps,
+                    stories,
+                    psychologies,
+                });
+            }
             
             res.status(201).json(formattedStories);
         } else {
@@ -294,6 +302,24 @@ router.post('/api/create-stories-from-news', async (req, res) => {
         res.status(500).json({ error: 'Failed to create stories from news.' });
     }
 });
+
+router.post('/api/regenerate-section', async (req, res) => {
+    const { businessCase, sectionType } = req.body;
+
+    if (!businessCase || !sectionType) {
+        return res.status(400).json({ error: 'Missing business case or section type.' });
+    }
+
+    try {
+        const framework = await getFramework();
+        const newOptions = await generateMoreOptions(businessCase, sectionType, framework);
+        res.json({ newOptions });
+    } catch (error) {
+        console.error(`Error regenerating section ${sectionType}:`, error);
+        res.status(500).json({ error: `Failed to regenerate ${sectionType}.` });
+    }
+});
+
 
 router.get('/api/get-extra-hooks', async (req, res) => {
     try {

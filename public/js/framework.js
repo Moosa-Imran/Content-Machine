@@ -1,5 +1,5 @@
 // public/js/framework.js
-// Handles fetching, displaying, and editing the script generation framework.
+// Handles fetching, displaying, and editing the new prompt-based script generation framework.
 
 document.addEventListener('DOMContentLoaded', () => {
     const frameworkContainer = document.getElementById('framework-container');
@@ -69,80 +69,61 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationModal.classList.add('hidden');
     };
 
-    const createTemplateHTML = (template = "") => {
-        return `
-            <div class="template-item flex items-start gap-2">
-                <textarea class="w-full h-20 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">${template}</textarea>
-                <button class="remove-template-btn p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-md">
-                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                </button>
+    const renderFrameworkEditor = (framework = {}) => {
+        const sections = [
+            { key: 'hooks', title: 'Hooks' },
+            { key: 'buildUps', title: 'Build-Ups' },
+            { key: 'stories', title: 'Stories' },
+            { key: 'psychologies', title: 'Psychologies' }
+        ];
+
+        let editorHTML = `
+            <div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
+                <h3 class="text-xl font-semibold mb-1 text-slate-800 dark:text-white">Overall Brand Prompt</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Give the AI overall context on your brand, tone of voice, and content goals.</p>
+                <textarea id="overallPrompt" class="w-full h-24 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">${framework.overallPrompt || ''}</textarea>
             </div>
         `;
-    };
 
-    const renderSection = (key, title, description, templates, extraHooks = []) => {
-        let templatesHTML = templates.map(createTemplateHTML).join('');
+        sections.forEach(section => {
+            const promptKey = `${section.key}Prompt`;
+            const examplesKey = `${section.key}Examples`;
+            const promptValue = framework[promptKey] || '';
+            const examplesValue = (framework[examplesKey] || []).join('\n');
 
-        let sectionHTML = `
-            <div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800" data-section-key="${key}">
-                <h3 class="text-xl font-semibold mb-1 text-slate-800 dark:text-white">${title}</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">${description}</p>
-                <div class="templates-container space-y-3">${templatesHTML}</div>
-                <button class="add-template-btn mt-4 flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
-                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                    Add Template
-                </button>
-        `;
-
-        if (key === 'hooks' && extraHooks.length > 0) {
-            let extraHooksHTML = extraHooks.map(createTemplateHTML).join('');
-            sectionHTML += `
-                <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <button class="extra-hooks-toggle flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-                        <i data-lucide="chevron-down" class="w-4 h-4 transition-transform"></i>
-                        <span>View/Edit Generic Viral Hooks</span>
-                    </button>
-                    <div class="extra-hooks-content hidden mt-3 pl-4 border-l-2 border-slate-200 dark:border-slate-700" data-section-key="extraHooks">
-                         <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">These high-performing hooks are mixed in with the dynamic templates above.</p>
-                         <div class="templates-container space-y-3">${extraHooksHTML}</div>
-                         <button class="add-template-btn mt-4 flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
-                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                            Add Generic Hook
-                        </button>
+            editorHTML += `
+                <div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800" data-section-key="${section.key}">
+                    <h3 class="text-xl font-semibold mb-1 text-slate-800 dark:text-white">${section.title}</h3>
+                    <div class="mt-4">
+                        <label for="${promptKey}" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Instruction Prompt for ${section.title}</label>
+                        <textarea id="${promptKey}" class="w-full h-20 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">${promptValue}</textarea>
+                    </div>
+                    <div class="mt-4">
+                        <label for="${examplesKey}" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Examples for ${section.title} (one per line)</label>
+                        <textarea id="${examplesKey}" class="w-full h-40 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">${examplesValue}</textarea>
                     </div>
                 </div>
             `;
-        }
-
-        sectionHTML += `</div>`;
-        return sectionHTML;
-    };
-
-    const populateFrameworkEditor = (framework) => {
-        const sections = [
-            { key: 'hooks', title: 'Hooks', description: 'Dynamic templates and a list of reusable viral hooks.' },
-            { key: 'buildUps', title: 'Build-Ups', description: 'Lines to create anticipation and bridge the hook to the main story.' },
-            { key: 'stories', title: 'Stories', description: 'The core narrative templates explaining the problem, solution, and results.' },
-            { key: 'psychologies', title: 'Psychologies', description: 'Templates for the concluding explanation of the psychological principle.' }
-        ];
-
-        let editorHTML = '';
-        sections.forEach(section => {
-            editorHTML += renderSection(section.key, section.title, section.description, framework[section.key] || [], framework.extraHooks);
         });
-
+        
         frameworkContainer.innerHTML = editorHTML;
-        lucide.createIcons();
     };
 
     const saveFramework = async () => {
-        const frameworkData = {};
-        document.querySelectorAll('[data-section-key]').forEach(sectionDiv => {
-            const key = sectionDiv.dataset.sectionKey;
-            const templates = Array.from(sectionDiv.querySelectorAll('.template-item textarea'))
-                                   .map(textarea => textarea.value.trim())
-                                   .filter(value => value);
-            frameworkData[key] = templates;
+        const frameworkData = {
+            overallPrompt: document.getElementById('overallPrompt').value.trim()
+        };
+        
+        const sections = ['hooks', 'buildUps', 'stories', 'psychologies'];
+        sections.forEach(key => {
+            const promptKey = `${key}Prompt`;
+            const examplesKey = `${key}Examples`;
+            
+            frameworkData[promptKey] = document.getElementById(promptKey).value.trim();
+            frameworkData[examplesKey] = document.getElementById(examplesKey).value
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line);
         });
 
         try {
@@ -180,35 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
         try {
             const framework = await apiCall('/api/get-framework');
-            populateFrameworkEditor(framework);
+            renderFrameworkEditor(framework);
         } catch (error) {
             frameworkContainer.innerHTML = `<p class="text-center text-red-500 p-4">Failed to load framework. Please try again.</p>`;
         }
     };
-
-    // Event Delegation
-    frameworkContainer.addEventListener('click', (e) => {
-        const addBtn = e.target.closest('.add-template-btn');
-        const removeBtn = e.target.closest('.remove-template-btn');
-        const toggleBtn = e.target.closest('.extra-hooks-toggle');
-
-        if (addBtn) {
-            const container = addBtn.closest('[data-section-key]').querySelector('.templates-container');
-            container.insertAdjacentHTML('beforeend', createTemplateHTML());
-            lucide.createIcons();
-        }
-        if (removeBtn) {
-            removeBtn.closest('.template-item').remove();
-        }
-        if (toggleBtn) {
-            const content = toggleBtn.nextElementSibling;
-            const icon = toggleBtn.querySelector('i');
-            content.classList.toggle('hidden');
-            if (icon) {
-                icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-            }
-        }
-    });
 
     saveBtn.addEventListener('click', saveFramework);
     resetBtn.addEventListener('click', resetFramework);
