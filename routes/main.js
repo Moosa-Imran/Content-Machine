@@ -164,7 +164,7 @@ const DEFAULT_CATEGORIES = ["business", "technology", "general"].join(',');
 // Updated route to fetch news articles
 router.get('/api/fetch-news-for-story-creation', async (req, res) => {
     try {
-        const newsServerUrl = 'http://localhost:3001/news';
+        const newsServerUrl = 'https://news-server-opal.vercel.app/news';
         
         // Use provided keywords/categories, or fall back to defaults
         const keyword = req.query.keyword || DEFAULT_KEYWORDS;
@@ -212,25 +212,52 @@ router.post('/api/create-stories-from-news', async (req, res) => {
         const newBusinessCases = [];
 
         for (const article of articles) {
-            const prompt = `Based on the following news article, create a business case study.
-            Article Title: ${article.title}
-            Article URL: ${article.url}
-            Article Description: ${article.summary}
+            let articleContent = article.summary; // Fallback content
+            
+            // Try to scrape the full article content
+            try {
+                const scraperResponse = await fetch('http://localhost:3010/api/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: article.url })
+                });
 
-            Generate a JSON object with the following structure:
+                if (scraperResponse.ok) {
+                    const scrapedData = await scraperResponse.json();
+                    if (scrapedData.status === 'success' && scrapedData.data.articleBody) {
+                        articleContent = scrapedData.data.articleBody; // Use full content if successful
+                    }
+                }
+            } catch (scrapeError) {
+                console.warn(`Could not scrape ${article.url}. Falling back to summary. Error: ${scrapeError.message}`);
+            }
+
+            const prompt = `
+            As an expert marketing analyst, your task is to dissect the following news article and transform it into a concise, insightful business case study. Your analysis should be structured as a clean JSON object.
+
+            **Article Details:**
+            - **Title:** ${article.title}
+            - **URL:** ${article.url}
+            - **Full Content:** ${articleContent}
+
+            **Instructions:**
+            Read the article content thoroughly. Identify the core marketing or business strategy discussed. Then, generate a single, valid JSON object with the following keys. Ensure every field is fully populated with complete sentences and detailed information summarized from the article. Do not use placeholders, abbreviations, or truncated text like "...".
+
+            **JSON Structure and Field Descriptions:**
             {
-                "company": "A relevant company or 'A Company'",
-                "industry": "A relevant industry",
-                "psychology": "The core psychological principle discussed",
-                "problem": "The problem the company was trying to solve",
-                "solution": "The solution or tactic used",
-                "realStudy": "A brief mention of the study or research",
-                "findings": "The key findings or results",
+                "company": "Identify the primary company involved. If not explicitly mentioned, infer a relevant company or use a descriptive placeholder like 'A leading e-commerce firm'.",
+                "industry": "Specify the industry of the company (e.g., 'Fashion Retail', 'Consumer Electronics', 'SaaS').",
+                "psychology": "Name the core psychological principle or marketing tactic being used (e.g., 'Scarcity Principle', 'Social Proof', 'Gamification').",
+                "problem": "Describe the specific business problem or challenge the company was facing. This should be a full, descriptive sentence.",
+                "solution": "Detail the specific solution or strategy the company implemented. Explain the tactic clearly and completely.",
+                "realStudy": "If the article mentions a specific study, research paper, or data source, summarize it here. If not, state 'No specific study mentioned'.",
+                "findings": "Summarize the key outcomes, results, or findings of the company's strategy. Use complete sentences and provide concrete details if available in the article.",
                 "verified": false,
                 "sources": ["${article.url}"],
                 "source_url": "${article.url}",
-                "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3"]
-            }`;
+                "hashtags": ["Generate an array of 3-5 relevant, specific hashtags in lowercase (e.g., '#customerloyalty', '#pricingstrategy')."]
+            }
+            `;
 
             const result = await callGeminiAPI(prompt, true);
             
