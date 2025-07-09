@@ -47,38 +47,13 @@ router.get('/breakdown', (req, res) => res.render('breakdown', { title: 'Tactic 
 router.get('/sheet', (req, res) => res.render('sheet', { title: 'Analyze Sheet' }));
 router.get('/news', (req, res) => res.render('news', { title: 'Industry News' }));
 
-router.get('/reels', async (req, res) => {
-    try {
-        const [businessCases, framework] = await Promise.all([
-            getBusinessCases(3), // Reduced from 10 to 3
-            getFramework()
-        ]);
-        
-        const initialFeed = [];
-        for (const businessCase of businessCases) {
-            const hooks = await generateMoreOptions(businessCase, 'hooks', framework);
-            const buildUps = await generateMoreOptions(businessCase, 'buildUps', framework);
-            const stories = await generateMoreOptions(businessCase, 'stories', framework);
-            const psychologies = await generateMoreOptions(businessCase, 'psychologies', framework);
-
-            initialFeed.push({
-                ...businessCase,
-                id: `db-${businessCase._id.toString()}`,
-                hooks,
-                buildUps,
-                stories,
-                psychologies,
-            });
-        }
-        
-        res.render('reels', { 
-            title: 'Viral Scripts',
-            contentFeed: initialFeed,
-        });
-    } catch (error) {
-        console.error("Error rendering reels page:", error);
-        res.status(500).send("Error loading the Viral Scripts page.");
-    }
+// UPDATED: This route now renders the page immediately with an empty content feed.
+// The client-side JavaScript will fetch the content after the page loads.
+router.get('/reels', (req, res) => {
+    res.render('reels', { 
+        title: 'Viral Scripts',
+        contentFeed: [], // Pass an empty array to prevent server-side blocking
+    });
 });
 
 router.get('/framework', (req, res) => {
@@ -88,10 +63,11 @@ router.get('/framework', (req, res) => {
 });
 
 // --- API ROUTES ---
+// This route now does the heavy lifting of generating new scripts, called by the client.
 router.get('/api/new-scripts', async (req, res) => {
     try {
         const [businessCases, framework] = await Promise.all([
-            getBusinessCases(3), // Reduced from 10 to 3
+            getBusinessCases(3),
             getFramework()
         ]);
 

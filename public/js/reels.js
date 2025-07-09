@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const reelCardContainer = document.getElementById('reel-card-container');
     const paginationContainer = document.getElementById('pagination-container');
     const findNewScriptsBtn = document.getElementById('find-new-scripts-btn');
-    const reelsLoader = document.getElementById('reels-loader');
     const newsModal = document.getElementById('news-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const newsArticlesList = document.getElementById('news-articles-list');
@@ -37,29 +36,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const manualFiltersContainer = document.getElementById('manual-filters-container');
 
     // --- INITIALIZATION ---
-    const init = () => {
-        const generatedContent = sessionStorage.getItem('generatedContent');
-        if (generatedContent) {
-            contentFeed = JSON.parse(generatedContent);
-            sessionStorage.removeItem('generatedContent');
-        } else {
-            const initialDataElement = document.getElementById('initial-data');
-            if (initialDataElement) {
-                try {
-                    contentFeed = JSON.parse(initialDataElement.textContent);
-                } catch (e) {
-                    console.error("Failed to parse initial data:", e);
-                    contentFeed = [];
-                }
-            }
+    const fetchInitialScripts = async () => {
+        const loadingTextElement = document.getElementById('loading-text-animation');
+        const loadingPhrases = [
+            "Building compelling hooks...",
+            "Crafting irresistible stories...",
+            "Analyzing psychological triggers...",
+            "Assembling the perfect build-up...",
+            "Polishing the final script..."
+        ];
+        let phraseIndex = 0;
+        let loadingInterval;
+
+        if (loadingTextElement) {
+            loadingInterval = setInterval(() => {
+                loadingTextElement.textContent = loadingPhrases[phraseIndex % loadingPhrases.length];
+                phraseIndex++;
+            }, 1500);
         }
 
-        currentFeedIndex = 0;
-        if (contentFeed.length > 0) {
-            renderCurrentReel();
+        try {
+            const initialScripts = await apiCall('/api/new-scripts');
+            contentFeed = initialScripts;
+            currentFeedIndex = 0;
+
+            if (contentFeed && contentFeed.length > 0) {
+                renderCurrentReel();
+            } else {
+                reelCardContainer.innerHTML = `<div class="text-center text-slate-500 dark:text-slate-400 p-8 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">No scripts found. Try finding new ones.</div>`;
+            }
+        } catch (error) {
+            console.error("Failed to fetch initial scripts:", error);
+            reelCardContainer.innerHTML = `<div class="text-center text-red-500 p-8 bg-red-500/10 rounded-xl border border-red-500/20">Failed to load scripts. Please try again later.</div>`;
+        } finally {
+            if (loadingInterval) {
+                clearInterval(loadingInterval);
+            }
         }
-        
-        attachEventListeners();
     };
     
     // --- EVENT LISTENERS ---
@@ -356,12 +369,59 @@ document.addEventListener('DOMContentLoaded', () => {
         const rewriteBtn = e.target.closest('.rewrite-ai-btn');
         const copyBtn = e.target.closest('.copy-text-btn');
         const audioBtn = e.target.closest('.generate-audio-btn');
+        const regenerateBtn = e.target.closest('.regenerate-section-btn');
 
         if (buildBtn) handleBuildScript();
         if (verifyBtn) handleVerifyStory(verifyBtn);
         if (rewriteBtn) handleAiRewrite(rewriteBtn);
         if (copyBtn) handleCopyScript();
         if (audioBtn) handleGenerateAudio(audioBtn);
+        if (regenerateBtn) handleRegenerateSection(regenerateBtn);
+    };
+
+    const handleRegenerateSection = async (button) => {
+        const sectionType = button.dataset.sectionType;
+        const businessCase = contentFeed[currentFeedIndex];
+        const icon = button.querySelector('i');
+        
+        // Start loading animation
+        icon.classList.add('animate-spin');
+        button.disabled = true;
+
+        try {
+            const { newOptions } = await apiCall('/api/regenerate-section', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ businessCase, sectionType })
+            });
+
+            // Update the local state
+            contentFeed[currentFeedIndex][sectionType] = newOptions;
+
+            // Re-render just the options for that section
+            const optionsContainer = document.querySelector(`.section-block [data-section-type="${sectionType}"]`);
+            if (optionsContainer) {
+                optionsContainer.innerHTML = newOptions.map((option, index) => `
+                    <div class="p-3 rounded-md border cursor-pointer transition-all" onclick="selectOption(this, '${sectionType}')">
+                        <label class="flex items-start text-sm cursor-pointer">
+                            <input type="radio" name="${businessCase.id}-${sectionType}" data-index="${index}" ${index === 0 ? 'checked' : ''} class="sr-only" />
+                            <div class="check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all"></div>
+                            <span class="flex-grow text-slate-600 dark:text-slate-300">${option.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-primary-600 dark:text-primary-400">$1</strong>')}</span>
+                        </label>
+                    </div>
+                `).join('');
+                
+                // Select the first new option by default
+                selectOption(optionsContainer.querySelector('.p-3'), sectionType);
+            }
+        } catch (error) {
+            console.error(`Failed to regenerate ${sectionType}:`, error);
+            alert(`Could not regenerate options. Please try again.`);
+        } finally {
+            // Stop loading animation
+            icon.classList.remove('animate-spin');
+            button.disabled = false;
+        }
     };
     
     const toggleButtonLoading = (button, isLoading, loadingText = 'Loading...') => {
@@ -469,6 +529,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i data-lucide="${sec.icon}" class="w-5 h-5 text-${sec.color}-500 dark:text-${sec.color}-400"></i>
                             <span class="font-semibold text-sm text-slate-700 dark:text-slate-200">${sec.title}</span>
                         </div>
+                        <button class="regenerate-section-btn p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700" data-section-type="${sec.type}" title="Regenerate">
+                           <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-500"></i>
+                        </button>
                     </div>
                     <div class="p-3 space-y-2" data-section-type="${sec.type}">
                         ${options.map((option, index) => `
@@ -679,5 +742,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- START THE APP ---
-    init();
+    attachEventListeners();
+    fetchInitialScripts();
 });
