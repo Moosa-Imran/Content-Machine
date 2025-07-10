@@ -160,6 +160,12 @@ router.post('/api/create-story-from-news', async (req, res) => {
         const result = await callGeminiAPI(prompt, true);
         
         if (result && typeof result === 'object' && !Array.isArray(result)) {
+            // --- NEW: Save the generated business case to the database ---
+            const db = getDB();
+            await db.collection('Business_Cases').insertOne(result);
+            console.log('Successfully saved new business case to the database.');
+            // --- End of new code ---
+
             const framework = await getFramework();
             const [hooks, buildUps, stories, psychologies] = await Promise.all([
                 generateMoreOptions(result, 'hooks', framework),

@@ -20,10 +20,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const promptTextarea = document.getElementById('prompt-textarea');
     const generateFiltersBtn = document.getElementById('generate-filters-btn');
     const manualFiltersContainer = document.getElementById('manual-filters-container');
+    const filterIndicator = document.getElementById('filter-indicator');
+    const storyLoaderModal = document.getElementById('story-loader-modal');
+    const generationStatusText = document.getElementById('generation-status-text');
 
     // --- STATE MANAGEMENT ---
     const DEFAULT_KEYWORDS = "marketing psychology,behavioral economics,neuromarketing,cognitive bias,pricing psychology";
     const DEFAULT_CATEGORIES = ["business", "technology", "general"];
+    const DEFAULT_SORTBY = 'rel';
+
+    let currentFilters = {
+        keywords: DEFAULT_KEYWORDS,
+        categories: [...DEFAULT_CATEGORIES],
+        sortBy: DEFAULT_SORTBY
+    };
     
     let allFetchedArticles = [];
     let currentPage = 1;
@@ -31,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let currentApiPage = 1;
     let totalApiPages = 1;
-    let currentQueryParams = '';
 
     // --- API & UI HELPERS ---
     const toggleButtonLoading = (button, isLoading, loadingText = 'Loading...') => {
@@ -65,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- CORE LOGIC ---
-    const scanForNews = async (queryParams = '', page = 1) => {
+    const scanForNews = async (page = 1) => {
         toggleButtonLoading(scanBtn, true, 'Scanning...');
         loader.classList.remove('hidden');
         errorDiv.classList.add('hidden');
@@ -77,12 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
              currentPage = 1;
         }
         
-        currentQueryParams = queryParams;
         currentApiPage = page;
+        
+        const queryParams = new URLSearchParams();
+        if (currentFilters.keywords) queryParams.append('keyword', currentFilters.keywords);
+        if (currentFilters.categories.length > 0) queryParams.append('category', currentFilters.categories.join(','));
+        if (currentFilters.sortBy) queryParams.append('sortBy', currentFilters.sortBy);
+        queryParams.append('page', page);
 
         try {
-            const fullQuery = `${queryParams}&page=${page}`;
-            const apiResponse = await apiCall(`/api/scan-news?${fullQuery}`);
+            const apiResponse = await apiCall(`/api/scan-news?${queryParams.toString()}`);
             
             const newArticles = apiResponse.articles?.results || [];
             allFetchedArticles.push(...newArticles);
@@ -100,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleButtonLoading(scanBtn, false);
             loader.classList.add('hidden');
             container.style.minHeight = 'auto';
+            updateFilterIndicator();
         }
     };
     
@@ -146,9 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <div class="flex flex-wrap items-center justify-between gap-4 mt-4">
                     <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-md transition-colors"><i data-lucide="link-2" class="w-4 h-4"></i>View Source</a>
-                    <button class="create-story-btn flex items-center gap-1.5 text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="wand-2" data-original-text="Create Story">
-                        <span class="btn-icon"><i data-lucide="wand-2" class="w-4 h-4"></i></span>
-                        <span class="btn-text">Create Story</span>
+                    <button class="create-story-btn flex items-center gap-1.5 text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                        <i data-lucide="wand-2" class="w-4 h-4"></i>
+                        Create Story
                     </button>
                 </div>
             </div>`;
@@ -221,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fetchMoreBtn = document.getElementById('fetch-more-btn');
         if (fetchMoreBtn) {
             fetchMoreBtn.addEventListener('click', () => {
-                scanForNews(currentQueryParams, currentApiPage + 1);
+                scanForNews(currentApiPage + 1);
             });
         }
         
@@ -239,7 +253,21 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/&quot;/g, '"');
         const article = JSON.parse(unescapedArticleString);
         
-        toggleButtonLoading(createBtn, true, 'Creating...');
+        // Show the modal and start the animation
+        storyLoaderModal.classList.remove('hidden');
+        const loadingPhrases = [
+            "Analyzing article for key insights...",
+            "Identifying psychological triggers...",
+            "Crafting compelling hooks...",
+            "Building the narrative...",
+            "Finalizing script..."
+        ];
+        let phraseIndex = 0;
+        generationStatusText.textContent = loadingPhrases[0];
+        const loadingInterval = setInterval(() => {
+            phraseIndex++;
+            generationStatusText.textContent = loadingPhrases[phraseIndex % loadingPhrases.length];
+        }, 2000);
         
         try {
             const newStory = await apiCall('/api/create-story-from-news', {
@@ -252,52 +280,64 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/reels';
             
         } catch (error) {
+            clearInterval(loadingInterval);
+            storyLoaderModal.classList.add('hidden');
             alert(`Failed to create story: ${error.message}`);
-            toggleButtonLoading(createBtn, false);
         }
     };
     
-    const setDefaultFilters = () => {
-        searchKeywordsInput.value = DEFAULT_KEYWORDS.replace(/,/g, ', ');
-        document.getElementById('sort-rel').checked = true;
+    const updateFilterModalUI = () => {
+        searchKeywordsInput.value = currentFilters.keywords.replace(/,/g, ', ');
+        sortByContainer.querySelector(`input[value="${currentFilters.sortBy}"]`).checked = true;
         
         const noneCheckbox = document.getElementById('cat-none');
-        noneCheckbox.checked = false;
+        const hasCategories = currentFilters.categories.length > 0;
+        noneCheckbox.checked = !hasCategories;
 
         searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            if(cb.id !== 'cat-none') {
-                cb.checked = DEFAULT_CATEGORIES.includes(cb.value);
+            if (cb.id !== 'cat-none') {
+                cb.checked = hasCategories && currentFilters.categories.includes(cb.value);
             }
         });
     };
+    
+    const updateFilterIndicator = () => {
+        const isDefaultKeywords = currentFilters.keywords === DEFAULT_KEYWORDS;
+        const isDefaultSort = currentFilters.sortBy === DEFAULT_SORTBY;
+        const isDefaultCategories = currentFilters.categories.length === DEFAULT_CATEGORIES.length && 
+                                  currentFilters.categories.every(cat => DEFAULT_CATEGORIES.includes(cat));
+
+        if (isDefaultKeywords && isDefaultSort && isDefaultCategories) {
+            filterIndicator.classList.add('hidden');
+        } else {
+            filterIndicator.classList.remove('hidden');
+        }
+    };
+
+    const setDefaultFilters = () => {
+        currentFilters = {
+            keywords: DEFAULT_KEYWORDS,
+            categories: [...DEFAULT_CATEGORIES],
+            sortBy: DEFAULT_SORTBY
+        };
+        updateFilterModalUI();
+    };
 
     const handleExecuteCustomSearch = () => {
-        const keywords = searchKeywordsInput.value
+        currentFilters.keywords = searchKeywordsInput.value
             .split(',')
             .map(kw => kw.trim())
             .filter(kw => kw)
             .join(',');
 
-        let selectedCategories = Array.from(searchCategoryContainer.querySelectorAll('input[type="checkbox"]:checked'))
+        currentFilters.categories = Array.from(searchCategoryContainer.querySelectorAll('input[type="checkbox"]:checked'))
             .map(cb => cb.value)
-            .filter(val => val !== 'none')
-            .join(',');
+            .filter(val => val !== 'none');
 
-        const sortBy = sortByContainer.querySelector('input[name="sort_by"]:checked').value;
-        
-        const queryParams = new URLSearchParams();
-        if (keywords) {
-            queryParams.append('keyword', keywords);
-        }
-        if (selectedCategories) {
-            queryParams.append('category', selectedCategories);
-        }
-        if (sortBy) {
-            queryParams.append('sortBy', sortBy);
-        }
+        currentFilters.sortBy = sortByContainer.querySelector('input[name="sort_by"]:checked').value;
         
         customSearchModal.classList.add('hidden');
-        scanForNews(queryParams.toString(), 1);
+        scanForNews(1);
     };
     
     const togglePromptUI = () => {
@@ -305,7 +345,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const isDisabled = !isHidden;
         
         manualFiltersContainer.style.opacity = isDisabled ? '0.5' : '1';
-        manualFiltersContainer.querySelectorAll('input, button').forEach(el => el.disabled = isDisabled);
+        manualFiltersContainer.querySelectorAll('input, button, label').forEach(el => {
+            if (el.tagName === 'INPUT' || el.tagName === 'BUTTON') {
+                el.disabled = isDisabled;
+            }
+        });
     };
 
     const handleGenerateFilters = async () => {
@@ -330,6 +374,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                     cb.checked = result.categories.includes(cb.value);
                 });
+                // Uncheck "None" if AI provides categories
+                document.getElementById('cat-none').checked = result.categories.length === 0;
             }
             
             togglePromptUI();
@@ -348,23 +394,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const noneCheckbox = document.getElementById('cat-none');
         
         if (target.id === 'cat-none' && target.checked) {
-            // If "None" is checked, uncheck all others
             searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                 if (cb.id !== 'cat-none') {
                     cb.checked = false;
                 }
             });
         } else if (target.id !== 'cat-none' && target.checked) {
-            // If any other category is checked, uncheck "None"
             noneCheckbox.checked = false;
         }
     };
 
     // --- EVENT LISTENERS ---
-    scanBtn.addEventListener('click', () => scanForNews(currentQueryParams, 1));
+    scanBtn.addEventListener('click', () => scanForNews(1));
     container.addEventListener('click', handleCreateStoryFromNews);
     customSearchBtn.addEventListener('click', () => {
-        setDefaultFilters();
+        updateFilterModalUI();
         customSearchModal.classList.remove('hidden');
     });
     closeSearchModalBtn.addEventListener('click', () => customSearchModal.classList.add('hidden'));
