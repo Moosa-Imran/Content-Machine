@@ -410,4 +410,64 @@ router.get('/api/scan-news', async (req, res) => {
     }
 });
 
+router.post('/api/tactic-breakdown', async (req, res) => {
+    const { companyName } = req.body;
+    const prompt = `For the company '${companyName}', create a viral script that breaks down 3 of their most quirky, shocking, or unknown marketing tactics. For each tactic, identify which pillar it belongs to (Psychological triggers, Biases, Behavioural economics, or Neuromarketing). Structure the entire output as a single JSON object for a script with the following keys: 'company', 'hook', 'buildUp', 'storyBreakdown', 'concludingPsychology'.
+
+    - 'company': The name of the company.
+    - 'hook': A compelling opening line for a short video about these tactics.
+    - 'buildUp': A sentence to create anticipation.
+    - 'storyBreakdown': An array of 3 objects, where each object has the keys: 'tacticName', 'pillar', and 'explanation'. The explanation should detail the quirky tactic.
+    - 'concludingPsychology': A concluding sentence that summarizes the overall psychological genius.`;
+
+    try {
+        const result = await callGeminiAPI(prompt, true);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: `Failed to generate script for ${companyName}. Server error: ${error.message}` });
+    }
+});
+
+router.get('/api/find-companies', async (req, res) => {
+    const prompt = `Generate a diverse list of 5 companies known for using interesting or quirky psychological marketing tactics. Include well-known brands and some lesser-known or foreign examples. Return as a JSON array of strings. e.g., ["Apple", "Shein", "Patagonia", "Liquid Death", "KupiVip"]`;
+    try {
+        const result = await callGeminiAPI(prompt, true);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: `Could not fetch company list. Server error: ${error.message}` });
+    }
+});
+
+router.post('/api/analyze-sheet', async (req, res) => {
+    const { pastedData, sheetUrl } = req.body;
+    const hasPastedData = pastedData && pastedData.trim().length > 0;
+    const hasUrl = sheetUrl && sheetUrl.trim().length > 0;
+
+    if (!hasPastedData && !hasUrl) {
+        return res.status(400).json({ error: 'No data or URL provided.' });
+    }
+
+    const analysisSource = hasPastedData 
+        ? `the following pasted data:\n\n${pastedData}`
+        : `the data from this Google Sheet: ${sheetUrl}`;
+
+    const prompt = `Analyze ${analysisSource}. Assume the data is structured with columns like 'Company', 'Industry', 'Problem', 'Solution'. 
+    For each row/entry, create a business case study object. Then, for each case, generate a hook, a build-up, a story, and a psychology explanation.
+    Return a JSON array of these objects, where each object has this structure:
+    {"company": "string", "industry": "string", "problem": "string", "solution": "string", "findings": "string", "psychology": "string", "hashtags": ["string"], "hooks": ["string"], "buildUps": ["string"], "stories": ["string"], "psychologies": ["string"]}`;
+
+    try {
+        const results = await callGeminiAPI(prompt, true);
+        const formattedResults = results.map((r, i) => ({
+            ...r,
+            id: `sheet-${Date.now()}-${i}`,
+            sources: [hasPastedData ? 'Pasted Data' : sheetUrl],
+        }));
+        res.json(formattedResults);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: `Failed to analyze the provided data. Server error: ${err.message}` });
+    }
+});
+
 module.exports = router;

@@ -21,19 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const generatedContent = sessionStorage.getItem('generatedContent');
         if (generatedContent) {
+            // This block runs when redirected from the news page with a new story
             contentFeed = JSON.parse(generatedContent);
             sessionStorage.removeItem('generatedContent'); // Clear it after use
             currentFeedIndex = 0;
-            // We don't know the total, so we'll fetch it.
-            try {
-                const countData = await apiCall('/api/business-cases/count');
-                totalCases = countData.total;
-            } catch (e) {
-                console.error("Could not fetch total count", e);
-                totalCases = contentFeed.length; // Fallback
-            }
+            totalCases = contentFeed.length; // Set total to 1 to disable pagination
             renderCurrentReel();
         } else {
+            // This block runs on a normal page load
             await fetchInitialScript();
         }
     };
@@ -177,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             contentFeed[currentFeedIndex][sectionType] = newOptions;
 
-            // FIX: Select the options container specifically by tag name 'div' to avoid selecting the button.
             const sectionBlock = button.closest('.section-block');
             const optionsContainer = sectionBlock.querySelector(`div[data-section-type="${sectionType}"]`);
 
@@ -255,6 +249,17 @@ document.addEventListener('DOMContentLoaded', () => {
             paginationContainer.innerHTML = '';
             return;
         }
+        
+        // If only one story (from news redirect), show a simple message or hide pagination
+        if (totalCases === 1) {
+             paginationContainer.innerHTML = `
+                <div class="flex items-center justify-center">
+                     <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Showing 1 script generated from news</span>
+                </div>
+            `;
+            return;
+        }
+
         paginationContainer.innerHTML = `
             <div class="flex items-center justify-between">
                 <button id="prev-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
