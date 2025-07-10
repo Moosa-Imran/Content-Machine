@@ -12,7 +12,7 @@ const { generateMoreOptions } = require('../utils/scriptGenerator');
 const { callGeminiAPI, generateAudio } = require('../services/aiService');
 
 // --- HELPER FUNCTIONS ---
-const getBusinessCases = async (limit = 3) => {
+const getBusinessCases = async (limit = 1) => { // Default limit is now 1
     const db = getDB();
     const pipeline = [{ $sample: { size: limit } }];
     return await db.collection('Business_Cases').aggregate(pipeline).toArray();
@@ -55,33 +55,52 @@ router.get('/framework', (req, res) => {
 });
 
 // --- API ROUTES ---
-router.get('/api/new-scripts', async (req, res) => {
+// NEW: Endpoint to get the total count of business cases
+router.get('/api/business-cases/count', async (req, res) => {
+    try {
+        const db = getDB();
+        const count = await db.collection('Business_Cases').countDocuments();
+        res.json({ total: count });
+    } catch (error) {
+        console.error("Error fetching business case count:", error);
+        res.status(500).json({ error: 'Failed to get total business cases.' });
+    }
+});
+
+
+// UPDATED: Now fetches and processes a single script
+router.get('/api/new-script', async (req, res) => {
     try {
         const [businessCases, framework] = await Promise.all([
-            getBusinessCases(3),
+            getBusinessCases(1), // Fetch only one
             getFramework()
         ]);
 
-        const newBatch = [];
-        for (const businessCase of businessCases) {
-            const hooks = await generateMoreOptions(businessCase, 'hooks', framework);
-            const buildUps = await generateMoreOptions(businessCase, 'buildUps', framework);
-            const stories = await generateMoreOptions(businessCase, 'stories', framework);
-            const psychologies = await generateMoreOptions(businessCase, 'psychologies', framework);
-
-            newBatch.push({
-                ...businessCase,
-                id: `db-${businessCase._id.toString()}`,
-                hooks,
-                buildUps,
-                stories,
-                psychologies,
-            });
+        if (businessCases.length === 0) {
+            return res.status(404).json({ error: 'No business cases found.' });
         }
-        res.json(newBatch);
+
+        const businessCase = businessCases[0];
+        const [hooks, buildUps, stories, psychologies] = await Promise.all([
+            generateMoreOptions(businessCase, 'hooks', framework),
+            generateMoreOptions(businessCase, 'buildUps', framework),
+            generateMoreOptions(businessCase, 'stories', framework),
+            generateMoreOptions(businessCase, 'psychologies', framework)
+        ]);
+
+        const newScript = {
+            ...businessCase,
+            id: `db-${businessCase._id.toString()}`,
+            hooks,
+            buildUps,
+            stories,
+            psychologies,
+        };
+        
+        res.json(newScript);
     } catch (error) {
-        console.error("Error in /api/new-scripts:", error);
-        res.status(500).json({ error: 'Failed to generate new scripts' });
+        console.error("Error in /api/new-script:", error);
+        res.status(500).json({ error: 'Failed to generate new script' });
     }
 });
 
@@ -160,11 +179,9 @@ router.post('/api/create-story-from-news', async (req, res) => {
         const result = await callGeminiAPI(prompt, true);
         
         if (result && typeof result === 'object' && !Array.isArray(result)) {
-            // --- NEW: Save the generated business case to the database ---
             const db = getDB();
             await db.collection('Business_Cases').insertOne(result);
             console.log('Successfully saved new business case to the database.');
-            // --- End of new code ---
 
             const framework = await getFramework();
             const [hooks, buildUps, stories, psychologies] = await Promise.all([

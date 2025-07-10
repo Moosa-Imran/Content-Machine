@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- STATE MANAGEMENT ---
     let contentFeed = [];
     let currentFeedIndex = 0;
+    let totalCases = 0;
     
     // --- ELEMENT SELECTORS ---
     const reelCardContainer = document.getElementById('reel-card-container');
@@ -15,23 +16,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const createFromNewsBtn = document.getElementById('create-from-news-btn');
 
     // --- INITIALIZATION ---
-    const init = () => {
+    const init = async () => {
+        attachEventListeners();
+        
         const generatedContent = sessionStorage.getItem('generatedContent');
         if (generatedContent) {
             contentFeed = JSON.parse(generatedContent);
             sessionStorage.removeItem('generatedContent'); // Clear it after use
-            if (contentFeed.length > 0) {
-                renderCurrentReel();
-            } else {
-                fetchInitialScripts();
+            currentFeedIndex = 0;
+            // We don't know the total, so we'll fetch it.
+            try {
+                const countData = await apiCall('/api/business-cases/count');
+                totalCases = countData.total;
+            } catch (e) {
+                console.error("Could not fetch total count", e);
+                totalCases = contentFeed.length; // Fallback
             }
+            renderCurrentReel();
         } else {
-            fetchInitialScripts();
+            await fetchInitialScript();
         }
-        attachEventListeners();
     };
 
-    const fetchInitialScripts = async () => {
+    // This function now generates its own loader HTML, making it self-contained and reliable.
+    const showLoader = () => {
+        const loaderHTML = `
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 text-center">
+                     <i data-lucide="brain-circuit" class="w-16 h-16 text-primary-500 mx-auto animate-bounce"></i>
+                     <h2 class="text-2xl font-bold text-slate-800 dark:text-white mt-4">Fetching a New Viral Idea...</h2>
+                     <p class="mt-2 text-slate-500 dark:text-slate-400 h-6">Please wait a moment.</p>
+                </div>
+            </div>`;
+        reelCardContainer.innerHTML = loaderHTML;
+        lucide.createIcons();
+    };
+
+    const fetchInitialScript = async () => {
+        // The initial loader is already present in the EJS file. We just manage its text animation.
         const loadingTextElement = document.getElementById('loading-text-animation');
         const loadingPhrases = [
             "Building compelling hooks...",
@@ -43,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let phraseIndex = 0;
         let loadingInterval;
 
-        if (loadingTextElement) {
+        if (loadingTextElement) { // Check if the loader is on the page
             loadingInterval = setInterval(() => {
                 loadingTextElement.textContent = loadingPhrases[phraseIndex % loadingPhrases.length];
                 phraseIndex++;
@@ -51,17 +73,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const initialScripts = await apiCall('/api/new-scripts');
-            contentFeed = initialScripts;
+            const [countData, firstScript] = await Promise.all([
+                apiCall('/api/business-cases/count'),
+                apiCall('/api/new-script')
+            ]);
+            totalCases = countData.total;
+            contentFeed = [firstScript];
             currentFeedIndex = 0;
 
-            if (contentFeed && contentFeed.length > 0) {
+            if (contentFeed.length > 0) {
                 renderCurrentReel();
             } else {
                 reelCardContainer.innerHTML = `<div class="text-center text-slate-500 dark:text-slate-400 p-8 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">No scripts found. Try finding new ones.</div>`;
             }
         } catch (error) {
-            console.error("Failed to fetch initial scripts:", error);
+            console.error("Failed to fetch initial script:", error);
             reelCardContainer.innerHTML = `<div class="text-center text-red-500 p-8 bg-red-500/10 rounded-xl border border-red-500/20">Failed to load scripts. Please try again later.</div>`;
         } finally {
             if (loadingInterval) {
@@ -74,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const attachEventListeners = () => {
         findNewScriptsBtn?.addEventListener('click', () => createFromModal.classList.remove('hidden'));
         reelCardContainer.addEventListener('click', handleCardClick);
+        paginationContainer.addEventListener('click', handlePaginationClick);
         
         // Create From Modal Listeners
         closeCreateModalBtn?.addEventListener('click', () => createFromModal.classList.add('hidden'));
@@ -98,11 +125,46 @@ document.addEventListener('DOMContentLoaded', () => {
         if (regenerateBtn) handleRegenerateSection(regenerateBtn);
     };
 
+    const handlePaginationClick = async (e) => {
+        const prevBtn = e.target.closest('#prev-btn');
+        const nextBtn = e.target.closest('#next-btn');
+
+        if (prevBtn) {
+            if (currentFeedIndex > 0) {
+                currentFeedIndex--;
+                renderCurrentReel();
+            }
+        }
+
+        if (nextBtn) {
+            // If the next script is already in our feed, just show it.
+            if (currentFeedIndex < contentFeed.length - 1) {
+                currentFeedIndex++;
+                renderCurrentReel();
+            } else {
+                // Otherwise, fetch a new one.
+                showLoader(); // Use the new, reliable loader function
+                try {
+                    const newScript = await apiCall('/api/new-script');
+                    contentFeed.push(newScript);
+                    currentFeedIndex++;
+                    renderCurrentReel();
+                } catch (error) {
+                    console.error("Failed to fetch next script:", error);
+                    renderCurrentReel(); // Re-render the current card to hide loader
+                    alert("Could not load the next script. Please try again.");
+                }
+            }
+        }
+    };
+
     const handleRegenerateSection = async (button) => {
         const sectionType = button.dataset.sectionType;
         const businessCase = contentFeed[currentFeedIndex];
-        const icon = button.querySelector('i');
+        const icon = button.firstElementChild;
         
+        if (!icon) return;
+
         icon.classList.add('animate-spin');
         button.disabled = true;
 
@@ -115,7 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             contentFeed[currentFeedIndex][sectionType] = newOptions;
 
-            const optionsContainer = document.querySelector(`.section-block [data-section-type="${sectionType}"]`);
+            // FIX: Select the options container specifically by tag name 'div' to avoid selecting the button.
+            const sectionBlock = button.closest('.section-block');
+            const optionsContainer = sectionBlock.querySelector(`div[data-section-type="${sectionType}"]`);
+
             if (optionsContainer) {
                 optionsContainer.innerHTML = newOptions.map((option, index) => `
                     <div class="p-3 rounded-md border cursor-pointer transition-all" onclick="selectOption(this, '${sectionType}')">
@@ -145,14 +210,10 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = isLoading;
 
         if (isLoading) {
-            if (icon) {
-                icon.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>';
-            }
+            if (icon) icon.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>';
             if (text) text.textContent = loadingText;
         } else {
-            if (icon) {
-                icon.innerHTML = `<i data-lucide="${button.dataset.icon || 'search'}" class="w-4 h-4"></i>`;
-            }
+            if (icon) icon.innerHTML = `<i data-lucide="${button.dataset.icon || 'search'}" class="w-4 h-4"></i>`;
             if (text) text.textContent = button.dataset.originalText || 'Submit';
         }
         lucide.createIcons();
@@ -190,36 +251,22 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const updatePagination = () => {
-        if (!contentFeed || contentFeed.length <= 1) {
+        if (totalCases === 0) {
             paginationContainer.innerHTML = '';
             return;
         }
         paginationContainer.innerHTML = `
             <div class="flex items-center justify-between">
                 <button id="prev-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Script <span class="text-primary-600 dark:text-primary-400 font-bold">${currentFeedIndex + 1}</span> of ${contentFeed.length}</span>
-                <button id="next-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">${contentFeed.length - 1 === currentFeedIndex ? 'Find More' : '<i data-lucide="arrow-right" class="w-5 h-5"></i>'}</button>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Script <span class="text-primary-600 dark:text-primary-400 font-bold">${currentFeedIndex + 1}</span> of ${totalCases}</span>
+                <button id="next-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
             </div>`;
-        const prevBtn = document.getElementById('prev-btn');
-        const nextBtn = document.getElementById('next-btn');
-        prevBtn.disabled = currentFeedIndex === 0;
-        prevBtn.addEventListener('click', () => {
-            if (currentFeedIndex > 0) {
-                currentFeedIndex--;
-                renderCurrentReel();
-            }
-        });
-        nextBtn.addEventListener('click', () => {
-            if (currentFeedIndex < contentFeed.length - 1) {
-                currentFeedIndex++;
-                renderCurrentReel();
-            } else {
-                createFromModal.classList.remove('hidden');
-            }
-        });
-        if (contentFeed.length - 1 !== currentFeedIndex) {
-            lucide.createIcons({ nodes: [nextBtn] });
+        
+        const prevBtn = paginationContainer.querySelector('#prev-btn');
+        if (prevBtn) {
+            prevBtn.disabled = currentFeedIndex === 0;
         }
+        lucide.createIcons();
     };
 
     const generateReelCardHTML = (story) => {
@@ -396,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="my-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                     <div class="flex justify-between items-center mb-2">
                         <h4 class="font-bold text-slate-700 dark:text-white">Verification Result:</h4>
-                        ${story.source_url ? `<a href="${story.source_url}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-md font-semibold transition-colors"><i data-lucide="link" class="w-4 h-4"></i>View Source</a>` : ''}
+                        ${story.source_url ? `<a href="${story.source_url}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-md font-semibold transition-colors"><i data-lucide="link-2" class="w-4 h-4"></i>View Source</a>` : ''}
                     </div>
                     <ul class="space-y-2 text-sm mb-3">
                         ${result.checks.map(check => `
