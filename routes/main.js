@@ -18,12 +18,6 @@ const getBusinessCases = async (limit = 3) => {
     return await db.collection('Business_Cases').aggregate(pipeline).toArray();
 };
 
-const getExtraHooks = async () => {
-    const db = getDB();
-    const generalData = await db.collection('General').findOne({});
-    return generalData ? generalData.hooks : [];
-};
-
 const getFramework = async () => {
     try {
         const db = getDB();
@@ -47,8 +41,6 @@ router.get('/breakdown', (req, res) => res.render('breakdown', { title: 'Tactic 
 router.get('/sheet', (req, res) => res.render('sheet', { title: 'Analyze Sheet' }));
 router.get('/news', (req, res) => res.render('news', { title: 'Industry News' }));
 
-// UPDATED: This route now renders the page immediately with an empty content feed.
-// The client-side JavaScript will fetch the content after the page loads.
 router.get('/reels', (req, res) => {
     res.render('reels', { 
         title: 'Viral Scripts',
@@ -63,7 +55,6 @@ router.get('/framework', (req, res) => {
 });
 
 // --- API ROUTES ---
-// This route now does the heavy lifting of generating new scripts, called by the client.
 router.get('/api/new-scripts', async (req, res) => {
     try {
         const [businessCases, framework] = await Promise.all([
@@ -130,152 +121,62 @@ router.post('/api/reset-framework', async (req, res) => {
     }
 });
 
-// Default search parameters for news fetching
-const DEFAULT_KEYWORDS = [
-    "consumer psychology", "behavioral economics", "marketing psychology",
-    "neuromarketing", "cognitive bias", "pricing psychology",
-    "sensory marketing", "social engineering", "retail psychology",
-    "shopping behavior", "behavioral design"
-].join(',');
-const DEFAULT_CATEGORIES = ["business", "technology", "general"].join(',');
-
-// Updated route to fetch news articles
-router.get('/api/fetch-news-for-story-creation', async (req, res) => {
-    try {
-        const newsServerUrl = 'https://news-server-opal.vercel.app/news';
-        
-        const keyword = req.query.keyword || DEFAULT_KEYWORDS;
-        const category = req.query.category || DEFAULT_CATEGORIES;
-
-        const params = new URLSearchParams({ keyword, category });
-        
-        const finalUrl = `${newsServerUrl}?${params.toString()}`;
-        
-        const response = await fetch(finalUrl);
-        if (!response.ok) {
-            throw new Error(`News server responded with status: ${response.status}`);
-        }
-        const articles = await response.json();
-        
-        const db = getDB();
-        const existingCases = await db.collection('Business_Cases').find({}, { projection: { source_url: 1 } }).toArray();
-        const existingSourceUrls = new Set(existingCases.map(doc => doc.source_url));
-
-        const uniqueArticles = (articles.articles || articles).filter(article => !existingSourceUrls.has(article.url));
-
-        const formattedArticles = uniqueArticles.map(article => ({
-            title: article.title,
-            url: article.url,
-            summary: article.description,
-            source: article.source
-        }));
-
-        res.json(formattedArticles);
-    } catch (error) {
-        console.error("Error fetching or filtering news:", error);
-        res.status(500).json({ error: 'Failed to fetch news articles.' });
-    }
-});
-
-
-router.post('/api/create-stories-from-news', async (req, res) => {
-    const { articles } = req.body;
-    if (!articles || !Array.isArray(articles) || articles.length === 0) {
-        return res.status(400).json({ error: 'No articles provided.' });
+router.post('/api/create-story-from-news', async (req, res) => {
+    const { article } = req.body;
+    if (!article) {
+        return res.status(400).json({ error: 'No article provided.' });
     }
 
     try {
-        const db = getDB();
-        const newBusinessCases = [];
+        // The scraper is no longer needed. The full article body is passed from the client as 'article.summary'.
+        const articleContent = article.summary;
 
-        for (const article of articles) {
-            let articleContent = article.summary;
-            
-            try {
-                const scraperResponse = await fetch('http://localhost:3010/api/scrape', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: article.url })
-                });
+        const prompt = `
+        As an expert marketing analyst, your task is to dissect the following news article and transform it into a concise, insightful business case study. Your analysis should be structured as a clean JSON object.
 
-                if (scraperResponse.ok) {
-                    const scrapedData = await scraperResponse.json();
-                    if (scrapedData.status === 'success' && scrapedData.data.articleBody) {
-                        articleContent = scrapedData.data.articleBody;
-                    }
-                }
-            } catch (scrapeError) {
-                console.warn(`Could not scrape ${article.url}. Falling back to summary. Error: ${scrapeError.message}`);
-            }
+        **Article Details:**
+        - **Title:** ${article.title}
+        - **URL:** ${article.url}
+        - **Full Content:** ${articleContent}
 
-            const prompt = `
-            As an expert marketing analyst, your task is to dissect the following news article and transform it into a concise, insightful business case study. Your analysis should be structured as a clean JSON object.
+        **Instructions:**
+        Read the article content thoroughly. Identify the core marketing or business strategy discussed. Then, generate a single, valid JSON object with the following keys. Ensure every field is fully populated with complete sentences and detailed information summarized from the article. Do not use placeholders, abbreviations, or truncated text like "...".
 
-            **Article Details:**
-            - **Title:** ${article.title}
-            - **URL:** ${article.url}
-            - **Full Content:** ${articleContent}
-
-            **Instructions:**
-            Read the article content thoroughly. Identify the core marketing or business strategy discussed. Then, generate a single, valid JSON object with the following keys. Ensure every field is fully populated with complete sentences and detailed information summarized from the article. Do not use placeholders, abbreviations, or truncated text like "...".
-
-            **JSON Structure and Field Descriptions:**
-            {
-                "company": "Identify the primary company involved. If not explicitly mentioned, infer a relevant company or use a descriptive placeholder like 'A leading e-commerce firm'.",
-                "industry": "Specify the industry of the company (e.g., 'Fashion Retail', 'Consumer Electronics', 'SaaS').",
-                "psychology": "Name the core psychological principle or marketing tactic being used (e.g., 'Scarcity Principle', 'Social Proof', 'Gamification').",
-                "problem": "Describe the specific business problem or challenge the company was facing. This should be a full, descriptive sentence.",
-                "solution": "Detail the specific solution or strategy the company implemented. Explain the tactic clearly and completely.",
-                "realStudy": "If the article mentions a specific study, research paper, or data source, summarize it here. If not, state 'No specific study mentioned'.",
-                "findings": "Summarize the key outcomes, results, or findings of the company's strategy. Use complete sentences and provide concrete details if available in the article.",
-                "verified": false,
-                "sources": ["${article.url}"],
-                "source_url": "${article.url}",
-                "hashtags": ["Generate an array of 3-5 relevant, specific hashtags in lowercase (e.g., '#customerloyalty', '#pricingstrategy')."]
-            }
-            `;
-
-            const result = await callGeminiAPI(prompt, true);
-            
-            const caseToAdd = Array.isArray(result) ? result[0] : result;
-            if (caseToAdd && typeof caseToAdd === 'object' && !Array.isArray(caseToAdd)) {
-                newBusinessCases.push(caseToAdd);
-            } else {
-                console.warn(`Skipping invalid result from Gemini for article: ${article.title}`);
-            }
+        **JSON Structure and Field Descriptions:**
+        {
+            "company": "Identify the primary company involved. If not explicitly mentioned, infer a relevant company or use a descriptive placeholder like 'A leading e-commerce firm'.",
+            "industry": "Specify the industry of the company (e.g., 'Fashion Retail', 'Consumer Electronics', 'SaaS').",
+            "psychology": "Name the core psychological principle or marketing tactic being used (e.g., 'Scarcity Principle', 'Social Proof', 'Gamification').",
+            "problem": "Describe the specific business problem or challenge the company was facing. This should be a full, descriptive sentence.",
+            "solution": "Detail the specific solution or strategy the company implemented. Explain the tactic clearly and completely.",
+            "realStudy": "If the article mentions a specific study, research paper, or data source, summarize it here. If not, state 'No specific study mentioned'.",
+            "findings": "Summarize the key outcomes, results, or findings of the company's strategy. Use complete sentences and provide concrete details if available in the article.",
+            "verified": false,
+            "sources": ["${article.url}"],
+            "source_url": "${article.url}",
+            "hashtags": ["Generate an array of 3-5 relevant, specific hashtags in lowercase (e.g., '#customerloyalty', '#pricingstrategy')."]
         }
+        `;
 
-        if (newBusinessCases.length > 0) {
-            const collection = db.collection('Business_Cases');
-            const insertResult = await collection.insertMany(newBusinessCases);
-            const newDocs = await collection.find({ _id: { $in: Object.values(insertResult.insertedIds) } }).toArray();
-            
+        const result = await callGeminiAPI(prompt, true);
+        
+        if (result && typeof result === 'object' && !Array.isArray(result)) {
             const framework = await getFramework();
-            const formattedStories = [];
-            for (const story of newDocs) {
-                const hooks = await generateMoreOptions(story, 'hooks', framework);
-                const buildUps = await generateMoreOptions(story, 'buildUps', framework);
-                const stories = await generateMoreOptions(story, 'stories', framework);
-                const psychologies = await generateMoreOptions(story, 'psychologies', framework);
-                
-                formattedStories.push({
-                    ...story,
-                    id: `db-${story._id.toString()}`,
-                    hooks,
-                    buildUps,
-                    stories,
-                    psychologies,
-                });
-            }
-            
-            res.status(201).json(formattedStories);
+            const [hooks, buildUps, stories, psychologies] = await Promise.all([
+                generateMoreOptions(result, 'hooks', framework),
+                generateMoreOptions(result, 'buildUps', framework),
+                generateMoreOptions(result, 'stories', framework),
+                generateMoreOptions(result, 'psychologies', framework)
+            ]);
+            const newStory = { ...result, id: `news-${Date.now()}`, hooks, buildUps, stories, psychologies };
+            res.status(201).json(newStory);
         } else {
-            res.status(200).json([]);
+            throw new Error("AI failed to generate a valid story structure.");
         }
 
     } catch (error) {
-        console.error('Error creating stories from news:', error);
-        res.status(500).json({ error: 'Failed to create stories from news.' });
+        console.error('Error creating story from news:', error);
+        res.status(500).json({ error: 'Failed to create story from news.' });
     }
 });
 
@@ -293,16 +194,6 @@ router.post('/api/regenerate-section', async (req, res) => {
     } catch (error) {
         console.error(`Error regenerating section ${sectionType}:`, error);
         res.status(500).json({ error: `Failed to regenerate ${sectionType}.` });
-    }
-});
-
-
-router.get('/api/get-extra-hooks', async (req, res) => {
-    try {
-        const extraHooks = await getExtraHooks();
-        res.json(extraHooks);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to get extra hooks.' });
     }
 });
 
@@ -337,24 +228,6 @@ router.post('/api/rewrite-script', async (req, res) => {
     }
 });
 
-router.post('/api/tactic-breakdown', async (req, res) => {
-    const { companyName } = req.body;
-    const prompt = `For the company '${companyName}', create a viral script that breaks down 3 of their most quirky, shocking, or unknown marketing tactics. For each tactic, identify which pillar it belongs to (Psychological triggers, Biases, Behavioural economics, or Neuromarketing). Structure the entire output as a single JSON object for a script with the following keys: 'company', 'hook', 'buildUp', 'storyBreakdown', 'concludingPsychology'.
-
-    - 'company': The name of the company.
-    - 'hook': A compelling opening line for a short video about these tactics.
-    - 'buildUp': A sentence to create anticipation.
-    - 'storyBreakdown': An array of 3 objects, where each object has the keys: 'tacticName', 'pillar', and 'explanation'. The explanation should detail the quirky tactic.
-    - 'concludingPsychology': A concluding sentence that summarizes the overall psychological genius.`;
-
-    try {
-        const result = await callGeminiAPI(prompt, true);
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: `Failed to generate script for ${companyName}. Server error: ${error.message}` });
-    }
-});
-
 router.post('/api/generate-filters-from-prompt', async (req, res) => {
     const { userPrompt } = req.body;
     if (!userPrompt) {
@@ -378,7 +251,6 @@ router.post('/api/generate-filters-from-prompt', async (req, res) => {
     try {
         const result = await callGeminiAPI(promptForAI, true);
         if (result && typeof result.keywords === 'string' && Array.isArray(result.categories)) {
-            // Further validation to ensure categories are valid
             const validResultCategories = result.categories.filter(cat => validCategories.includes(cat));
             res.json({ keywords: result.keywords, categories: validResultCategories });
         } else {
@@ -406,78 +278,107 @@ router.post('/api/generate-audio', async (req, res) => {
     }
 });
 
-router.get('/api/find-companies', async (req, res) => {
-    const prompt = `Generate a diverse list of 5 companies known for using interesting or quirky psychological marketing tactics. Include well-known brands and some lesser-known or foreign examples. Return as a JSON array of strings. e.g., ["Apple", "Shein", "Patagonia", "Liquid Death", "KupiVip"]`;
-    try {
-        const result = await callGeminiAPI(prompt, true);
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: `Could not fetch company list. Server error: ${error.message}` });
-    }
-});
-
-router.post('/api/analyze-sheet', async (req, res) => {
-    const { pastedData, sheetUrl } = req.body;
-    const hasPastedData = pastedData && pastedData.trim().length > 0;
-    const hasUrl = sheetUrl && sheetUrl.trim().length > 0;
-
-    if (!hasPastedData && !hasUrl) {
-        return res.status(400).json({ error: 'No data or URL provided.' });
-    }
-
-    const analysisSource = hasPastedData 
-        ? `the following pasted data:\n\n${pastedData}`
-        : `the data from this Google Sheet: ${sheetUrl}`;
-
-    const prompt = `Analyze ${analysisSource}. Assume the data is structured with columns like 'Company', 'Industry', 'Problem', 'Solution'. 
-    For each row/entry, create a business case study object. Then, for each case, generate a hook, a build-up, a story, and a psychology explanation.
-    Return a JSON array of these objects, where each object has this structure:
-    {"company": "string", "industry": "string", "problem": "string", "solution": "string", "findings": "string", "psychology": "string", "hashtags": ["string"], "hooks": ["string"], "buildUps": ["string"], "stories": ["string"], "psychologies": ["string"]}`;
-
-    try {
-        const results = await callGeminiAPI(prompt, true);
-        const formattedResults = results.map((r, i) => ({
-            ...r,
-            id: `sheet-${Date.now()}-${i}`,
-            sources: [hasPastedData ? 'Pasted Data' : sheetUrl],
-        }));
-        res.json(formattedResults);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: `Failed to analyze the provided data. Server error: ${err.message}` });
-    }
-});
-
 router.get('/api/scan-news', async (req, res) => {
-    const prompt = `Find 3 recent news articles or case studies about companies using psychological triggers, cognitive biases, behavioural economics, or neuromarketing. For each, provide the title, summary, URL, the primary psychological tactic used, a brief explanation of that tactic, and a 'hot_score' (1-100) based on how quirky, controversial, or intriguing the story is. Return this as a JSON array with this structure: [{"title": "string", "summary": "string", "url": "string", "tactic": "string", "tactic_explanation": "string", "hot_score": "number"}]`;
+    const { keyword, category } = req.query;
+
+    const keywords = (keyword || "consumer psychology,marketing psychology").split(',');
+    const categories = (category || "business").split(',');
+
+    const categoryMap = {
+        business: "dmoz/Business",
+        technology: "dmoz/Technology",
+        entertainment: "dmoz/Entertainment",
+        general: "dmoz/Society",
+        health: "dmoz/Health",
+        science: "dmoz/Science",
+        sports: "dmoz/Sports"
+    };
+
+    const query = {
+        "$query": {
+            "$and": [
+                {
+                    "$or": keywords.map(kw => ({ "keyword": kw.trim(), "keywordLoc": "body" }))
+                },
+                {
+                    "$or": categories.map(cat => ({ "categoryUri": categoryMap[cat.trim()] })).filter(c => c.categoryUri)
+                }
+            ]
+        },
+        "$filter": {
+            "forceMaxDataTimeWindow": "31",
+            "lang": "eng"
+        }
+    };
+
     try {
-        const results = await callGeminiAPI(prompt, true);
-        res.json(results);
+        const newsApiResponse = await fetch("https://eventregistry.org/api/v1/article/getArticles", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: query,
+                resultType: "articles",
+                articlesSortBy: "rel",
+                articlesCount: 10,
+                apiKey: process.env.NEWS_API_KEY
+            })
+        });
+
+        if (!newsApiResponse.ok) {
+            const errorBody = await newsApiResponse.text();
+            console.error("News API Error:", errorBody);
+            throw new Error(`News API failed with status: ${newsApiResponse.status}`);
+        }
+
+        const newsData = await newsApiResponse.json();
+        const articles = newsData?.articles?.results || [];
+
+        const enrichedArticles = [];
+        for (const article of articles) {
+            const analysisPrompt = `
+                Analyze the following article to identify a core psychological marketing tactic and its explanation. Also, provide a 'hot_score' from 1-100 based on how quirky, controversial, or intriguing the story is.
+
+                **Article Title:** ${article.title}
+                **Article Body:** ${article.body}
+
+                Return ONLY a single, valid JSON object with this exact structure:
+                {
+                  "tactic": "The name of the primary psychological tactic.",
+                  "tactic_explanation": "A brief, one-sentence explanation of the tactic.",
+                  "hot_score": "A number between 1 and 100."
+                }
+            `;
+            
+            try {
+                const analysisResult = await callGeminiAPI(analysisPrompt, true);
+                enrichedArticles.push({
+                    title: article.title,
+                    summary: article.body,
+                    url: article.url,
+                    tactic: analysisResult.tactic || "N/A",
+                    tactic_explanation: analysisResult.tactic_explanation || "No specific tactic identified.",
+                    hot_score: analysisResult.hot_score || 50
+                });
+            } catch (geminiError) {
+                console.warn(`Gemini analysis failed for article: ${article.title}. Skipping enrichment.`);
+                // Still add the article, but with default values
+                enrichedArticles.push({
+                    title: article.title,
+                    summary: article.body,
+                    url: article.url,
+                    tactic: "N/A",
+                    tactic_explanation: "Analysis not available.",
+                    hot_score: 50
+                });
+            }
+        }
+        
+        res.json(enrichedArticles);
+
     } catch (err) {
+        console.error("Error in /api/scan-news route:", err);
         res.status(500).json({ error: `Could not fetch news articles. Server error: ${err.message}` });
     }
 });
-
-router.post('/api/create-story-from-news', async (req, res) => {
-    const { article } = req.body;
-    const prompt = `Based on this news article titled "${article.title}" which is about using the '${article.tactic}' tactic, create a viral story script.
-    Identify a company, a core problem, a clever solution, the underlying psychological tactic, and the potential findings.
-    Then generate a hook, build-up, story, and psychology explanation.
-    Return a single JSON object with this structure:
-    {"company": "string", "industry": "string", "problem": "string", "solution": "string", "findings": "string", "psychology": "string", "hashtags": ["string"], "hooks": ["string"], "buildUps": ["string"], "stories": ["string"], "psychologies": ["string"]}`;
-    try {
-        const result = await callGeminiAPI(prompt, true);
-        const newStory = {
-            ...result,
-            id: `news-${Date.now()}`,
-            sources: [article.url],
-            company: result.company || 'A Company',
-        };
-        res.json(newStory);
-    } catch (err) {
-        res.status(500).json({ error: `Failed to generate a story from this article. Server error: ${err.message}` });
-    }
-});
-
 
 module.exports = router;

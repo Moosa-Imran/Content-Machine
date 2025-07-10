@@ -5,37 +5,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- STATE MANAGEMENT ---
     let contentFeed = [];
     let currentFeedIndex = 0;
-    let isCustomSearchActive = false;
-    let newsArticles = []; // To store all fetched news articles for pagination
-    let selectedArticles = {}; // To store selected articles across pages
-    let currentNewsPage = 1;
-    const articlesPerPage = 10;
-    const DEFAULT_KEYWORDS = "consumer psychology,behavioral economics,marketing psychology,neuromarketing,cognitive bias,pricing psychology,sensory marketing,social engineering,retail psychology,shopping behavior,behavioral design";
-    const DEFAULT_CATEGORIES = ["business", "technology", "general"];
     
     // --- ELEMENT SELECTORS ---
     const reelCardContainer = document.getElementById('reel-card-container');
     const paginationContainer = document.getElementById('pagination-container');
     const findNewScriptsBtn = document.getElementById('find-new-scripts-btn');
-    const newsModal = document.getElementById('news-modal');
-    const closeModalBtn = document.getElementById('close-modal-btn');
-    const newsArticlesList = document.getElementById('news-articles-list');
-    const createStoriesBtn = document.getElementById('create-stories-btn');
-    const refreshNewsBtn = document.getElementById('refresh-news-btn');
-    const customSearchBtn = document.getElementById('custom-search-btn');
-    const customSearchModal = document.getElementById('custom-search-modal');
-    const closeSearchModalBtn = document.getElementById('close-search-modal-btn');
-    const executeSearchBtn = document.getElementById('execute-search-btn');
-    const searchKeywordsInput = document.getElementById('search-keywords');
-    const searchCategoryContainer = document.getElementById('search-category-container');
-    const resetSearchBtn = document.getElementById('reset-search-btn');
-    const usePromptBtn = document.getElementById('use-prompt-btn');
-    const promptContainer = document.getElementById('prompt-container');
-    const promptTextarea = document.getElementById('prompt-textarea');
-    const generateFiltersBtn = document.getElementById('generate-filters-btn');
-    const manualFiltersContainer = document.getElementById('manual-filters-container');
+    const createFromModal = document.getElementById('create-from-modal');
+    const closeCreateModalBtn = document.getElementById('close-create-modal-btn');
+    const createFromNewsBtn = document.getElementById('create-from-news-btn');
 
     // --- INITIALIZATION ---
+    const init = () => {
+        const generatedContent = sessionStorage.getItem('generatedContent');
+        if (generatedContent) {
+            contentFeed = JSON.parse(generatedContent);
+            sessionStorage.removeItem('generatedContent'); // Clear it after use
+            if (contentFeed.length > 0) {
+                renderCurrentReel();
+            } else {
+                fetchInitialScripts();
+            }
+        } else {
+            fetchInitialScripts();
+        }
+        attachEventListeners();
+    };
+
     const fetchInitialScripts = async () => {
         const loadingTextElement = document.getElementById('loading-text-animation');
         const loadingPhrases = [
@@ -77,290 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- EVENT LISTENERS ---
     const attachEventListeners = () => {
-        findNewScriptsBtn?.addEventListener('click', openNewsModalAndFetch);
+        findNewScriptsBtn?.addEventListener('click', () => createFromModal.classList.remove('hidden'));
         reelCardContainer.addEventListener('click', handleCardClick);
         
-        // News Modal Listeners
-        closeModalBtn?.addEventListener('click', () => {
-            newsModal.classList.add('hidden');
+        // Create From Modal Listeners
+        closeCreateModalBtn?.addEventListener('click', () => createFromModal.classList.add('hidden'));
+        createFromNewsBtn?.addEventListener('click', () => {
+            window.location.href = '/news';
         });
-        createStoriesBtn?.addEventListener('click', handleCreateStoriesClick);
-        refreshNewsBtn?.addEventListener('click', handleShuffleNews);
-        customSearchBtn?.addEventListener('click', () => {
-            setDefaultFilters();
-            customSearchModal.classList.remove('hidden');
-        });
-        newsArticlesList.addEventListener('change', handleArticleSelection);
-
-        // Custom Search Modal Listeners
-        closeSearchModalBtn?.addEventListener('click', () => customSearchModal.classList.add('hidden'));
-        executeSearchBtn?.addEventListener('click', handleExecuteCustomSearch);
-        resetSearchBtn?.addEventListener('click', handleResetSearch);
-        usePromptBtn?.addEventListener('click', togglePromptUI);
-        generateFiltersBtn?.addEventListener('click', handleGenerateFilters);
-    };
-
-    const togglePromptUI = () => {
-        const isHidden = promptContainer.classList.toggle('hidden');
-        const isDisabled = !isHidden;
-        
-        manualFiltersContainer.style.opacity = isDisabled ? '0.5' : '1';
-        manualFiltersContainer.querySelectorAll('input, button').forEach(el => el.disabled = isDisabled);
-    };
-
-    const handleGenerateFilters = async () => {
-        const userPrompt = promptTextarea.value;
-        if (!userPrompt.trim()) {
-            alert('Please enter a prompt.');
-            return;
-        }
-
-        toggleButtonLoading(generateFiltersBtn, true, 'Generating...');
-        try {
-            const result = await apiCall('/api/generate-filters-from-prompt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userPrompt })
-            });
-
-            if (result.keywords) {
-                searchKeywordsInput.value = result.keywords;
-            }
-            if (result.categories && Array.isArray(result.categories)) {
-                searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                    cb.checked = result.categories.includes(cb.value);
-                });
-            }
-            
-            togglePromptUI(); // Hide prompt UI and re-enable manual filters
-
-        } catch (error) {
-            alert(`Failed to generate filters: ${error.message}`);
-        } finally {
-            toggleButtonLoading(generateFiltersBtn, false);
-        }
-    };
-
-    const setDefaultFilters = () => {
-        searchKeywordsInput.value = DEFAULT_KEYWORDS.replace(/,/g, ', ');
-        searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.checked = DEFAULT_CATEGORIES.includes(cb.value);
-        });
-    };
-
-    const resetFilterState = () => {
-        setDefaultFilters();
-        if (isCustomSearchActive) {
-            isCustomSearchActive = false;
-            updateFilterIndicator();
-        }
-    };
-
-    const handleShuffleNews = () => {
-        if (newsArticles.length > 0) {
-            for (let i = newsArticles.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [newsArticles[i], newsArticles[j]] = [newsArticles[j], newsArticles[i]];
-            }
-            selectedArticles = {};
-            currentNewsPage = 1;
-            populateNewsModal();
-            newsArticlesList.scrollTop = 0;
-        }
-    };
-
-    const handleResetSearch = () => {
-        customSearchModal.classList.add('hidden');
-        resetFilterState();
-        fetchNewsForModal();
-    };
-
-    const updateFilterIndicator = () => {
-        const indicator = customSearchBtn.querySelector('.filter-indicator');
-        if (isCustomSearchActive) {
-            if (!indicator) {
-                customSearchBtn.classList.add('relative');
-                customSearchBtn.insertAdjacentHTML('beforeend', '<span class="filter-indicator absolute top-0 right-0 block h-2 w-2 rounded-full bg-primary-500 ring-2 ring-white dark:ring-slate-900"></span>');
-            }
-            refreshNewsBtn.classList.add('hidden');
-        } else {
-            if (indicator) {
-                indicator.remove();
-            }
-            refreshNewsBtn.classList.remove('hidden');
-        }
-    };
-
-    const openNewsModalAndFetch = async () => {
-        newsModal.classList.remove('hidden');
-        await fetchNewsForModal();
-    };
-
-    const handleExecuteCustomSearch = () => {
-        const keywords = searchKeywordsInput.value
-            .split(',')
-            .map(kw => kw.trim())
-            .filter(kw => kw)
-            .join(',');
-
-        const selectedCategories = Array.from(searchCategoryContainer.querySelectorAll('input[type="checkbox"]:checked'))
-            .map(cb => cb.value)
-            .join(',');
-        
-        const queryParams = new URLSearchParams();
-        if (keywords) {
-            queryParams.append('keyword', keywords);
-        }
-        if (selectedCategories) {
-            queryParams.append('category', selectedCategories);
-        }
-        
-        customSearchModal.classList.add('hidden');
-        isCustomSearchActive = !!(keywords || selectedCategories);
-        updateFilterIndicator();
-        fetchNewsForModal(queryParams.toString());
-    };
-
-    const fetchNewsForModal = async (queryParams = '') => {
-        newsArticlesList.innerHTML = `
-            <div class="flex justify-center items-center h-full py-20">
-                <i data-lucide="refresh-cw" class="w-8 h-8 animate-spin text-primary-500"></i>
-            </div>`;
-        lucide.createIcons();
-
-        try {
-            const articles = await apiCall(`/api/fetch-news-for-story-creation?${queryParams}`);
-            newsArticles = articles;
-            selectedArticles = {};
-            currentNewsPage = 1;
-            populateNewsModal();
-            newsArticlesList.scrollTop = 0;
-        } catch (error) {
-            newsArticlesList.innerHTML = `<p class="text-center text-red-500 p-4">Failed to load news. Please try again.</p>`;
-        }
-    };
-
-    const handleArticleSelection = (e) => {
-        if (e.target.type === 'checkbox') {
-            const articleData = JSON.parse(e.target.dataset.article);
-            if (e.target.checked) {
-                selectedArticles[articleData.url] = articleData;
-            } else {
-                delete selectedArticles[articleData.url];
-            }
-        }
-    };
-
-    const populateNewsModal = () => {
-        if (!newsArticles || newsArticles.length === 0) {
-            newsArticlesList.innerHTML = `<p class="text-center text-slate-500 p-4">No relevant news found for this query.</p>`;
-            return;
-        }
-
-        const startIndex = (currentNewsPage - 1) * articlesPerPage;
-        const endIndex = startIndex + articlesPerPage;
-        const paginatedArticles = newsArticles.slice(startIndex, endIndex);
-
-        newsArticlesList.innerHTML = paginatedArticles.map((article, index) => {
-            const escapedArticle = JSON.stringify(article).replace(/'/g, "&apos;");
-            const isChecked = selectedArticles[article.url] ? 'checked' : '';
-            return `
-                <label for="article-${startIndex + index}" class="block p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500">
-                    <div class="flex items-start gap-4">
-                        <input type="checkbox" id="article-${startIndex + index}" class="mt-1" data-article='${escapedArticle}' ${isChecked}>
-                        <div>
-                            <h4 class="font-semibold text-slate-800 dark:text-white">${article.title}</h4>
-                            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">${article.summary}</p>
-                            <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">Read More</a>
-                        </div>
-                    </div>
-                </label>
-            `;
-        }).join('');
-
-        renderNewsPagination();
-    };
-
-    const renderNewsPagination = () => {
-        const totalPages = Math.ceil(newsArticles.length / articlesPerPage);
-        const existingPagination = newsArticlesList.querySelector('.news-pagination-container');
-        if (existingPagination) {
-            existingPagination.remove();
-        }
-
-        if (totalPages <= 1) return;
-
-        const paginationHTML = `
-            <div class="news-pagination-container flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <button id="news-prev-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                </button>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">
-                    Page ${currentNewsPage} of ${totalPages}
-                </span>
-                <button id="news-next-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </button>
-            </div>
-        `;
-
-        newsArticlesList.insertAdjacentHTML('beforeend', paginationHTML);
-        lucide.createIcons();
-
-        const prevBtn = document.getElementById('news-prev-btn');
-        const nextBtn = document.getElementById('news-next-btn');
-
-        if (currentNewsPage > 1) {
-            prevBtn.disabled = false;
-            prevBtn.addEventListener('click', () => {
-                currentNewsPage--;
-                populateNewsModal();
-                newsArticlesList.scrollTop = 0;
-            }, { once: true });
-        }
-
-        if (currentNewsPage < totalPages) {
-            nextBtn.disabled = false;
-            nextBtn.addEventListener('click', () => {
-                currentNewsPage++;
-                populateNewsModal();
-                newsArticlesList.scrollTop = 0;
-            }, { once: true });
-        }
-    };
-
-    const handleCreateStoriesClick = async () => {
-        const articlesToCreate = Object.values(selectedArticles);
-
-        if (articlesToCreate.length === 0) {
-            alert('Please select at least one article to create stories from.');
-            return;
-        }
-
-        toggleButtonLoading(createStoriesBtn, true, 'Creating...');
-        try {
-            const formattedStories = await apiCall('/api/create-stories-from-news', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ articles: articlesToCreate })
-            });
-
-            const validStories = formattedStories.filter(story => story && story.hooks && story.buildUps);
-            if(validStories.length === 0) {
-                throw new Error("AI failed to generate valid stories from the selected news.");
-            }
-
-            contentFeed = validStories;
-            currentFeedIndex = 0;
-            renderCurrentReel();
-            newsModal.classList.add('hidden');
-            resetFilterState();
-        } catch (error) {
-            console.error("Error in handleCreateStoriesClick:", error);
-            alert(`Failed to create stories: ${error.message}`);
-        } finally {
-            toggleButtonLoading(createStoriesBtn, false);
-        }
     };
     
     const handleCardClick = (e) => {
@@ -384,7 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const businessCase = contentFeed[currentFeedIndex];
         const icon = button.querySelector('i');
         
-        // Start loading animation
         icon.classList.add('animate-spin');
         button.disabled = true;
 
@@ -395,10 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ businessCase, sectionType })
             });
 
-            // Update the local state
             contentFeed[currentFeedIndex][sectionType] = newOptions;
 
-            // Re-render just the options for that section
             const optionsContainer = document.querySelector(`.section-block [data-section-type="${sectionType}"]`);
             if (optionsContainer) {
                 optionsContainer.innerHTML = newOptions.map((option, index) => `
@@ -411,14 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `).join('');
                 
-                // Select the first new option by default
                 selectOption(optionsContainer.querySelector('.p-3'), sectionType);
             }
         } catch (error) {
             console.error(`Failed to regenerate ${sectionType}:`, error);
             alert(`Could not regenerate options. Please try again.`);
         } finally {
-            // Stop loading animation
             icon.classList.remove('animate-spin');
             button.disabled = false;
         }
@@ -500,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentFeedIndex++;
                 renderCurrentReel();
             } else {
-                openNewsModalAndFetch();
+                createFromModal.classList.remove('hidden');
             }
         });
         if (contentFeed.length - 1 !== currentFeedIndex) {
@@ -742,6 +456,5 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- START THE APP ---
-    attachEventListeners();
-    fetchInitialScripts();
+    init();
 });
