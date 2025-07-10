@@ -50,19 +50,19 @@
         
         <!-- Custom Search Modal -->
         <div id="custom-search-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[51] hidden flex items-center justify-center p-4">
-             <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md">
+             <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg">
                 <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
-                    <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Custom News Search</h2>
+                    <h2 class="text-lg font-semibold text-slate-800 dark:text-white">News Filters & Search</h2>
                      <button id="close-search-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
                         <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
                     </button>
                 </div>
-                <div class="p-6 space-y-4">
+                <div class="p-6 space-y-6">
                     <!-- Prompt Section -->
                     <div class="text-center">
                         <button id="use-prompt-btn" class="w-full flex items-center justify-center gap-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-500/20 dark:hover:bg-purple-500/30 text-purple-700 dark:text-purple-300 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors">
                             <i data-lucide="wand-2" class="w-4 h-4"></i>
-                            Use a Prompt Instead
+                            Generate Filters with AI
                         </button>
                     </div>
                     <div id="prompt-container" class="hidden space-y-2">
@@ -75,24 +75,25 @@
                     </div>
         
                     <!-- Divider -->
-                    <div class="relative flex py-2 items-center">
+                    <div class="relative flex py-1 items-center">
                         <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
                         <span class="flex-shrink mx-4 text-xs text-slate-400 dark:text-slate-500 uppercase">Or</span>
                         <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
                     </div>
         
                     <!-- Manual Filters Section -->
-                    <div id="manual-filters-container" class="space-y-4">
+                    <div id="manual-filters-container" class="space-y-6">
                         <div>
                             <label for="search-keywords" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Keywords</label>
                             <div class="relative">
                                  <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
                                 <input type="text" id="search-keywords" placeholder="e.g., pricing psychology, charm pricing" class="w-full pl-9 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                             </div>
+                            <p class="text-xs text-slate-400 mt-1">Add more keywords (comma-separated) for more results.</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Categories</label>
-                            <div id="search-category-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <div id="search-category-container" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                 <% const categories = ["business", "technology", "entertainment", "general", "health", "science", "sports"]; %>
                                 <% categories.forEach(cat => { %>
                                     <label for="cat-<%= cat %>" class="flex items-center gap-2 p-2 rounded-md border border-slate-300 dark:border-slate-700 has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500 cursor-pointer">
@@ -100,6 +101,24 @@
                                         <span class="text-sm text-slate-700 dark:text-slate-300 capitalize"><%= cat %></span>
                                     </label>
                                 <% }); %>
+                                <label for="cat-none" class="flex items-center gap-2 p-2 rounded-md border border-slate-300 dark:border-slate-700 has-[:checked]:bg-slate-200 dark:has-[:checked]:bg-slate-700 has-[:checked]:border-slate-500 cursor-pointer">
+                                    <input type="checkbox" id="cat-none" name="search_category" value="none" class="w-4 h-4 text-slate-600 bg-slate-100 border-slate-300 rounded focus:ring-slate-500 dark:focus:ring-slate-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">None</span>
+                                </label>
+                            </div>
+                             <p class="text-xs text-slate-400 mt-1">Select 'None' for broader results across all categories.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Sort By</label>
+                            <div id="sort-by-container" class="flex items-center gap-4">
+                                <label for="sort-rel" class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" id="sort-rel" name="sort_by" value="rel" checked class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">Relevancy</span>
+                                </label>
+                                <label for="sort-date" class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" id="sort-date" name="sort_by" value="date" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">Date</span>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -107,7 +126,7 @@
                 <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center gap-3">
                     <button id="execute-search-btn" class="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-lg font-semibold">
                         <i data-lucide="search" class="w-5 h-5"></i>
-                        Search News
+                        Apply Filters & Search
                     </button>
                     <button id="reset-search-btn" title="Reset Filters" class="flex-shrink-0 p-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
                         <i data-lucide="rotate-ccw" class="w-5 h-5 text-slate-600 dark:text-slate-300"></i>

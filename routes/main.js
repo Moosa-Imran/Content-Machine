@@ -128,7 +128,6 @@ router.post('/api/create-story-from-news', async (req, res) => {
     }
 
     try {
-        // The scraper is no longer needed. The full article body is passed from the client as 'article.summary'.
         const articleContent = article.summary;
 
         const prompt = `
@@ -279,10 +278,11 @@ router.post('/api/generate-audio', async (req, res) => {
 });
 
 router.get('/api/scan-news', async (req, res) => {
-    const { keyword, category } = req.query;
+    const { keyword, category, page = 1, sortBy = 'rel' } = req.query;
 
-    const keywords = (keyword || "consumer psychology,marketing psychology").split(',');
-    const categories = (category || "business").split(',');
+    const DEFAULT_KEYWORDS = "marketing psychology,behavioral economics,neuromarketing,cognitive bias,pricing psychology";
+    const keywords = (keyword || DEFAULT_KEYWORDS).split(',');
+    const categories = category ? category.split(',') : [];
 
     const categoryMap = {
         business: "dmoz/Business",
@@ -294,21 +294,19 @@ router.get('/api/scan-news', async (req, res) => {
         sports: "dmoz/Sports"
     };
 
+    const queryConditions = [{
+        "$or": keywords.map(kw => ({ "keyword": kw.trim(), "keywordLoc": "body" }))
+    }];
+
+    if (categories.length > 0) {
+        queryConditions.push({
+            "$or": categories.map(cat => ({ "categoryUri": categoryMap[cat.trim()] })).filter(c => c.categoryUri)
+        });
+    }
+
     const query = {
-        "$query": {
-            "$and": [
-                {
-                    "$or": keywords.map(kw => ({ "keyword": kw.trim(), "keywordLoc": "body" }))
-                },
-                {
-                    "$or": categories.map(cat => ({ "categoryUri": categoryMap[cat.trim()] })).filter(c => c.categoryUri)
-                }
-            ]
-        },
-        "$filter": {
-            "forceMaxDataTimeWindow": "31",
-            "lang": "eng"
-        }
+        "$query": { "$and": queryConditions },
+        "$filter": { "forceMaxDataTimeWindow": "31", "lang": "eng" }
     };
 
     try {
@@ -318,8 +316,9 @@ router.get('/api/scan-news', async (req, res) => {
             body: JSON.stringify({
                 query: query,
                 resultType: "articles",
-                articlesSortBy: "rel",
-                articlesCount: 10,
+                articlesSortBy: sortBy,
+                articlesPage: parseInt(page),
+                articlesCount: 100,
                 apiKey: process.env.NEWS_API_KEY
             })
         });
@@ -333,8 +332,7 @@ router.get('/api/scan-news', async (req, res) => {
         const newsData = await newsApiResponse.json();
         const articles = newsData?.articles?.results || [];
 
-        const enrichedArticles = [];
-        for (const article of articles) {
+        const enrichedArticlesPromises = articles.map(article => (async () => {
             const analysisPrompt = `
                 Analyze the following article to identify a core psychological marketing tactic and its explanation. Also, provide a 'hot_score' from 1-100 based on how quirky, controversial, or intriguing the story is.
 
@@ -351,29 +349,37 @@ router.get('/api/scan-news', async (req, res) => {
             
             try {
                 const analysisResult = await callGeminiAPI(analysisPrompt, true);
-                enrichedArticles.push({
+                return {
                     title: article.title,
                     summary: article.body,
                     url: article.url,
                     tactic: analysisResult.tactic || "N/A",
                     tactic_explanation: analysisResult.tactic_explanation || "No specific tactic identified.",
                     hot_score: analysisResult.hot_score || 50
-                });
+                };
             } catch (geminiError) {
                 console.warn(`Gemini analysis failed for article: ${article.title}. Skipping enrichment.`);
-                // Still add the article, but with default values
-                enrichedArticles.push({
+                return {
                     title: article.title,
                     summary: article.body,
                     url: article.url,
                     tactic: "N/A",
                     tactic_explanation: "Analysis not available.",
                     hot_score: 50
-                });
+                };
             }
-        }
+        })());
         
-        res.json(enrichedArticles);
+        const enrichedArticles = await Promise.all(enrichedArticlesPromises);
+        
+        res.json({
+            articles: {
+                results: enrichedArticles,
+                page: newsData?.articles?.page,
+                pages: newsData?.articles?.pages,
+                totalResults: newsData?.articles?.totalResults
+            }
+        });
 
     } catch (err) {
         console.error("Error in /api/scan-news route:", err);
