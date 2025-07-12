@@ -25,21 +25,31 @@ const callGeminiAPI = async (prompt, isJson = false) => {
 
         if (!response.ok) {
             const errorBody = await response.text();
-            console.error("Gemini API Error Response:", errorBody);
+            console.error(`Gemini API Error [${response.status}]:`, errorBody);
             throw new Error(`API call failed with status: ${response.status}`);
         }
 
         const result = await response.json();
+        
         if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
             let textResponse = result.candidates[0].content.parts[0].text;
             if (isJson) {
-                // Clean up potential markdown formatting from the JSON response
-                textResponse = textResponse.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-                return JSON.parse(textResponse);
+                try {
+                    // Clean up potential markdown formatting from the JSON response
+                    textResponse = textResponse.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+                    return JSON.parse(textResponse);
+                } catch (parseError) {
+                    console.error("Failed to parse JSON from Gemini response:", parseError);
+                    console.error("Original text response from AI:", textResponse);
+                    throw new Error("AI returned malformed JSON.");
+                }
             }
             return textResponse;
         }
+        
+        console.error("Invalid API response structure from Gemini. Full response:", JSON.stringify(result, null, 2));
         throw new Error("Invalid API response structure");
+
     } catch (error) {
         console.error("Gemini API Call Error:", error);
         throw error; // Re-throw to be caught by the route handler

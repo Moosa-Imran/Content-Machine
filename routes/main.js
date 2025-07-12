@@ -173,8 +173,13 @@ router.post('/api/create-story-from-news', async (req, res) => {
         }
         `;
 
-        const result = await callGeminiAPI(prompt, true);
+        let result = await callGeminiAPI(prompt, true);
         
+        // **FIX:** Handle cases where the AI returns an array with a single object
+        if (Array.isArray(result) && result.length > 0) {
+            result = result[0];
+        }
+
         if (result && typeof result === 'object' && !Array.isArray(result)) {
             const db = getDB();
             await db.collection('Business_Cases').insertOne(result);
@@ -190,6 +195,7 @@ router.post('/api/create-story-from-news', async (req, res) => {
             const newStory = { ...result, id: `news-${Date.now()}`, hooks, buildUps, stories, psychologies };
             res.status(201).json(newStory);
         } else {
+            console.error("AI service returned an invalid structure. Received:", JSON.stringify(result, null, 2));
             throw new Error("AI failed to generate a valid story structure.");
         }
 
@@ -324,7 +330,6 @@ router.get('/api/scan-news', async (req, res) => {
         });
     }
     
-    // Add date filtering logic
     if (dateWindow && dateWindow !== '31') {
         const today = new Date();
         const startDate = new Date();
@@ -335,7 +340,7 @@ router.get('/api/scan-news', async (req, res) => {
 
     const query = {
         "$query": { "$and": queryConditions },
-        "$filter": { "lang": "eng" } // Removed forceMaxDataTimeWindow
+        "$filter": { "lang": "eng" }
     };
 
     try {
