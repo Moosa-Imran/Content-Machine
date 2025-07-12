@@ -175,7 +175,6 @@ router.post('/api/create-story-from-news', async (req, res) => {
 
         let result = await callGeminiAPI(prompt, true);
         
-        // **FIX:** Handle cases where the AI returns an array with a single object
         if (Array.isArray(result) && result.length > 0) {
             result = result[0];
         }
@@ -365,8 +364,22 @@ router.get('/api/scan-news', async (req, res) => {
 
         const newsData = await newsApiResponse.json();
         const articles = newsData?.articles?.results || [];
+        
+        // Efficiently check for duplicates
+        const fetchedUrls = articles.map(article => article.url);
+        let uniqueArticles = [];
 
-        const enrichedArticlesPromises = articles.map(article => (async () => {
+        if (fetchedUrls.length > 0) {
+            const db = getDB();
+            const existingCases = await db.collection('Business_Cases').find({
+                source_url: { $in: fetchedUrls }
+            }).project({ source_url: 1 }).toArray();
+            
+            const existingUrls = new Set(existingCases.map(caseDoc => caseDoc.source_url));
+            uniqueArticles = articles.filter(article => !existingUrls.has(article.url));
+        }
+
+        const enrichedArticlesPromises = uniqueArticles.map(article => (async () => {
             const analysisPrompt = `
                 Analyze the following article to identify a core psychological marketing tactic and its explanation. Also, provide a 'hot_score' from 1-100 based on how quirky, controversial, or intriguing the story is.
 
