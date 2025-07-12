@@ -14,22 +14,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const createFromModal = document.getElementById('create-from-modal');
     const closeCreateModalBtn = document.getElementById('close-create-modal-btn');
     const createFromNewsBtn = document.getElementById('create-from-news-btn');
-    const errorModal = document.getElementById('error-modal');
-    const generalErrorContent = document.getElementById('general-error-content');
-    const modelBusyContent = document.getElementById('model-busy-content');
-    const closeErrorModalBtn = document.getElementById('close-error-modal-btn');
+    const frameworkUpdateLoader = document.getElementById('framework-update-loader');
+
+    // Notification Modal Elements
+    const notificationModal = document.getElementById('notification-modal');
+    const notificationIconContainer = document.getElementById('notification-icon-container');
+    const notificationTitle = document.getElementById('notification-title');
+    const notificationMessage = document.getElementById('notification-message');
+    const notificationOkBtn = document.getElementById('notification-ok-btn');
 
     // --- API & UI HELPERS ---
-    const showErrorModal = (type = 'general', message = '') => {
-        if (type === 'modelBusy') {
-            generalErrorContent.classList.add('hidden');
-            modelBusyContent.classList.remove('hidden');
-        } else {
-            generalErrorContent.classList.remove('hidden');
-            modelBusyContent.classList.add('hidden');
-            console.error("An error occurred:", message);
+    const showNotification = (title, message, type = 'success') => {
+        notificationTitle.textContent = title;
+        notificationMessage.textContent = message;
+
+        if (type === 'error') {
+            notificationIconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-500/20';
+            notificationIconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>';
+        } else if (type === 'modelBusy') {
+            notificationIconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-500/20';
+            notificationIconContainer.innerHTML = '<i data-lucide="bot" class="h-6 w-6 text-yellow-600 dark:text-yellow-400"></i>';
+        } else { // success
+            notificationIconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20';
+            notificationIconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-600 dark:text-green-400"></i>';
         }
-        errorModal.classList.remove('hidden');
+        
+        notificationModal.classList.remove('hidden');
         lucide.createIcons();
     };
 
@@ -113,12 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 reelCardContainer.innerHTML = `<div class="text-center text-slate-500 dark:text-slate-400 p-8 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">No scripts found. Try finding new ones.</div>`;
             }
         } catch (error) {
-            console.error("Failed to fetch initial script:", error);
             reelCardContainer.innerHTML = `<div class="text-center text-red-500 p-8 bg-red-500/10 rounded-xl border border-red-500/20">Failed to load scripts. Please try again later.</div>`;
             if (error.message === 'MODEL_BUSY') {
-                showErrorModal('modelBusy');
+                showNotification('Oops! Model Is Busy', 'This is not your fault. The AI is currently overloaded. Please try again in a few seconds.', 'modelBusy');
             } else {
-                showErrorModal('general', error.message);
+                showNotification('Error', error.message, 'error');
             }
         } finally {
             if (loadingInterval) {
@@ -136,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         createFromNewsBtn?.addEventListener('click', () => {
             window.location.href = '/news';
         });
-        closeErrorModalBtn?.addEventListener('click', () => errorModal.classList.add('hidden'));
+        notificationOkBtn?.addEventListener('click', () => notificationModal.classList.add('hidden'));
     };
     
     const handleCardClick = (e) => {
@@ -180,9 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (error) {
                     renderCurrentReel();
                     if (error.message === 'MODEL_BUSY') {
-                        showErrorModal('modelBusy');
+                        showNotification('Oops! Model Is Busy', 'Could not load the next script. Please try again.', 'modelBusy');
                     } else {
-                        showErrorModal('general', "Could not load the next script. Please try again.");
+                        showNotification('Error', 'Could not load the next script. Please try again.', 'error');
                     }
                 }
             }
@@ -226,9 +235,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             if (error.message === 'MODEL_BUSY') {
-                showErrorModal('modelBusy');
+                showNotification('Oops! Model Is Busy', 'Could not regenerate options. Please try again.', 'modelBusy');
             } else {
-                showErrorModal('general', `Could not regenerate options. Please try again.`);
+                showNotification('Error', 'Could not regenerate options. Please try again.', 'error');
             }
         } finally {
             icon.classList.remove('animate-spin');
@@ -406,6 +415,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <textarea id="final-script-textarea" class="w-full h-64 p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:outline-none text-sm">${scriptText}</textarea>
                 <div class="mt-4 space-y-4">
                     <input type="text" id="ai-rewrite-prompt" placeholder="Optional: Enter a rewrite instruction (e.g., 'make it funnier')" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm" />
+                    
+                    <div class="flex items-center justify-start gap-4">
+                        <label for="update-framework-toggle" class="flex items-center cursor-pointer">
+                            <div class="relative">
+                                <input type="checkbox" id="update-framework-toggle" class="sr-only peer">
+                                <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-8 rounded-full peer-checked:bg-primary-600"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition peer-checked:translate-x-6"></div>
+                            </div>
+                            <span class="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Update framework with this style</span>
+                        </label>
+                    </div>
+
                     <button class="rewrite-ai-btn w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="wand-2" data-original-text="Rewrite with AI">
                         <span class="btn-icon"><i data-lucide="wand-2" class="w-5 h-5"></i></span>
                         <span class="btn-text">Rewrite with AI</span>
@@ -427,13 +448,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleAiRewrite = async (rewriteBtn) => {
         const aiPromptInput = document.getElementById('ai-rewrite-prompt');
         const finalScriptTextarea = document.getElementById('final-script-textarea');
+        const updateFrameworkToggle = document.getElementById('update-framework-toggle');
+        
         if (!aiPromptInput || !finalScriptTextarea) return;
 
         const aiPrompt = aiPromptInput.value;
         const finalScript = finalScriptTextarea.value;
 
         if (!aiPrompt) {
-            showErrorModal('general', 'Please enter a rewrite instruction.');
+            showNotification('Input Required', 'Please enter a rewrite instruction.', 'error');
             return;
         }
 
@@ -446,17 +469,42 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (result && result.newScript) {
                 finalScriptTextarea.value = result.newScript;
+                showNotification('Success', 'Script rewritten successfully!');
+
+                if (updateFrameworkToggle.checked) {
+                    await updateFrameworkFromPrompt(aiPrompt);
+                }
             } else {
                 throw new Error('AI did not return a new script.');
             }
         } catch (error) {
             if (error.message === 'MODEL_BUSY') {
-                showErrorModal('modelBusy');
+                showNotification('Oops! Model Is Busy', 'Failed to rewrite script. Please try again.', 'modelBusy');
             } else {
-                showErrorModal('general', `Failed to rewrite script: ${error.message}`);
+                showNotification('Error', `Failed to rewrite script: ${error.message}`, 'error');
             }
         } finally {
             toggleButtonLoading(rewriteBtn, false);
+        }
+    };
+
+    const updateFrameworkFromPrompt = async (aiPrompt) => {
+        frameworkUpdateLoader.classList.remove('hidden');
+        try {
+            await apiCall('/api/update-framework-from-prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aiPrompt })
+            });
+            showNotification('Framework Updated', 'The AI has learned your new style for future scripts.');
+        } catch (error) {
+             if (error.message === 'MODEL_BUSY') {
+                showNotification('Oops! Model Is Busy', 'Failed to update framework. Please try again.', 'modelBusy');
+            } else {
+                showNotification('Error', `Failed to update framework: ${error.message}`, 'error');
+            }
+        } finally {
+            frameworkUpdateLoader.classList.add('hidden');
         }
     };
 
@@ -501,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const scriptTextarea = document.getElementById('final-script-textarea');
         const body = scriptTextarea.value.split('\n\n').map(part => (part.split(/:\n/)[1] || part).replace(/\*\*/g, '')).join('\n\n');
         navigator.clipboard.writeText(body).then(() => {
-            alert('Script text copied to clipboard!');
+            showNotification('Copied!', 'Script text copied to clipboard.');
         }).catch(err => console.error('Copy failed', err));
     };
 

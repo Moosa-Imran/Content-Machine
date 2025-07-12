@@ -35,6 +35,24 @@ const getFramework = async () => {
     }
 };
 
+const getValidationPrompt = async () => {
+    try {
+        const db = getDB();
+        let doc = await db.collection('Validate_News').findOne({ name: 'active' });
+        if (!doc) {
+            doc = await db.collection('Validate_News').findOne({ name: 'default' });
+        }
+        if (!doc) {
+            throw new Error("No validation prompt found in the database.");
+        }
+        return doc.prompt;
+    } catch (error) {
+        console.error("Error fetching validation prompt from DB:", error);
+        throw error;
+    }
+};
+
+
 // --- PAGE RENDERING ROUTES ---
 router.get('/', (req, res) => res.render('index', { title: 'Dashboard' }));
 router.get('/breakdown', (req, res) => res.render('breakdown', { title: 'Tactic Breakdowns' }));
@@ -58,15 +76,8 @@ router.get('/framework', (req, res) => {
 // --- API ROUTES ---
 router.get('/api/get-validation-prompt', async (req, res) => {
     try {
-        const db = getDB();
-        let doc = await db.collection('Validate_News').findOne({ name: 'active' });
-        if (!doc) {
-            doc = await db.collection('Validate_News').findOne({ name: 'default' });
-        }
-        if (!doc) {
-            return res.status(404).json({ error: 'No validation prompt found in the database.' });
-        }
-        res.json({ prompt: doc.prompt });
+        const prompt = await getValidationPrompt();
+        res.json({ prompt });
     } catch (error) {
         res.status(500).json({ error: 'Failed to load validation prompt.' });
     }
@@ -93,13 +104,11 @@ router.post('/api/save-validation-prompt', async (req, res) => {
 router.post('/api/reset-validation-prompt', async (req, res) => {
     try {
         const db = getDB();
+        await db.collection('Validate_News').deleteOne({ name: 'active' });
         const defaultDoc = await db.collection('Validate_News').findOne({ name: 'default' });
         if (!defaultDoc) {
-            return res.status(404).json({ error: 'Default validation prompt not found.' });
+             return res.status(404).json({ error: 'Default validation prompt not found.' });
         }
-        
-        await db.collection('Validate_News').deleteOne({ name: 'active' });
-        
         res.json({ success: true, prompt: defaultDoc.prompt });
     } catch (error) {
         res.status(500).json({ error: 'Failed to reset validation prompt.' });
@@ -167,6 +176,8 @@ router.post('/api/save-framework', async (req, res) => {
         const db = getDB();
         const { framework } = req.body;
         
+        delete framework._id;
+
         await db.collection('Frameworks').updateOne(
             { name: 'active' }, 
             { $set: { ...framework, name: 'active' } },
@@ -188,6 +199,84 @@ router.post('/api/reset-framework', async (req, res) => {
         res.status(500).json({ error: 'Failed to reset the framework.' });
     }
 });
+
+router.post('/api/update-framework-from-prompt', async (req, res) => {
+    const { aiPrompt } = req.body;
+    if (!aiPrompt) {
+        return res.status(400).json({ error: 'Rewrite instruction is required.' });
+    }
+
+    try {
+        const db = getDB();
+        const currentFramework = await getFramework();
+        
+        // **FIX:** Create a copy of the framework to be sent to the AI, sampling examples if the list is too long.
+        const frameworkForPrompt = JSON.parse(JSON.stringify(currentFramework));
+        const MAX_EXAMPLES_IN_PROMPT = 7; // A reasonable number to keep the prompt size down
+
+        ['hooks', 'buildUps', 'stories', 'psychologies'].forEach(key => {
+            const examplesKey = `${key}Examples`;
+            if (frameworkForPrompt[examplesKey] && frameworkForPrompt[examplesKey].length > MAX_EXAMPLES_IN_PROMPT) {
+                const shuffled = frameworkForPrompt[examplesKey].sort(() => 0.5 - Math.random());
+                frameworkForPrompt[examplesKey] = shuffled.slice(0, MAX_EXAMPLES_IN_PROMPT);
+            }
+        });
+
+        const updatePrompt = `
+You are an AI assistant that refines script generation frameworks. Below is an existing framework in JSON format and a user's instruction for a new style. Your task is to intelligently update the '...Prompt' and '...Examples' fields in the JSON to reflect the user's new style.
+
+**User's Style Instruction:** "${aiPrompt}"
+
+**Analysis of Instruction:**
+- Tone: Is it funnier, more serious, more technical, simpler?
+- Structure: Does it imply shorter hooks, longer stories, more questions?
+- Content: Does it ask for a specific focus, like data, emotion, or controversy?
+
+**Your Task:**
+Based on your analysis, rewrite the '...Prompt' and '...Examples' values in the following JSON. 
+- The new prompts should guide an AI to generate content in the user's desired style.
+- The new examples should perfectly match the new style.
+- Maintain the use of placeholders like {company}, {psychology}, {industry}, etc., where appropriate in the examples.
+- Do NOT change the JSON structure or key names. Return only the updated, valid JSON object.
+
+**Existing Framework:**
+\`\`\`json
+${JSON.stringify(frameworkForPrompt, null, 2)}
+\`\`\`
+
+Return ONLY the complete, updated, and valid JSON object.
+`;
+
+        const updatedSections = await callGeminiAPI(updatePrompt, true);
+
+        if (!updatedSections || typeof updatedSections.overallPrompt !== 'string') {
+            throw new Error('AI returned an invalid framework structure.');
+        }
+        
+        // **FIX:** Merge the AI's updated prompts with the original full list of examples
+        const finalFramework = { ...currentFramework };
+        Object.keys(updatedSections).forEach(key => {
+            if (key.endsWith('Prompt')) {
+                finalFramework[key] = updatedSections[key];
+            }
+        });
+        
+        delete finalFramework._id;
+
+        await db.collection('Frameworks').updateOne(
+            { name: 'active' },
+            { $set: { ...finalFramework, name: 'active' } },
+            { upsert: true }
+        );
+
+        res.json({ success: true, message: 'Framework updated successfully.' });
+
+    } catch (error) {
+        console.error("Error updating framework from prompt:", error);
+        res.status(500).json({ error: 'Failed to update framework.' });
+    }
+});
+
 
 router.post('/api/create-story-from-news', async (req, res) => {
     const { article } = req.body;
@@ -432,13 +521,12 @@ router.get('/api/scan-news', async (req, res) => {
         let articlesToEnrich = uniqueArticles;
 
         if (validate === 'true') {
-            const db = getDB();
-            const validationDoc = await db.collection('Validate_News').findOne({ name: 'default' });
-            if (validationDoc && validationDoc.prompt) {
+            const validationPrompt = await getValidationPrompt();
+            if (validationPrompt) {
                 const validationPromises = uniqueArticles.map(async (article) => {
-                    const validationPrompt = `${validationDoc.prompt}\n\n---\n\n**ARTICLE TO EVALUATE:**\nTitle: ${article.title}\nBody: ${article.body}`;
+                    const fullValidationPrompt = `${validationPrompt}\n\n---\n\n**ARTICLE TO EVALUATE:**\nTitle: ${article.title}\nBody: ${article.body}`;
                     try {
-                        const verdict = await callGeminiAPI(validationPrompt, false);
+                        const verdict = await callGeminiAPI(fullValidationPrompt, false);
                         return { article, verdict };
                     } catch (err) {
                         console.warn(`Validation failed for article: ${article.title}`);

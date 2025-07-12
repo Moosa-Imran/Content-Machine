@@ -35,9 +35,16 @@ const callGeminiAPI = async (prompt, isJson = false) => {
             let textResponse = result.candidates[0].content.parts[0].text;
             if (isJson) {
                 try {
-                    // Clean up potential markdown formatting from the JSON response
-                    textResponse = textResponse.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-                    return JSON.parse(textResponse);
+                    // **FIX:** More robust JSON parsing. This looks for a JSON object or array
+                    // within the AI's response, ignoring any conversational text around it.
+                    const jsonMatch = textResponse.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+                    if (jsonMatch && jsonMatch[0]) {
+                        return JSON.parse(jsonMatch[0]);
+                    }
+                    
+                    // If no JSON object/array is found, throw an error.
+                    throw new Error("No valid JSON object or array found in the AI response.");
+
                 } catch (parseError) {
                     console.error("Failed to parse JSON from Gemini response:", parseError);
                     console.error("Original text response from AI:", textResponse);

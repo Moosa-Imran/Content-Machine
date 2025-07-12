@@ -72,22 +72,27 @@
     </div>
 </div>
 
-<!-- Graceful Error Modal -->
-<div id="error-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md text-center p-6">
-        <div id="general-error-content">
-            <i data-lucide="alert-triangle" class="w-16 h-16 text-red-500 mx-auto"></i>
-            <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Something Went Wrong</h2>
-            <p class="mt-2 text-slate-500 dark:text-slate-400">Please check the console for more details (F12 &gt; Console).</p>
-        </div>
-        <div id="model-busy-content" class="hidden">
-            <i data-lucide="bot" class="w-16 h-16 text-yellow-500 mx-auto"></i>
-            <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Oops! Model Is Busy</h2>
-            <p class="mt-2 text-slate-500 dark:text-slate-400">This is not your fault. The AI is currently overloaded. Please try again in a few seconds.</p>
-        </div>
-        <button id="close-error-modal-btn" class="mt-6 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg font-semibold">Close</button>
+<!-- Framework Update Loader Modal -->
+<div id="framework-update-loader" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+    <div class="flex flex-col items-center gap-4 text-white">
+        <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-purple-500"></div>
+        <h2 class="text-2xl font-bold mt-4">Updating Framework...</h2>
+        <p class="text-slate-300">The AI is learning your new style.</p>
     </div>
 </div>
+
+<!-- Graceful Error/Notification Modal -->
+<div id="notification-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md text-center p-6">
+        <div id="notification-icon-container" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20">
+             <i data-lucide="check-circle" class="h-6 w-6 text-green-600 dark:text-green-400"></i>
+        </div>
+        <h2 id="notification-title" class="text-xl font-bold text-slate-800 dark:text-white mt-4">Success</h2>
+        <p id="notification-message" class="mt-2 text-slate-500 dark:text-slate-400">Your action was successful.</p>
+        <button id="notification-ok-btn" class="mt-6 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg font-semibold">OK</button>
+    </div>
+</div>
+
 
 <script src="/js/reels.js"></script>
 <script>
