@@ -3,7 +3,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- ELEMENT SELECTORS ---
-    const scanBtn = document.getElementById('scan-news-btn');
+    const shuffleBtn = document.getElementById('shuffle-news-btn');
     const loader = document.getElementById('news-loader');
     const errorDiv = document.getElementById('news-error');
     const container = document.getElementById('news-articles-container');
@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchKeywordsInput = document.getElementById('search-keywords');
     const searchCategoryContainer = document.getElementById('search-category-container');
     const sortByContainer = document.getElementById('sort-by-container');
+    const dateFilterContainer = document.getElementById('date-filter-container');
     const resetSearchBtn = document.getElementById('reset-search-btn');
     const usePromptBtn = document.getElementById('use-prompt-btn');
     const promptContainer = document.getElementById('prompt-container');
@@ -28,11 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_KEYWORDS = "marketing psychology,behavioral economics,neuromarketing,cognitive bias,pricing psychology";
     const DEFAULT_CATEGORIES = ["business", "technology", "general"];
     const DEFAULT_SORTBY = 'rel';
+    const DEFAULT_DATE_FILTER = '31';
 
     let currentFilters = {
         keywords: DEFAULT_KEYWORDS,
         categories: [...DEFAULT_CATEGORIES],
-        sortBy: DEFAULT_SORTBY
+        sortBy: DEFAULT_SORTBY,
+        dateFilter: DEFAULT_DATE_FILTER
     };
     
     let allFetchedArticles = [];
@@ -73,9 +76,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const formatRelativeTime = (dateString) => {
+        const now = new Date();
+        const articleDate = new Date(dateString);
+        const seconds = Math.floor((now - articleDate) / 1000);
+
+        let interval = seconds / 86400;
+        if (interval > 7) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+        if (interval > 1) {
+            const days = Math.floor(interval);
+            return days === 1 ? "yesterday" : `${days} days ago`;
+        }
+        interval = seconds / 3600;
+        if (interval > 1) {
+            const hours = Math.floor(interval);
+            return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+        }
+        interval = seconds / 60;
+        if (interval > 1) {
+            const minutes = Math.floor(interval);
+            return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+        }
+        return "just now";
+    };
+
+
     // --- CORE LOGIC ---
     const scanForNews = async (page = 1) => {
-        toggleButtonLoading(scanBtn, true, 'Scanning...');
         loader.classList.remove('hidden');
         errorDiv.classList.add('hidden');
         
@@ -92,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentFilters.keywords) queryParams.append('keyword', currentFilters.keywords);
         if (currentFilters.categories.length > 0) queryParams.append('category', currentFilters.categories.join(','));
         if (currentFilters.sortBy) queryParams.append('sortBy', currentFilters.sortBy);
+        if (currentFilters.dateFilter) queryParams.append('dateWindow', currentFilters.dateFilter);
         queryParams.append('page', page);
 
         try {
@@ -110,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
             errorDiv.textContent = error.message;
             errorDiv.classList.remove('hidden');
         } finally {
-            toggleButtonLoading(scanBtn, false);
             loader.classList.add('hidden');
             container.style.minHeight = 'auto';
             updateFilterIndicator();
@@ -138,10 +171,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 .replace(/'/g, '&apos;')
                 .replace(/"/g, '&quot;');
 
+            const relativeDate = formatRelativeTime(article.dateTimePub);
+
             return `
             <div class="article-card bg-white dark:bg-slate-900/50 p-4 rounded-xl text-left transition-all border border-slate-200 dark:border-slate-800 hover:border-primary-500 dark:hover:border-primary-500 card-glow" data-article='${escapedArticle}'>
                 <div class="flex justify-between items-start gap-4">
-                    <h3 class="font-bold text-lg text-slate-800 dark:text-white">${article.title}</h3>
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-lg text-slate-800 dark:text-white">${article.title}</h3>
+                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1.5"><i data-lucide="calendar" class="w-3 h-3"></i>${relativeDate}</p>
+                    </div>
                     <div class="flex-shrink-0 flex items-center gap-2 text-sm font-bold" title="Hot Score: ${article.hot_score}">
                         <i data-lucide="flame" class="w-5 h-5 ${getHotScoreColor(article.hot_score)}"></i>
                         <span class="${getHotScoreColor(article.hot_score)}">${article.hot_score}</span>
@@ -253,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/&quot;/g, '"');
         const article = JSON.parse(unescapedArticleString);
         
-        // Show the modal and start the animation
         storyLoaderModal.classList.remove('hidden');
         const loadingPhrases = [
             "Analyzing article for key insights...",
@@ -285,10 +322,22 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`Failed to create story: ${error.message}`);
         }
     };
+
+    const handleShuffleNews = () => {
+        if (allFetchedArticles.length > 1) {
+            for (let i = allFetchedArticles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allFetchedArticles[i], allFetchedArticles[j]] = [allFetchedArticles[j], allFetchedArticles[i]];
+            }
+            currentPage = 1;
+            renderNewsPage();
+        }
+    };
     
     const updateFilterModalUI = () => {
         searchKeywordsInput.value = currentFilters.keywords.replace(/,/g, ', ');
         sortByContainer.querySelector(`input[value="${currentFilters.sortBy}"]`).checked = true;
+        dateFilterContainer.querySelector(`input[value="${currentFilters.dateFilter}"]`).checked = true;
         
         const noneCheckbox = document.getElementById('cat-none');
         const hasCategories = currentFilters.categories.length > 0;
@@ -306,8 +355,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const isDefaultSort = currentFilters.sortBy === DEFAULT_SORTBY;
         const isDefaultCategories = currentFilters.categories.length === DEFAULT_CATEGORIES.length && 
                                   currentFilters.categories.every(cat => DEFAULT_CATEGORIES.includes(cat));
+        const isDefaultDateFilter = currentFilters.dateFilter === DEFAULT_DATE_FILTER;
 
-        if (isDefaultKeywords && isDefaultSort && isDefaultCategories) {
+        if (isDefaultKeywords && isDefaultSort && isDefaultCategories && isDefaultDateFilter) {
             filterIndicator.classList.add('hidden');
         } else {
             filterIndicator.classList.remove('hidden');
@@ -318,7 +368,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFilters = {
             keywords: DEFAULT_KEYWORDS,
             categories: [...DEFAULT_CATEGORIES],
-            sortBy: DEFAULT_SORTBY
+            sortBy: DEFAULT_SORTBY,
+            dateFilter: DEFAULT_DATE_FILTER
         };
         updateFilterModalUI();
     };
@@ -335,6 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(val => val !== 'none');
 
         currentFilters.sortBy = sortByContainer.querySelector('input[name="sort_by"]:checked').value;
+        currentFilters.dateFilter = dateFilterContainer.querySelector('input[name="date_filter"]:checked').value;
         
         customSearchModal.classList.add('hidden');
         scanForNews(1);
@@ -374,7 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                     cb.checked = result.categories.includes(cb.value);
                 });
-                // Uncheck "None" if AI provides categories
                 document.getElementById('cat-none').checked = result.categories.length === 0;
             }
             
@@ -405,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- EVENT LISTENERS ---
-    scanBtn.addEventListener('click', () => scanForNews(1));
+    shuffleBtn.addEventListener('click', handleShuffleNews);
     container.addEventListener('click', handleCreateStoryFromNews);
     customSearchBtn.addEventListener('click', () => {
         updateFilterModalUI();

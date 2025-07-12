@@ -55,7 +55,6 @@ router.get('/framework', (req, res) => {
 });
 
 // --- API ROUTES ---
-// NEW: Endpoint to get the total count of business cases
 router.get('/api/business-cases/count', async (req, res) => {
     try {
         const db = getDB();
@@ -67,12 +66,10 @@ router.get('/api/business-cases/count', async (req, res) => {
     }
 });
 
-
-// UPDATED: Now fetches and processes a single script
 router.get('/api/new-script', async (req, res) => {
     try {
         const [businessCases, framework] = await Promise.all([
-            getBusinessCases(1), // Fetch only one
+            getBusinessCases(1),
             getFramework()
         ]);
 
@@ -301,7 +298,7 @@ router.post('/api/generate-audio', async (req, res) => {
 });
 
 router.get('/api/scan-news', async (req, res) => {
-    const { keyword, category, page = 1, sortBy = 'rel' } = req.query;
+    const { keyword, category, page = 1, sortBy = 'rel', dateWindow = '31' } = req.query;
 
     const DEFAULT_KEYWORDS = "marketing psychology,behavioral economics,neuromarketing,cognitive bias,pricing psychology";
     const keywords = (keyword || DEFAULT_KEYWORDS).split(',');
@@ -326,10 +323,19 @@ router.get('/api/scan-news', async (req, res) => {
             "$or": categories.map(cat => ({ "categoryUri": categoryMap[cat.trim()] })).filter(c => c.categoryUri)
         });
     }
+    
+    // Add date filtering logic
+    if (dateWindow && dateWindow !== '31') {
+        const today = new Date();
+        const startDate = new Date();
+        startDate.setDate(today.getDate() - parseInt(dateWindow));
+        const dateStartString = startDate.toISOString().split('T')[0];
+        queryConditions.push({ "dateStart": dateStartString });
+    }
 
     const query = {
         "$query": { "$and": queryConditions },
-        "$filter": { "forceMaxDataTimeWindow": "31", "lang": "eng" }
+        "$filter": { "lang": "eng" } // Removed forceMaxDataTimeWindow
     };
 
     try {
@@ -376,6 +382,7 @@ router.get('/api/scan-news', async (req, res) => {
                     title: article.title,
                     summary: article.body,
                     url: article.url,
+                    dateTimePub: article.dateTimePub,
                     tactic: analysisResult.tactic || "N/A",
                     tactic_explanation: analysisResult.tactic_explanation || "No specific tactic identified.",
                     hot_score: analysisResult.hot_score || 50
@@ -386,6 +393,7 @@ router.get('/api/scan-news', async (req, res) => {
                     title: article.title,
                     summary: article.body,
                     url: article.url,
+                    dateTimePub: article.dateTimePub,
                     tactic: "N/A",
                     tactic_explanation: "Analysis not available.",
                     hot_score: 50

@@ -20,11 +20,11 @@
                             Filters
                             <span id="filter-indicator" class="hidden absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-primary-500 ring-2 ring-white dark:ring-slate-900"></span>
                         </button>
-                        <button id="scan-news-btn"
+                        <button id="shuffle-news-btn"
                             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
-                            data-icon="newspaper" data-original-text="Scan for News">
-                            <span class="btn-icon"><i data-lucide="newspaper" class="w-4 h-4"></i></span>
-                            <span class="btn-text">Scan for News</span>
+                            data-icon="shuffle" data-original-text="Shuffle News">
+                            <span class="btn-icon"><i data-lucide="shuffle" class="w-4 h-4"></i></span>
+                            <span class="btn-text">Shuffle News</span>
                         </button>
                     </div>
                 </div>
@@ -120,6 +120,24 @@
                                     <input type="radio" id="sort-date" name="sort_by" value="date" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
                                     <span class="text-sm text-slate-700 dark:text-slate-300">Date</span>
                                 </label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Article Date</label>
+                            <div id="date-filter-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                <% const dateFilters = [
+                                    { label: '24 hours', value: '1' },
+                                    { label: '3 days', value: '3' },
+                                    { label: '7 days', value: '7' },
+                                    { label: '2 weeks', value: '14' },
+                                    { label: '1 month', value: '31' }
+                                ]; %>
+                                <% dateFilters.forEach((filter) => { %>
+                                    <label for="date-<%= filter.value %>" class="flex items-center gap-2 p-2 rounded-md border border-slate-300 dark:border-slate-700 has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500 cursor-pointer">
+                                        <input type="radio" id="date-<%= filter.value %>" name="date_filter" value="<%= filter.value %>" class="w-4 h-4 text-primary-600 focus:ring-primary-500" <%= filter.value === '31' ? 'checked' : '' %>>
+                                        <span class="text-sm text-slate-700 dark:text-slate-300"><%= filter.label %></span>
+                                    </label>
+                                <% }); %>
                             </div>
                         </div>
                     </div>
