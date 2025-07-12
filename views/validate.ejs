@@ -1,0 +1,63 @@
+<%- include('partials/head') %>
+
+<%- include('partials/header') %>
+
+<main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                    Edit AI Validation Prompt</h1>
+                <p class="mt-1 text-slate-500 dark:text-slate-400">Customize the instructions the AI uses to filter news articles.</p>
+            </div>
+            <a href="/news" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                Back to News
+            </a>
+        </div>
+
+        <!-- Prompt Editor -->
+        <div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800">
+            <textarea id="prompt-textarea" class="w-full h-96 p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:outline-none text-sm font-mono" placeholder="Loading prompt..."></textarea>
+            
+            <div id="action-feedback" class="mt-4 text-sm font-medium h-5"></div>
+
+            <div class="mt-4 flex flex-col sm:flex-row gap-4">
+                <button id="save-prompt-btn" class="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="save" data-original-text="Save Prompt">
+                    <span class="btn-icon"><i data-lucide="save" class="w-5 h-5"></i></span>
+                    <span class="btn-text">Save Prompt</span>
+                </button>
+                <button id="reset-prompt-btn" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="rotate-ccw" data-original-text="Reset to Default">
+                     <span class="btn-icon"><i data-lucide="rotate-ccw" class="w-5 h-5"></i></span>
+                    <span class="btn-text">Reset to Default</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="/js/validate.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+        const themeToggle = document.getElementById('theme-toggle');
+        const htmlEl = document.documentElement;
+        themeToggle.addEventListener('click', () => {
+            htmlEl.classList.toggle('dark');
+            localStorage.setItem('theme', htmlEl.classList.contains('dark') ? 'dark' : 'light');
+            lucide.createIcons();
+        });
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarCloseButton = document.getElementById('sidebar-close-button');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const openSidebar = () => sidebar.classList.remove('-translate-x-full');
+        const closeSidebar = () => sidebar.classList.add('-translate-x-full');
+        mobileMenuButton.addEventListener('click', openSidebar);
+        sidebarCloseButton.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    });
+</script>
+
+<%- include('partials/footer') %>

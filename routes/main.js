@@ -40,6 +40,7 @@ router.get('/', (req, res) => res.render('index', { title: 'Dashboard' }));
 router.get('/breakdown', (req, res) => res.render('breakdown', { title: 'Tactic Breakdowns' }));
 router.get('/sheet', (req, res) => res.render('sheet', { title: 'Analyze Sheet' }));
 router.get('/news', (req, res) => res.render('news', { title: 'Industry News' }));
+router.get('/validate', (req, res) => res.render('validate', { title: 'Edit Validation Prompt' }));
 
 router.get('/reels', (req, res) => {
     res.render('reels', { 
@@ -55,6 +56,57 @@ router.get('/framework', (req, res) => {
 });
 
 // --- API ROUTES ---
+router.get('/api/get-validation-prompt', async (req, res) => {
+    try {
+        const db = getDB();
+        let doc = await db.collection('Validate_News').findOne({ name: 'active' });
+        if (!doc) {
+            doc = await db.collection('Validate_News').findOne({ name: 'default' });
+        }
+        if (!doc) {
+            return res.status(404).json({ error: 'No validation prompt found in the database.' });
+        }
+        res.json({ prompt: doc.prompt });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to load validation prompt.' });
+    }
+});
+
+router.post('/api/save-validation-prompt', async (req, res) => {
+    try {
+        const { prompt } = req.body;
+        if (!prompt) {
+            return res.status(400).json({ error: 'Prompt content is missing.' });
+        }
+        const db = getDB();
+        await db.collection('Validate_News').updateOne(
+            { name: 'active' },
+            { $set: { name: 'active', prompt: prompt } },
+            { upsert: true }
+        );
+        res.json({ success: true, message: 'Prompt saved successfully.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to save validation prompt.' });
+    }
+});
+
+router.post('/api/reset-validation-prompt', async (req, res) => {
+    try {
+        const db = getDB();
+        const defaultDoc = await db.collection('Validate_News').findOne({ name: 'default' });
+        if (!defaultDoc) {
+            return res.status(404).json({ error: 'Default validation prompt not found.' });
+        }
+        
+        await db.collection('Validate_News').deleteOne({ name: 'active' });
+        
+        res.json({ success: true, prompt: defaultDoc.prompt });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to reset validation prompt.' });
+    }
+});
+
+
 router.get('/api/business-cases/count', async (req, res) => {
     try {
         const db = getDB();
@@ -303,10 +355,9 @@ router.post('/api/generate-audio', async (req, res) => {
 });
 
 router.get('/api/scan-news', async (req, res) => {
-    const { keyword, category, page = 1, sortBy = 'rel', dateWindow = '31' } = req.query;
+    const { keyword, category, page = 1, sortBy = 'rel', dateWindow = '31', validate = 'false' } = req.query;
 
-    const DEFAULT_KEYWORDS = "marketing psychology,behavioral economics,neuromarketing,cognitive bias,pricing psychology";
-    const keywords = (keyword || DEFAULT_KEYWORDS).split(',');
+    const keywords = (keyword || "marketing psychology,behavioral economics,neuromarketing,cognitive bias,pricing psychology").split(',');
     const categories = category ? category.split(',') : [];
 
     const categoryMap = {
@@ -365,7 +416,6 @@ router.get('/api/scan-news', async (req, res) => {
         const newsData = await newsApiResponse.json();
         const articles = newsData?.articles?.results || [];
         
-        // Efficiently check for duplicates
         const fetchedUrls = articles.map(article => article.url);
         let uniqueArticles = [];
 
@@ -378,8 +428,32 @@ router.get('/api/scan-news', async (req, res) => {
             const existingUrls = new Set(existingCases.map(caseDoc => caseDoc.source_url));
             uniqueArticles = articles.filter(article => !existingUrls.has(article.url));
         }
+        
+        let articlesToEnrich = uniqueArticles;
 
-        const enrichedArticlesPromises = uniqueArticles.map(article => (async () => {
+        if (validate === 'true') {
+            const db = getDB();
+            const validationDoc = await db.collection('Validate_News').findOne({ name: 'default' });
+            if (validationDoc && validationDoc.prompt) {
+                const validationPromises = uniqueArticles.map(async (article) => {
+                    const validationPrompt = `${validationDoc.prompt}\n\n---\n\n**ARTICLE TO EVALUATE:**\nTitle: ${article.title}\nBody: ${article.body}`;
+                    try {
+                        const verdict = await callGeminiAPI(validationPrompt, false);
+                        return { article, verdict };
+                    } catch (err) {
+                        console.warn(`Validation failed for article: ${article.title}`);
+                        return { article, verdict: 'REJECT' };
+                    }
+                });
+                const validationResults = await Promise.all(validationPromises);
+                articlesToEnrich = validationResults
+                    .filter(res => res.verdict.startsWith('ACCEPT'))
+                    .map(res => res.article);
+            }
+        }
+
+
+        const enrichedArticlesPromises = articlesToEnrich.map(article => (async () => {
             const analysisPrompt = `
                 Analyze the following article to identify a core psychological marketing tactic and its explanation. Also, provide a 'hot_score' from 1-100 based on how quirky, controversial, or intriguing the story is.
 

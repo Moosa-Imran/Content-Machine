@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const generalErrorContent = document.getElementById('general-error-content');
     const modelBusyContent = document.getElementById('model-busy-content');
     const closeErrorModalBtn = document.getElementById('close-error-modal-btn');
+    const validateNewsToggle = document.getElementById('validate-news-toggle');
 
     // --- STATE MANAGEMENT ---
     const DEFAULT_KEYWORDS = ["marketing psychology", "behavioral economics", "neuromarketing", "cognitive bias", "pricing psychology"];
@@ -85,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(endpoint, options);
             if (!response.ok) {
-                // Check for specific "model busy" status codes
                 if (response.status === 529 || response.status === 429) {
                     throw new Error('MODEL_BUSY');
                 }
@@ -187,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentFilters.categories.length > 0) queryParams.append('category', currentFilters.categories.join(','));
         if (currentFilters.sortBy) queryParams.append('sortBy', currentFilters.sortBy);
         if (currentFilters.dateFilter) queryParams.append('dateWindow', currentFilters.dateFilter);
+        queryParams.append('validate', validateNewsToggle.checked); // Add validate parameter
         queryParams.append('page', page);
 
         try {
@@ -535,6 +536,8 @@ document.addEventListener('DOMContentLoaded', () => {
     addKeywordBtn.addEventListener('click', addKeywordFromInput);
     keywordsContainer.addEventListener('click', handleRemoveKeyword);
     closeErrorModalBtn.addEventListener('click', () => errorModal.classList.add('hidden'));
+    validateNewsToggle.addEventListener('change', () => scanForNews(1));
+
 
     // --- INITIALIZATION ---
     scanForNews();
