@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterIndicator = document.getElementById('filter-indicator');
     const storyLoaderModal = document.getElementById('story-loader-modal');
     const generationStatusText = document.getElementById('generation-status-text');
+    const errorModal = document.getElementById('error-modal');
+    const generalErrorContent = document.getElementById('general-error-content');
+    const modelBusyContent = document.getElementById('model-busy-content');
+    const closeErrorModalBtn = document.getElementById('close-error-modal-btn');
 
     // --- STATE MANAGEMENT ---
     const DEFAULT_KEYWORDS = ["marketing psychology", "behavioral economics", "neuromarketing", "cognitive bias", "pricing psychology"];
@@ -48,6 +52,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalApiPages = 1;
 
     // --- API & UI HELPERS ---
+    const showErrorModal = (type = 'general', message = '') => {
+        if (type === 'modelBusy') {
+            generalErrorContent.classList.add('hidden');
+            modelBusyContent.classList.remove('hidden');
+        } else {
+            generalErrorContent.classList.remove('hidden');
+            modelBusyContent.classList.add('hidden');
+            console.error("An error occurred:", message);
+        }
+        errorModal.classList.remove('hidden');
+        lucide.createIcons();
+    };
+
     const toggleButtonLoading = (button, isLoading, loadingText = 'Loading...') => {
         if (!button) return;
         const icon = button.querySelector('.btn-icon');
@@ -68,6 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(endpoint, options);
             if (!response.ok) {
+                // Check for specific "model busy" status codes
+                if (response.status === 529 || response.status === 429) {
+                    throw new Error('MODEL_BUSY');
+                }
                 const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred' }));
                 throw new Error(errorData.error);
             }
@@ -181,8 +202,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderNewsPage();
             }
         } catch (error) {
-            errorDiv.textContent = error.message;
-            errorDiv.classList.remove('hidden');
+            if (error.message === 'MODEL_BUSY') {
+                showErrorModal('modelBusy');
+            } else {
+                showErrorModal('general', error.message);
+            }
         } finally {
             loader.classList.add('hidden');
             container.style.minHeight = 'auto';
@@ -359,7 +383,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             clearInterval(loadingInterval);
             storyLoaderModal.classList.add('hidden');
-            alert(`Failed to create story: ${error.message}`);
+            if (error.message === 'MODEL_BUSY') {
+                showErrorModal('modelBusy');
+            } else {
+                showErrorModal('general', error.message);
+            }
         }
     };
 
@@ -414,7 +442,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const handleExecuteCustomSearch = () => {
-        // Keywords are already up-to-date in the state array
         currentFilters.categories = Array.from(searchCategoryContainer.querySelectorAll('input[type="checkbox"]:checked'))
             .map(cb => cb.value)
             .filter(val => val !== 'none');
@@ -441,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleGenerateFilters = async () => {
         const userPrompt = promptTextarea.value;
         if (!userPrompt.trim()) {
-            alert('Please enter a prompt.');
+            showErrorModal('general', 'Please enter a prompt.');
             return;
         }
 
@@ -464,7 +491,11 @@ document.addEventListener('DOMContentLoaded', () => {
             togglePromptUI();
 
         } catch (error) {
-            alert(`Failed to generate filters: ${error.message}`);
+            if (error.message === 'MODEL_BUSY') {
+                showErrorModal('modelBusy');
+            } else {
+                showErrorModal('general', `Failed to generate filters: ${error.message}`);
+            }
         } finally {
             toggleButtonLoading(generateFiltersBtn, false);
         }
@@ -503,6 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addKeywordInput.addEventListener('keydown', handleAddKeywordKeydown);
     addKeywordBtn.addEventListener('click', addKeywordFromInput);
     keywordsContainer.addEventListener('click', handleRemoveKeyword);
+    closeErrorModalBtn.addEventListener('click', () => errorModal.classList.add('hidden'));
 
     // --- INITIALIZATION ---
     scanForNews();

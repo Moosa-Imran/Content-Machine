@@ -72,33 +72,50 @@
     </div>
 </div>
 
+<!-- Graceful Error Modal -->
+<div id="error-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md text-center p-6">
+        <div id="general-error-content">
+            <i data-lucide="alert-triangle" class="w-16 h-16 text-red-500 mx-auto"></i>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Something Went Wrong</h2>
+            <p class="mt-2 text-slate-500 dark:text-slate-400">Please check the console for more details (F12 &gt; Console).</p>
+        </div>
+        <div id="model-busy-content" class="hidden">
+            <i data-lucide="bot" class="w-16 h-16 text-yellow-500 mx-auto"></i>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Oops! Model Is Busy</h2>
+            <p class="mt-2 text-slate-500 dark:text-slate-400">This is not your fault. The AI is currently overloaded. Please try again in a few seconds.</p>
+        </div>
+        <button id="close-error-modal-btn" class="mt-6 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg font-semibold">Close</button>
+    </div>
+</div>
+
 <script src="/js/reels.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                lucide.createIcons();
-                const themeToggle = document.getElementById('theme-toggle');
-                const htmlEl = document.documentElement;
-                themeToggle.addEventListener('click', () => {
-                    htmlEl.classList.toggle('dark');
-                    localStorage.setItem('theme', htmlEl.classList.contains('dark') ? 'dark' : 'light');
-                    lucide.createIcons();
-                });
-                const mobileMenuButton = document.getElementById('mobile-menu-button');
-                const sidebar = document.getElementById('sidebar');
-                const sidebarCloseButton = document.getElementById('sidebar-close-button');
-                const sidebarOverlay = document.getElementById('sidebar-overlay');
-                const openSidebar = () => {
-                    sidebar.classList.remove('-translate-x-full');
-                    sidebarOverlay.classList.remove('hidden');
-                };
-                const closeSidebar = () => {
-                    sidebar.classList.add('-translate-x-full');
-                    sidebarOverlay.classList.add('hidden');
-                };
-                mobileMenuButton.addEventListener('click', openSidebar);
-                sidebarCloseButton.addEventListener('click', closeSidebar);
-                sidebarOverlay.addEventListener('click', closeSidebar);
-            });
-        </script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+        const themeToggle = document.getElementById('theme-toggle');
+        const htmlEl = document.documentElement;
+        themeToggle.addEventListener('click', () => {
+            htmlEl.classList.toggle('dark');
+            localStorage.setItem('theme', htmlEl.classList.contains('dark') ? 'dark' : 'light');
+            lucide.createIcons();
+        });
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarCloseButton = document.getElementById('sidebar-close-button');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const openSidebar = () => {
+            sidebar.classList.remove('-translate-x-full');
+            sidebarOverlay.classList.remove('hidden');
+        };
+        const closeSidebar = () => {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        };
+        mobileMenuButton.addEventListener('click', openSidebar);
+        sidebarCloseButton.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    });
+</script>
 
 <%- include('partials/footer') %>

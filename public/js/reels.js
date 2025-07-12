@@ -14,6 +14,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const createFromModal = document.getElementById('create-from-modal');
     const closeCreateModalBtn = document.getElementById('close-create-modal-btn');
     const createFromNewsBtn = document.getElementById('create-from-news-btn');
+    const errorModal = document.getElementById('error-modal');
+    const generalErrorContent = document.getElementById('general-error-content');
+    const modelBusyContent = document.getElementById('model-busy-content');
+    const closeErrorModalBtn = document.getElementById('close-error-modal-btn');
+
+    // --- API & UI HELPERS ---
+    const showErrorModal = (type = 'general', message = '') => {
+        if (type === 'modelBusy') {
+            generalErrorContent.classList.add('hidden');
+            modelBusyContent.classList.remove('hidden');
+        } else {
+            generalErrorContent.classList.remove('hidden');
+            modelBusyContent.classList.add('hidden');
+            console.error("An error occurred:", message);
+        }
+        errorModal.classList.remove('hidden');
+        lucide.createIcons();
+    };
+
+    const apiCall = async (endpoint, options = {}) => {
+        try {
+            const response = await fetch(endpoint, options);
+            if (!response.ok) {
+                if (response.status === 529 || response.status === 429) {
+                    throw new Error('MODEL_BUSY');
+                }
+                const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred' }));
+                throw new Error(errorData.error);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error(`API call to ${endpoint} failed:`, error);
+            throw error;
+        }
+    };
 
     // --- INITIALIZATION ---
     const init = async () => {
@@ -21,19 +56,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const generatedContent = sessionStorage.getItem('generatedContent');
         if (generatedContent) {
-            // This block runs when redirected from the news page with a new story
             contentFeed = JSON.parse(generatedContent);
-            sessionStorage.removeItem('generatedContent'); // Clear it after use
+            sessionStorage.removeItem('generatedContent');
             currentFeedIndex = 0;
-            totalCases = contentFeed.length; // Set total to 1 to disable pagination
+            totalCases = contentFeed.length;
             renderCurrentReel();
         } else {
-            // This block runs on a normal page load
             await fetchInitialScript();
         }
     };
 
-    // This function now generates its own loader HTML, making it self-contained and reliable.
     const showLoader = () => {
         const loaderHTML = `
             <div class="max-w-4xl mx-auto">
@@ -48,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const fetchInitialScript = async () => {
-        // The initial loader is already present in the EJS file. We just manage its text animation.
         const loadingTextElement = document.getElementById('loading-text-animation');
         const loadingPhrases = [
             "Building compelling hooks...",
@@ -60,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let phraseIndex = 0;
         let loadingInterval;
 
-        if (loadingTextElement) { // Check if the loader is on the page
+        if (loadingTextElement) {
             loadingInterval = setInterval(() => {
                 loadingTextElement.textContent = loadingPhrases[phraseIndex % loadingPhrases.length];
                 phraseIndex++;
@@ -84,6 +115,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Failed to fetch initial script:", error);
             reelCardContainer.innerHTML = `<div class="text-center text-red-500 p-8 bg-red-500/10 rounded-xl border border-red-500/20">Failed to load scripts. Please try again later.</div>`;
+            if (error.message === 'MODEL_BUSY') {
+                showErrorModal('modelBusy');
+            } else {
+                showErrorModal('general', error.message);
+            }
         } finally {
             if (loadingInterval) {
                 clearInterval(loadingInterval);
@@ -96,12 +132,11 @@ document.addEventListener('DOMContentLoaded', () => {
         findNewScriptsBtn?.addEventListener('click', () => createFromModal.classList.remove('hidden'));
         reelCardContainer.addEventListener('click', handleCardClick);
         paginationContainer.addEventListener('click', handlePaginationClick);
-        
-        // Create From Modal Listeners
         closeCreateModalBtn?.addEventListener('click', () => createFromModal.classList.add('hidden'));
         createFromNewsBtn?.addEventListener('click', () => {
             window.location.href = '/news';
         });
+        closeErrorModalBtn?.addEventListener('click', () => errorModal.classList.add('hidden'));
     };
     
     const handleCardClick = (e) => {
@@ -132,22 +167,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (nextBtn) {
-            // If the next script is already in our feed, just show it.
             if (currentFeedIndex < contentFeed.length - 1) {
                 currentFeedIndex++;
                 renderCurrentReel();
             } else {
-                // Otherwise, fetch a new one.
-                showLoader(); // Use the new, reliable loader function
+                showLoader();
                 try {
                     const newScript = await apiCall('/api/new-script');
                     contentFeed.push(newScript);
                     currentFeedIndex++;
                     renderCurrentReel();
                 } catch (error) {
-                    console.error("Failed to fetch next script:", error);
-                    renderCurrentReel(); // Re-render the current card to hide loader
-                    alert("Could not load the next script. Please try again.");
+                    renderCurrentReel();
+                    if (error.message === 'MODEL_BUSY') {
+                        showErrorModal('modelBusy');
+                    } else {
+                        showErrorModal('general', "Could not load the next script. Please try again.");
+                    }
                 }
             }
         }
@@ -189,8 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectOption(optionsContainer.querySelector('.p-3'), sectionType);
             }
         } catch (error) {
-            console.error(`Failed to regenerate ${sectionType}:`, error);
-            alert(`Could not regenerate options. Please try again.`);
+            if (error.message === 'MODEL_BUSY') {
+                showErrorModal('modelBusy');
+            } else {
+                showErrorModal('general', `Could not regenerate options. Please try again.`);
+            }
         } finally {
             icon.classList.remove('animate-spin');
             button.disabled = false;
@@ -211,20 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (text) text.textContent = button.dataset.originalText || 'Submit';
         }
         lucide.createIcons();
-    };
-    
-    const apiCall = async (endpoint, options = {}) => {
-        try {
-            const response = await fetch(endpoint, options);
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred' }));
-                throw new Error(errorData.error);
-            }
-            return await response.json();
-        } catch (error) {
-            console.error(`API call to ${endpoint} failed:`, error);
-            throw error;
-        }
     };
     
     const renderCurrentReel = () => {
@@ -250,14 +275,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // If only one story (from news redirect), show a simple message or hide pagination
         if (totalCases === 1) {
              paginationContainer.innerHTML = `
                 <div class="flex items-center justify-center">
                      <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Showing 1 script generated from news</span>
                 </div>
             `;
-            return;
+             return;
         }
 
         paginationContainer.innerHTML = `
@@ -409,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const finalScript = finalScriptTextarea.value;
 
         if (!aiPrompt) {
-            alert('Please enter a rewrite instruction.');
+            showErrorModal('general', 'Please enter a rewrite instruction.');
             return;
         }
 
@@ -426,7 +450,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('AI did not return a new script.');
             }
         } catch (error) {
-            alert(`Failed to rewrite script: ${error.message}`);
+            if (error.message === 'MODEL_BUSY') {
+                showErrorModal('modelBusy');
+            } else {
+                showErrorModal('general', `Failed to rewrite script: ${error.message}`);
+            }
         } finally {
             toggleButtonLoading(rewriteBtn, false);
         }
