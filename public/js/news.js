@@ -11,10 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const customSearchModal = document.getElementById('custom-search-modal');
     const closeSearchModalBtn = document.getElementById('close-search-modal-btn');
     const executeSearchBtn = document.getElementById('execute-search-btn');
-    const searchKeywordsInput = document.getElementById('search-keywords');
+    const keywordsContainer = document.getElementById('keywords-container');
+    const addKeywordInput = document.getElementById('add-keyword-input');
+    const addKeywordBtn = document.getElementById('add-keyword-btn');
     const searchCategoryContainer = document.getElementById('search-category-container');
     const sortByContainer = document.getElementById('sort-by-container');
-    const dateFilterContainer = document.getElementById('date-filter-container');
+    const dateFilterSelect = document.getElementById('date-filter-select');
     const resetSearchBtn = document.getElementById('reset-search-btn');
     const usePromptBtn = document.getElementById('use-prompt-btn');
     const promptContainer = document.getElementById('prompt-container');
@@ -26,13 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const generationStatusText = document.getElementById('generation-status-text');
 
     // --- STATE MANAGEMENT ---
-    const DEFAULT_KEYWORDS = "marketing psychology,behavioral economics,neuromarketing,cognitive bias,pricing psychology";
+    const DEFAULT_KEYWORDS = ["marketing psychology", "behavioral economics", "neuromarketing", "cognitive bias", "pricing psychology"];
     const DEFAULT_CATEGORIES = ["business", "technology", "general"];
     const DEFAULT_SORTBY = 'rel';
     const DEFAULT_DATE_FILTER = '31';
 
     let currentFilters = {
-        keywords: DEFAULT_KEYWORDS,
+        keywords: [...DEFAULT_KEYWORDS],
         categories: [...DEFAULT_CATEGORIES],
         sortBy: DEFAULT_SORTBY,
         dateFilter: DEFAULT_DATE_FILTER
@@ -106,6 +108,44 @@ document.addEventListener('DOMContentLoaded', () => {
         return "just now";
     };
 
+    // --- KEYWORD BUBBLE LOGIC ---
+    const renderKeywords = () => {
+        keywordsContainer.innerHTML = currentFilters.keywords.map((keyword, index) => `
+            <div class="keyword-bubble flex items-center gap-1.5 bg-primary-500 text-white text-sm font-medium px-3 py-1 rounded-full">
+                <span>${keyword}</span>
+                <button class="remove-keyword-btn" data-index="${index}" title="Remove ${keyword}">
+                    <i data-lucide="x" class="w-4 h-4 hover:text-red-200"></i>
+                </button>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    };
+
+    const addKeywordFromInput = () => {
+        const newKeyword = addKeywordInput.value.trim().replace(/,$/, '');
+        if (newKeyword && !currentFilters.keywords.includes(newKeyword)) {
+            currentFilters.keywords.push(newKeyword);
+            renderKeywords();
+        }
+        addKeywordInput.value = '';
+        addKeywordInput.focus();
+    };
+
+    const handleAddKeywordKeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addKeywordFromInput();
+        }
+    };
+
+    const handleRemoveKeyword = (e) => {
+        const removeBtn = e.target.closest('.remove-keyword-btn');
+        if (removeBtn) {
+            const indexToRemove = parseInt(removeBtn.dataset.index);
+            currentFilters.keywords.splice(indexToRemove, 1);
+            renderKeywords();
+        }
+    };
 
     // --- CORE LOGIC ---
     const scanForNews = async (page = 1) => {
@@ -122,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentApiPage = page;
         
         const queryParams = new URLSearchParams();
-        if (currentFilters.keywords) queryParams.append('keyword', currentFilters.keywords);
+        if (currentFilters.keywords.length > 0) queryParams.append('keyword', currentFilters.keywords.join(','));
         if (currentFilters.categories.length > 0) queryParams.append('category', currentFilters.categories.join(','));
         if (currentFilters.sortBy) queryParams.append('sortBy', currentFilters.sortBy);
         if (currentFilters.dateFilter) queryParams.append('dateWindow', currentFilters.dateFilter);
@@ -335,9 +375,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const updateFilterModalUI = () => {
-        searchKeywordsInput.value = currentFilters.keywords.replace(/,/g, ', ');
+        renderKeywords();
         sortByContainer.querySelector(`input[value="${currentFilters.sortBy}"]`).checked = true;
-        dateFilterContainer.querySelector(`input[value="${currentFilters.dateFilter}"]`).checked = true;
+        dateFilterSelect.value = currentFilters.dateFilter;
         
         const noneCheckbox = document.getElementById('cat-none');
         const hasCategories = currentFilters.categories.length > 0;
@@ -351,10 +391,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const updateFilterIndicator = () => {
-        const isDefaultKeywords = currentFilters.keywords === DEFAULT_KEYWORDS;
+        const isDefaultKeywords = currentFilters.keywords.length === DEFAULT_KEYWORDS.length && currentFilters.keywords.every((kw, i) => kw === DEFAULT_KEYWORDS[i]);
         const isDefaultSort = currentFilters.sortBy === DEFAULT_SORTBY;
-        const isDefaultCategories = currentFilters.categories.length === DEFAULT_CATEGORIES.length && 
-                                  currentFilters.categories.every(cat => DEFAULT_CATEGORIES.includes(cat));
+        const isDefaultCategories = currentFilters.categories.length === DEFAULT_CATEGORIES.length && currentFilters.categories.every(cat => DEFAULT_CATEGORIES.includes(cat));
         const isDefaultDateFilter = currentFilters.dateFilter === DEFAULT_DATE_FILTER;
 
         if (isDefaultKeywords && isDefaultSort && isDefaultCategories && isDefaultDateFilter) {
@@ -366,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const setDefaultFilters = () => {
         currentFilters = {
-            keywords: DEFAULT_KEYWORDS,
+            keywords: [...DEFAULT_KEYWORDS],
             categories: [...DEFAULT_CATEGORIES],
             sortBy: DEFAULT_SORTBY,
             dateFilter: DEFAULT_DATE_FILTER
@@ -375,18 +414,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const handleExecuteCustomSearch = () => {
-        currentFilters.keywords = searchKeywordsInput.value
-            .split(',')
-            .map(kw => kw.trim())
-            .filter(kw => kw)
-            .join(',');
-
+        // Keywords are already up-to-date in the state array
         currentFilters.categories = Array.from(searchCategoryContainer.querySelectorAll('input[type="checkbox"]:checked'))
             .map(cb => cb.value)
             .filter(val => val !== 'none');
 
         currentFilters.sortBy = sortByContainer.querySelector('input[name="sort_by"]:checked').value;
-        currentFilters.dateFilter = dateFilterContainer.querySelector('input[name="date_filter"]:checked').value;
+        currentFilters.dateFilter = dateFilterSelect.value;
         
         customSearchModal.classList.add('hidden');
         scanForNews(1);
@@ -397,8 +431,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const isDisabled = !isHidden;
         
         manualFiltersContainer.style.opacity = isDisabled ? '0.5' : '1';
-        manualFiltersContainer.querySelectorAll('input, button, label').forEach(el => {
-            if (el.tagName === 'INPUT' || el.tagName === 'BUTTON') {
+        manualFiltersContainer.querySelectorAll('input, button, label, select').forEach(el => {
+            if (el.tagName === 'INPUT' || el.tagName === 'BUTTON' || el.tagName === 'SELECT') {
                 el.disabled = isDisabled;
             }
         });
@@ -420,15 +454,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (result.keywords) {
-                searchKeywordsInput.value = result.keywords;
+                currentFilters.keywords = result.keywords.split(',').map(kw => kw.trim()).filter(kw => kw);
             }
             if (result.categories && Array.isArray(result.categories)) {
-                searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                    cb.checked = result.categories.includes(cb.value);
-                });
-                document.getElementById('cat-none').checked = result.categories.length === 0;
+                currentFilters.categories = result.categories;
             }
             
+            updateFilterModalUI();
             togglePromptUI();
 
         } catch (error) {
@@ -468,6 +500,9 @@ document.addEventListener('DOMContentLoaded', () => {
     usePromptBtn.addEventListener('click', togglePromptUI);
     generateFiltersBtn.addEventListener('click', handleGenerateFilters);
     searchCategoryContainer.addEventListener('change', handleCategorySelection);
+    addKeywordInput.addEventListener('keydown', handleAddKeywordKeydown);
+    addKeywordBtn.addEventListener('click', addKeywordFromInput);
+    keywordsContainer.addEventListener('click', handleRemoveKeyword);
 
     // --- INITIALIZATION ---
     scanForNews();
