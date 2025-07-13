@@ -286,10 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        if (totalCases === 1) {
+        if (totalCases === 1 && contentFeed.length === 1) {
              paginationContainer.innerHTML = `
                 <div class="flex items-center justify-center">
-                     <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Showing 1 script generated from news</span>
+                     <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Showing 1 of 1 available scripts</span>
                 </div>
             `;
              return;
@@ -303,8 +303,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         
         const prevBtn = paginationContainer.querySelector('#prev-btn');
+        const nextBtn = paginationContainer.querySelector('#next-btn');
+
         if (prevBtn) {
             prevBtn.disabled = currentFeedIndex === 0;
+        }
+        if (nextBtn) {
+            // **FIX:** Disable next button if the current index is the last available script
+            nextBtn.disabled = currentFeedIndex + 1 >= totalCases;
         }
         lucide.createIcons();
     };
@@ -349,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         return `
-            <div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 card-glow max-w-4xl mx-auto" data-story-id="${story.id}">
+            <div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 card-glow max-w-4xl mx-auto" data-story-id="${story.id}" data-business-case-id="${story._id}">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                     <div>
                         <h3 class="text-2xl font-bold text-slate-800 dark:text-white">Principle: <span class="text-primary-600 dark:text-primary-400">${story.psychology}</span></h3>
@@ -684,7 +690,8 @@ document.addEventListener('DOMContentLoaded', () => {
             title: story.psychology,
             transcript: transcript,
             audioUrl: audioUrl,
-            hashtags: story.hashtags
+            hashtags: story.hashtags,
+            businessCaseId: story._id // **FIX:** Pass the correct business case ID
         };
 
         toggleButtonLoading(saveBtn, true, 'Saving...');

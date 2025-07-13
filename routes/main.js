@@ -7,6 +7,7 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 const { ObjectId } = require('mongodb');
+const session = require('express-session');
 
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
@@ -14,11 +15,23 @@ const { generateMoreOptions } = require('../utils/scriptGenerator');
 const { callGeminiAPI, generateAudio } = require('../services/aiService');
 
 // --- HELPER FUNCTIONS ---
-const getBusinessCases = async (limit = 1) => { // Default limit is now 1
+const getBusinessCases = async (limit = 1) => {
     const db = getDB();
-    const pipeline = [{ $sample: { size: limit } }];
-    return await db.collection('Business_Cases').aggregate(pipeline).toArray();
+    // Updated pipeline to only select business cases that have not been marked as 'used'.
+    const pipeline = [
+        { $match: { used: { $ne: true } } }, 
+        { $sample: { size: limit } }
+    ];
+    const cases = await db.collection('Business_Cases').aggregate(pipeline).toArray();
+    // Fallback in case no unused cases are found
+    if (cases.length === 0) {
+        console.warn("No unused business cases found. Fetching from all cases as a fallback.");
+        const fallbackPipeline = [{ $sample: { size: limit } }];
+        return await db.collection('Business_Cases').aggregate(fallbackPipeline).toArray();
+    }
+    return cases;
 };
+
 
 const getFramework = async () => {
     try {
@@ -190,7 +203,8 @@ router.post('/api/reset-validation-prompt', async (req, res) => {
 router.get('/api/business-cases/count', async (req, res) => {
     try {
         const db = getDB();
-        const count = await db.collection('Business_Cases').countDocuments();
+        // **FIX:** Only count documents that have not been marked as used.
+        const count = await db.collection('Business_Cases').countDocuments({ used: { $ne: true } });
         res.json({ total: count });
     } catch (error) {
         console.error("Error fetching business case count:", error);
@@ -543,7 +557,7 @@ router.get('/listen-audio/:filename', (req, res) => {
 });
 
 router.post('/api/save-story', async (req, res) => {
-    const { title, transcript, audioUrl, hashtags } = req.body;
+    const { title, transcript, audioUrl, hashtags, businessCaseId } = req.body;
 
     if (!title || !transcript || !audioUrl) {
         return res.status(400).json({ error: 'Missing required story data.' });
@@ -568,10 +582,19 @@ router.post('/api/save-story', async (req, res) => {
             audioUrl,
             igDescription,
             hashtags: hashtags || [],
-            createdAt: new Date()
+            createdAt: new Date(),
+            sourceBusinessCase: businessCaseId ? new ObjectId(businessCaseId) : null
         };
 
         await db.collection('Stories').insertOne(newStory);
+
+        // Mark the business case as used
+        if (businessCaseId) {
+            await db.collection('Business_Cases').updateOne(
+                { _id: new ObjectId(businessCaseId) },
+                { $set: { used: true } }
+            );
+        }
 
         res.status(201).json({ success: true, message: 'Story saved successfully.' });
     } catch (error) {
