@@ -3,6 +3,7 @@
 
 const express = require('express');
 const path = require('path');
+const session = require('express-session');
 const { connectDB } = require('./config/database');
 const mainRoutes = require('./routes/main');
 
@@ -23,6 +24,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // To parse JSON bodies from incoming requests (for API calls from the frontend)
 app.use(express.json());
+
+// Add middleware to parse URL-encoded bodies (from HTML forms)
+app.use(express.urlencoded({ extended: true }));
+
+// Session Middleware Setup
+// Note: You should add a SESSION_SECRET to your .env file for security.
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'a-default-secret-key-for-development',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        httpOnly: true, // Helps prevent XSS attacks
+    }
+}));
+
 
 // --- Routes ---
 

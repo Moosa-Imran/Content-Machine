@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const copyBtn = e.target.closest('.copy-text-btn');
         const audioBtn = e.target.closest('.generate-audio-btn');
         const regenerateBtn = e.target.closest('.regenerate-section-btn');
+        const saveStoryBtn = e.target.closest('.save-story-btn');
 
         if (buildBtn) handleBuildScript();
         if (verifyBtn) handleVerifyStory(verifyBtn);
@@ -162,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (copyBtn) handleCopyScript();
         if (audioBtn) handleGenerateAudio(audioBtn);
         if (regenerateBtn) handleRegenerateSection(regenerateBtn);
+        if (saveStoryBtn) handleSaveStory(saveStoryBtn);
     };
 
     const handlePaginationClick = async (e) => {
@@ -416,14 +418,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="mt-4 space-y-4">
                     <input type="text" id="ai-rewrite-prompt" placeholder="Optional: Enter a rewrite instruction (e.g., 'make it funnier')" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm" />
                     
-                    <div class="flex items-center justify-start gap-4">
-                        <label for="update-framework-toggle" class="flex items-center cursor-pointer">
+                    <div class="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg mt-2">
+                        <label for="update-framework-toggle" class="flex items-center justify-between cursor-pointer">
+                            <span class="flex flex-col">
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">Evolve AI's Style</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400">Update the script framework based on this rewrite instruction.</span>
+                            </span>
                             <div class="relative">
                                 <input type="checkbox" id="update-framework-toggle" class="sr-only peer">
-                                <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-8 rounded-full peer-checked:bg-primary-600"></div>
-                                <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition peer-checked:translate-x-6"></div>
+                                <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-8 rounded-full peer-checked:bg-purple-600"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6"></div>
                             </div>
-                            <span class="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Update framework with this style</span>
                         </label>
                     </div>
 
@@ -440,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="audio-player-container mt-4"></div>
+                <div class="save-story-container mt-4"></div>
             </div>`;
         editorContainer.classList.remove('hidden');
         lucide.createIcons();
@@ -556,30 +562,148 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleGenerateAudio = async (audioBtn) => {
         const scriptTextarea = document.getElementById('final-script-textarea');
         const audioPlayerContainer = document.querySelector('.audio-player-container');
+        const saveStoryContainer = document.querySelector('.save-story-container');
         
         toggleButtonLoading(audioBtn, true, 'Generating...');
         audioPlayerContainer.innerHTML = '';
+        saveStoryContainer.innerHTML = '';
         const scriptText = scriptTextarea.value.split('\n\n').map(part => (part.split(/:\n/)[1] || part)).join(' ');
 
         try {
-            const response = await fetch('/api/generate-audio', {
+            const result = await apiCall('/api/generate-audio', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ scriptText })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Failed to generate audio' }));
-                throw new Error(errorData.error);
-            }
+            if (result.success && result.audioUrl) {
+                audioPlayerContainer.innerHTML = `
+                    <div class="custom-audio-player bg-slate-100 dark:bg-slate-800 p-3 rounded-lg flex items-center gap-4">
+                        <button id="play-pause-btn" class="p-2 rounded-full bg-pink-500 text-white hover:bg-pink-600 transition">
+                            <i data-lucide="play" class="w-5 h-5"></i>
+                        </button>
+                        <div class="flex-grow flex items-center gap-2">
+                            <span id="current-time" class="text-xs font-mono text-slate-500 dark:text-slate-400">0:00</span>
+                            <div id="progress-bar-container" class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 cursor-pointer">
+                                <div id="progress-bar" class="bg-pink-500 h-2 rounded-full" style="width: 0%;"></div>
+                            </div>
+                            <span id="total-duration" class="text-xs font-mono text-slate-500 dark:text-slate-400">0:00</span>
+                        </div>
+                    </div>
+                `;
+                
+                saveStoryContainer.innerHTML = `
+                    <button class="save-story-btn w-full mt-4 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors" data-audio-url="${result.audioUrl}" data-icon="save" data-original-text="Save Story">
+                         <span class="btn-icon"><i data-lucide="save" class="w-5 h-5"></i></span>
+                         <span class="btn-text">Save Story</span>
+                    </button>
+                `;
 
-            const audioBlob = await response.blob();
-            const url = URL.createObjectURL(audioBlob);
-            audioPlayerContainer.innerHTML = `<audio controls src="${url}" class="w-full">Your browser does not support the audio element.</audio>`;
+                lucide.createIcons();
+
+                const audio = new Audio(result.audioUrl);
+                const playPauseBtn = document.getElementById('play-pause-btn');
+                const playIcon = '<i data-lucide="play" class="w-5 h-5"></i>';
+                const pauseIcon = '<i data-lucide="pause" class="w-5 h-5"></i>';
+                const progressBar = document.getElementById('progress-bar');
+                const progressBarContainer = document.getElementById('progress-bar-container');
+                const currentTimeEl = document.getElementById('current-time');
+                const totalDurationEl = document.getElementById('total-duration');
+
+                const formatTime = (time) => {
+                    if (!isFinite(time) || isNaN(time)) {
+                        return '0:00';
+                    }
+                    const minutes = Math.floor(time / 60);
+                    const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+                    return `${minutes}:${seconds}`;
+                };
+
+                audio.addEventListener('loadedmetadata', () => {
+                    totalDurationEl.textContent = formatTime(audio.duration);
+                });
+
+                audio.addEventListener('timeupdate', () => {
+                    const progress = (audio.currentTime / audio.duration) * 100;
+                    progressBar.style.width = `${progress}%`;
+                    currentTimeEl.textContent = formatTime(audio.currentTime);
+                });
+
+                audio.addEventListener('play', () => {
+                    playPauseBtn.innerHTML = pauseIcon;
+                    lucide.createIcons();
+                });
+
+                audio.addEventListener('pause', () => {
+                    playPauseBtn.innerHTML = playIcon;
+                    lucide.createIcons();
+                });
+                
+                audio.addEventListener('ended', () => {
+                    playPauseBtn.innerHTML = playIcon;
+                    progressBar.style.width = '0%';
+                    audio.currentTime = 0;
+                    lucide.createIcons();
+                });
+
+                playPauseBtn.addEventListener('click', () => {
+                    if (audio.paused) {
+                        audio.play();
+                    } else {
+                        audio.pause();
+                    }
+                });
+
+                progressBarContainer.addEventListener('click', (e) => {
+                    const rect = progressBarContainer.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const width = progressBarContainer.clientWidth;
+                    const duration = audio.duration;
+                    if (isFinite(duration)) {
+                        audio.currentTime = (clickX / width) * duration;
+                    }
+                });
+
+            } else {
+                throw new Error('Audio URL not received.');
+            }
         } catch (error) {
             audioPlayerContainer.innerHTML = `<p class="text-red-500 dark:text-red-400">Failed to generate audio: ${error.message}</p>`;
         } finally {
             toggleButtonLoading(audioBtn, false);
+        }
+    };
+
+    const handleSaveStory = async (saveBtn) => {
+        const story = contentFeed[currentFeedIndex];
+        const scriptTextarea = document.getElementById('final-script-textarea');
+        const transcript = scriptTextarea.value;
+        const audioUrl = saveBtn.dataset.audioUrl;
+
+        const storyData = {
+            title: story.psychology,
+            transcript: transcript,
+            audioUrl: audioUrl,
+            hashtags: story.hashtags
+        };
+
+        toggleButtonLoading(saveBtn, true, 'Saving...');
+
+        try {
+            await apiCall('/api/save-story', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(storyData)
+            });
+            showNotification('Success!', 'Story has been saved successfully.');
+        } catch (error) {
+            if (error.message === 'MODEL_BUSY') {
+                showNotification('Oops! Model Is Busy', 'Failed to save story. Please try again.', 'modelBusy');
+            } else {
+                showNotification('Error', `Failed to save story: ${error.message}`, 'error');
+            }
+        } finally {
+            toggleButtonLoading(saveBtn, false);
         }
     };
 

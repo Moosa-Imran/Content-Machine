@@ -4,6 +4,8 @@
 const express = require('express');
 const router = express.Router();
 const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
 const { ObjectId } = require('mongodb');
 
 // --- MODULE IMPORTS ---
@@ -72,6 +74,75 @@ router.get('/framework', (req, res) => {
         title: 'Script Framework Editor',
     });
 });
+
+// --- STORIES PAGE (AUTHENTICATION) ---
+
+// Middleware to check if the user is authenticated
+const isAuthenticated = (req, res, next) => {
+    if (req.session.isAuthenticated) {
+        return next();
+    }
+    res.redirect('/login');
+};
+
+// Render login page
+router.get('/login', (req, res) => {
+    if (req.session.isAuthenticated) {
+        return res.redirect('/stories');
+    }
+    res.render('login', { title: 'Login', error: null });
+});
+
+// Handle login attempt
+router.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const db = getDB();
+        // For a real application, passwords should be hashed and compared using a library like bcrypt.
+        // For this example, we are comparing plaintext passwords as per the provided document structure.
+        const user = await db.collection('Users').findOne({ username: username });
+
+        if (user && user.password === password) {
+            req.session.isAuthenticated = true;
+            // Regenerate session to prevent session fixation attacks
+            req.session.save(() => {
+                res.redirect('/stories');
+            });
+        } else {
+            res.render('login', { title: 'Login', error: 'Invalid username or password.' });
+        }
+    } catch (error) {
+        console.error("Error during login:", error);
+        res.render('login', { title: 'Login', error: 'An error occurred during login.' });
+    }
+});
+
+// Render the protected stories page if authenticated
+router.get('/stories', isAuthenticated, async (req, res) => {
+    try {
+        const db = getDB();
+        // Fetch stories and sort by creation date, newest first
+        const stories = await db.collection('Stories').find({}).sort({ createdAt: -1 }).toArray();
+        res.render('stories', { title: 'Saved Stories', stories });
+    } catch (error) {
+        console.error("Error fetching stories:", error);
+        res.status(500).send("Error fetching stories from the database.");
+    }
+});
+
+// Handle logout
+router.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            // handle error case
+            console.error("Session destruction error:", err);
+            return res.redirect('/stories');
+        }
+        res.clearCookie('connect.sid'); // The default session cookie name
+        res.redirect('/login');
+    });
+});
+
 
 // --- API ROUTES ---
 router.get('/api/get-validation-prompt', async (req, res) => {
@@ -210,9 +281,8 @@ router.post('/api/update-framework-from-prompt', async (req, res) => {
         const db = getDB();
         const currentFramework = await getFramework();
         
-        // **FIX:** Create a copy of the framework to be sent to the AI, sampling examples if the list is too long.
         const frameworkForPrompt = JSON.parse(JSON.stringify(currentFramework));
-        const MAX_EXAMPLES_IN_PROMPT = 7; // A reasonable number to keep the prompt size down
+        const MAX_EXAMPLES_IN_PROMPT = 7;
 
         ['hooks', 'buildUps', 'stories', 'psychologies'].forEach(key => {
             const examplesKey = `${key}Examples`;
@@ -253,7 +323,6 @@ Return ONLY the complete, updated, and valid JSON object.
             throw new Error('AI returned an invalid framework structure.');
         }
         
-        // **FIX:** Merge the AI's updated prompts with the original full list of examples
         const finalFramework = { ...currentFramework };
         Object.keys(updatedSections).forEach(key => {
             if (key.endsWith('Prompt')) {
@@ -436,12 +505,81 @@ router.post('/api/generate-audio', async (req, res) => {
 
     try {
         const audioStream = await generateAudio(scriptText);
-        res.setHeader('Content-Type', 'audio/mpeg');
-        audioStream.pipe(res);
+        const audioDir = path.join(__dirname, '..', 'public', 'audio');
+        if (!fs.existsSync(audioDir)) {
+            fs.mkdirSync(audioDir, { recursive: true });
+        }
+        const filename = `${Date.now()}.mp3`;
+        const filePath = path.join(audioDir, filename);
+        const writableStream = fs.createWriteStream(filePath);
+        audioStream.pipe(writableStream);
+
+        writableStream.on('finish', () => {
+            res.json({ success: true, audioUrl: `/audio/${filename}` });
+        });
+
+        writableStream.on('error', (err) => {
+            console.error('Error writing audio file:', err);
+            res.status(500).json({ error: 'Failed to save audio file.' });
+        });
+
     } catch (error) {
         res.status(500).json({ error: `Failed to generate audio. Server error: ${error.message}` });
     }
 });
+
+router.get('/listen-audio/:filename', (req, res) => {
+    const { filename } = req.params;
+    const audioDir = path.join(__dirname, '..', 'public', 'audio');
+    const filePath = path.join(audioDir, filename);
+
+    if (fs.existsSync(filePath)) {
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Disposition', 'inline');
+        fs.createReadStream(filePath).pipe(res);
+    } else {
+        res.status(404).send('Audio file not found.');
+    }
+});
+
+router.post('/api/save-story', async (req, res) => {
+    const { title, transcript, audioUrl, hashtags } = req.body;
+
+    if (!title || !transcript || !audioUrl) {
+        return res.status(400).json({ error: 'Missing required story data.' });
+    }
+
+    try {
+        const db = getDB();
+        
+        // Generate IG Description
+        const igPrompt = `You are a social media copywriter. Write a short, engaging Instagram description for the following story in a friendly, conversational, and story-driven style. Make it highly readable and SEO-friendly. Use relevant emojis and include exactly 3 trending hashtags that match the story.
+
+        Story Transcript:
+        ${transcript}
+
+        Return only the description text.`;
+        
+        const igDescription = await callGeminiAPI(igPrompt, false);
+
+        const newStory = {
+            title,
+            transcript,
+            audioUrl,
+            igDescription,
+            hashtags: hashtags || [],
+            createdAt: new Date()
+        };
+
+        await db.collection('Stories').insertOne(newStory);
+
+        res.status(201).json({ success: true, message: 'Story saved successfully.' });
+    } catch (error) {
+        console.error('Error saving story:', error);
+        res.status(500).json({ error: 'Failed to save the story.' });
+    }
+});
+
 
 router.get('/api/scan-news', async (req, res) => {
     const { keyword, category, page = 1, sortBy = 'rel', dateWindow = '31', validate = 'false' } = req.query;
@@ -550,9 +688,9 @@ router.get('/api/scan-news', async (req, res) => {
 
                 Return ONLY a single, valid JSON object with this exact structure:
                 {
-                  "tactic": "The name of the primary psychological tactic.",
-                  "tactic_explanation": "A brief, one-sentence explanation of the tactic.",
-                  "hot_score": "A number between 1 and 100."
+                    "tactic": "The name of the primary psychological tactic.",
+                    "tactic_explanation": "A brief, one-sentence explanation of the tactic.",
+                    "hot_score": "A number between 1 and 100."
                 }
             `;
             
