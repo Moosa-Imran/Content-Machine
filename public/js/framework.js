@@ -106,7 +106,60 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         });
         
+        // **NEW:** Add CTA Section HTML
+        const useFixedCta = framework.useFixedCta || false;
+        const fixedCtaText = framework.fixedCtaText || '';
+        const ctaPrompt = framework.ctasPrompt || '';
+        const ctaExamples = (framework.ctasExamples || []).join('\n');
+
+        editorHTML += `
+            <div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
+                <h3 class="text-xl font-semibold mb-1 text-slate-800 dark:text-white">Call to Action (CTA)</h3>
+                
+                <div class="mt-4 bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg">
+                    <label for="use-fixed-cta-toggle" class="flex items-center justify-between cursor-pointer">
+                        <span class="flex flex-col">
+                            <span class="font-semibold text-slate-700 dark:text-slate-200">Use Fixed CTA</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Always use the same CTA for every script.</span>
+                        </span>
+                        <div class="relative">
+                            <input type="checkbox" id="use-fixed-cta-toggle" class="sr-only peer" ${useFixedCta ? 'checked' : ''}>
+                            <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-8 rounded-full peer-checked:bg-primary-600"></div>
+                            <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="fixed-cta-container" class="mt-4 ${useFixedCta ? '' : 'hidden'}">
+                     <label for="fixedCtaText" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Fixed CTA Text</label>
+                     <input type="text" id="fixedCtaText" value="${fixedCtaText}" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none" />
+                </div>
+
+                <div id="dynamic-cta-container" class="mt-4 space-y-4 ${useFixedCta ? 'hidden' : ''}">
+                    <div>
+                        <label for="ctasPrompt" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Dynamic CTA Instruction Prompt</label>
+                        <textarea id="ctasPrompt" class="w-full h-20 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">${ctaPrompt}</textarea>
+                    </div>
+                    <div>
+                        <label for="ctasExamples" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Dynamic CTA Examples (one per line)</label>
+                        <textarea id="ctasExamples" class="w-full h-40 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">${ctaExamples}</textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+
         frameworkContainer.innerHTML = editorHTML;
+        
+        // Add event listener for the new toggle
+        const useFixedCtaToggle = document.getElementById('use-fixed-cta-toggle');
+        const fixedCtaContainer = document.getElementById('fixed-cta-container');
+        const dynamicCtaContainer = document.getElementById('dynamic-cta-container');
+
+        useFixedCtaToggle.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            fixedCtaContainer.classList.toggle('hidden', !isChecked);
+            dynamicCtaContainer.classList.toggle('hidden', isChecked);
+        });
     };
 
     const saveFramework = async () => {
@@ -114,17 +167,21 @@ document.addEventListener('DOMContentLoaded', () => {
             overallPrompt: document.getElementById('overallPrompt').value.trim()
         };
         
-        const sections = ['hooks', 'buildUps', 'stories', 'psychologies'];
+        const sections = ['hooks', 'buildUps', 'stories', 'psychologies', 'ctas'];
         sections.forEach(key => {
             const promptKey = `${key}Prompt`;
             const examplesKey = `${key}Examples`;
             
-            frameworkData[promptKey] = document.getElementById(promptKey).value.trim();
-            frameworkData[examplesKey] = document.getElementById(examplesKey).value
+            frameworkData[promptKey] = document.getElementById(promptKey)?.value.trim() || '';
+            frameworkData[examplesKey] = document.getElementById(examplesKey)?.value
                 .split('\n')
                 .map(line => line.trim())
-                .filter(line => line);
+                .filter(line => line) || [];
         });
+
+        // **NEW:** Save CTA settings
+        frameworkData.useFixedCta = document.getElementById('use-fixed-cta-toggle').checked;
+        frameworkData.fixedCtaText = document.getElementById('fixedCtaText').value.trim();
 
         try {
             await apiCall('/api/save-framework', {

@@ -224,11 +224,18 @@ router.get('/api/new-script', async (req, res) => {
         }
 
         const businessCase = businessCases[0];
-        const [hooks, buildUps, stories, psychologies] = await Promise.all([
+
+        // **NEW:** Conditional CTA Generation
+        const ctaPromise = framework.useFixedCta 
+            ? Promise.resolve([framework.fixedCtaText || 'Follow for more!'])
+            : generateMoreOptions(businessCase, 'ctas', framework);
+
+        const [hooks, buildUps, stories, psychologies, ctas] = await Promise.all([
             generateMoreOptions(businessCase, 'hooks', framework),
             generateMoreOptions(businessCase, 'buildUps', framework),
             generateMoreOptions(businessCase, 'stories', framework),
-            generateMoreOptions(businessCase, 'psychologies', framework)
+            generateMoreOptions(businessCase, 'psychologies', framework),
+            ctaPromise
         ]);
 
         const newScript = {
@@ -238,6 +245,7 @@ router.get('/api/new-script', async (req, res) => {
             buildUps,
             stories,
             psychologies,
+            ctas, // Add CTAs to the script object
         };
         
         res.json(newScript);
@@ -298,7 +306,7 @@ router.post('/api/update-framework-from-prompt', async (req, res) => {
         const frameworkForPrompt = JSON.parse(JSON.stringify(currentFramework));
         const MAX_EXAMPLES_IN_PROMPT = 7;
 
-        ['hooks', 'buildUps', 'stories', 'psychologies'].forEach(key => {
+        ['hooks', 'buildUps', 'stories', 'psychologies', 'ctas'].forEach(key => {
             const examplesKey = `${key}Examples`;
             if (frameworkForPrompt[examplesKey] && frameworkForPrompt[examplesKey].length > MAX_EXAMPLES_IN_PROMPT) {
                 const shuffled = frameworkForPrompt[examplesKey].sort(() => 0.5 - Math.random());
@@ -409,13 +417,28 @@ router.post('/api/create-story-from-news', async (req, res) => {
             console.log('Successfully saved new business case to the database.');
 
             const framework = await getFramework();
-            const [hooks, buildUps, stories, psychologies] = await Promise.all([
+            
+            // **NEW:** Conditional CTA Generation
+            const ctaPromise = framework.useFixedCta 
+                ? Promise.resolve([framework.fixedCtaText || 'Follow for more!'])
+                : generateMoreOptions(result, 'ctas', framework);
+
+            const [hooks, buildUps, stories, psychologies, ctas] = await Promise.all([
                 generateMoreOptions(result, 'hooks', framework),
                 generateMoreOptions(result, 'buildUps', framework),
                 generateMoreOptions(result, 'stories', framework),
-                generateMoreOptions(result, 'psychologies', framework)
+                generateMoreOptions(result, 'psychologies', framework),
+                ctaPromise
             ]);
-            const newStory = { ...result, id: `news-${Date.now()}`, hooks, buildUps, stories, psychologies };
+            const newStory = { 
+                ...result, 
+                id: `news-${Date.now()}`, 
+                hooks, 
+                buildUps, 
+                stories, 
+                psychologies,
+                ctas
+            };
             res.status(201).json(newStory);
         } else {
             console.error("AI service returned an invalid structure. Received:", JSON.stringify(result, null, 2));

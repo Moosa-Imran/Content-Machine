@@ -320,7 +320,8 @@ document.addEventListener('DOMContentLoaded', () => {
             { type: 'hooks', title: 'Hook (0-8s)', icon: 'anchor', color: 'red' },
             { type: 'buildUps', title: 'Build-Up (8-20s)', icon: 'trending-up', color: 'blue' },
             { type: 'stories', title: 'Story (20-45s)', icon: 'book-open', color: 'green' },
-            { type: 'psychologies', title: 'Psychology (45-60s)', icon: 'brain-circuit', color: 'purple' }
+            { type: 'psychologies', title: 'Psychology (45-60s)', icon: 'brain-circuit', color: 'purple' },
+            { type: 'ctas', title: 'Call to Action (CTA)', icon: 'megaphone', color: 'orange' } // **NEW**
         ];
 
         const generateSectionHTML = (sec) => {
@@ -414,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selections[type] = checkedRadio ? parseInt(checkedRadio.dataset.index) : 0;
         });
 
-        const scriptText = `**HOOK:**\n${story.hooks[selections.hooks]}\n\n**BUILD-UP:**\n${story.buildUps[selections.buildUps]}\n\n**STORY:**\n${story.stories[selections.stories]}\n\n**PSYCHOLOGY:**\n${story.psychologies[selections.psychologies]}`;
+        const scriptText = `**HOOK:**\n${story.hooks[selections.hooks]}\n\n**BUILD-UP:**\n${story.buildUps[selections.buildUps]}\n\n**STORY:**\n${story.stories[selections.stories]}\n\n**PSYCHOLOGY:**\n${story.psychologies[selections.psychologies]}\n\n**CTA:**\n${story.ctas[selections.ctas]}`;
         
         const editorContainer = document.querySelector('.script-editor-container');
         editorContainer.innerHTML = `
