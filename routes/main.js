@@ -30,7 +30,6 @@ const getBusinessCases = async (limit = 1) => {
     return cases;
 };
 
-// Fetches a specific framework by its ID. Falls back to the default if ID is not found.
 const getFrameworkById = async (id) => {
     const db = getDB();
     let framework;
@@ -79,7 +78,7 @@ router.get('/validate', (req, res) => res.render('validate', { title: 'Edit Vali
 router.get('/reels', (req, res) => {
     res.render('reels', { 
         title: 'Viral Scripts',
-        contentFeed: [], // Pass an empty array to prevent server-side blocking
+        contentFeed: [],
     });
 });
 
@@ -89,36 +88,23 @@ router.get('/framework', (req, res) => {
     });
 });
 
-// --- STORIES PAGE (AUTHENTICATION) ---
-
-// Middleware to check if the user is authenticated
+// --- AUTHENTICATION ---
 const isAuthenticated = (req, res, next) => {
-    if (req.session.isAuthenticated) {
-        return next();
-    }
+    if (req.session.isAuthenticated) return next();
     res.redirect('/login');
 };
-
-// Render login page
 router.get('/login', (req, res) => {
-    if (req.session.isAuthenticated) {
-        return res.redirect('/stories');
-    }
+    if (req.session.isAuthenticated) return res.redirect('/stories');
     res.render('login', { title: 'Login', error: null });
 });
-
-// Handle login attempt
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const db = getDB();
         const user = await db.collection('Users').findOne({ username: username });
-
         if (user && user.password === password) {
             req.session.isAuthenticated = true;
-            req.session.save(() => {
-                res.redirect('/stories');
-            });
+            req.session.save(() => res.redirect('/stories'));
         } else {
             res.render('login', { title: 'Login', error: 'Invalid username or password.' });
         }
@@ -127,8 +113,6 @@ router.post('/login', async (req, res) => {
         res.render('login', { title: 'Login', error: 'An error occurred during login.' });
     }
 });
-
-// Render the protected stories page if authenticated
 router.get('/stories', isAuthenticated, async (req, res) => {
     try {
         const db = getDB();
@@ -139,14 +123,9 @@ router.get('/stories', isAuthenticated, async (req, res) => {
         res.status(500).send("Error fetching stories from the database.");
     }
 });
-
-// Handle logout
 router.get('/logout', (req, res) => {
     req.session.destroy(err => {
-        if (err) {
-            console.error("Session destruction error:", err);
-            return res.redirect('/stories');
-        }
+        if (err) console.error("Session destruction error:", err);
         res.clearCookie('connect.sid');
         res.redirect('/login');
     });
@@ -154,47 +133,54 @@ router.get('/logout', (req, res) => {
 
 
 // --- API ROUTES ---
-router.get('/api/get-validation-prompt', async (req, res) => {
-    try {
-        const prompt = await getValidationPrompt();
-        res.json({ prompt });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to load validation prompt.' });
-    }
-});
 
-router.post('/api/save-validation-prompt', async (req, res) => {
-    try {
-        const { prompt } = req.body;
-        if (!prompt) {
-            return res.status(400).json({ error: 'Prompt content is missing.' });
-        }
-        const db = getDB();
-        await db.collection('Validate_News').updateOne(
-            { name: 'active' },
-            { $set: { name: 'active', prompt: prompt } },
-            { upsert: true }
-        );
-        res.json({ success: true, message: 'Prompt saved successfully.' });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to save validation prompt.' });
-    }
-});
+// Central script generation logic
+const generateScriptContent = async (businessCase, framework) => {
+    const ctaPromise = framework.useFixedCta 
+        ? Promise.resolve([framework.fixedCtaText || 'Follow for more!'])
+        : generateMoreOptions(businessCase, 'ctas', framework);
 
-router.post('/api/reset-validation-prompt', async (req, res) => {
-    try {
-        const db = getDB();
-        await db.collection('Validate_News').deleteOne({ name: 'active' });
-        const defaultDoc = await db.collection('Validate_News').findOne({ name: 'default' });
-        if (!defaultDoc) {
-             return res.status(404).json({ error: 'Default validation prompt not found.' });
-        }
-        res.json({ success: true, prompt: defaultDoc.prompt });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to reset validation prompt.' });
+    let scriptPromises;
+    if (framework.type === 'news_commentary') {
+        scriptPromises = [
+            generateMoreOptions(businessCase, 'hooks', framework),
+            generateMoreOptions(businessCase, 'contexts', framework),
+            generateMoreOptions(businessCase, 'evidences', framework),
+            generateMoreOptions(businessCase, 'patterns', framework),
+            ctaPromise
+        ];
+    } else { // Default to 'viral_framework'
+        scriptPromises = [
+            generateMoreOptions(businessCase, 'hooks', framework),
+            generateMoreOptions(businessCase, 'buildUps', framework),
+            generateMoreOptions(businessCase, 'stories', framework),
+            generateMoreOptions(businessCase, 'psychologies', framework),
+            ctaPromise
+        ];
     }
-});
 
+    const results = await Promise.all(scriptPromises);
+    
+    const newScript = {
+        ...businessCase,
+        id: `db-${businessCase._id.toString()}`,
+        type: framework.type || 'viral_framework',
+        hooks: results[0],
+        ctas: results[results.length - 1]
+    };
+
+    if (framework.type === 'news_commentary') {
+        newScript.contexts = results[1];
+        newScript.evidences = results[2];
+        newScript.patterns = results[3];
+    } else {
+        newScript.buildUps = results[1];
+        newScript.stories = results[2];
+        newScript.psychologies = results[3];
+    }
+    
+    return newScript;
+};
 
 router.get('/api/business-cases/count', async (req, res) => {
     try {
@@ -207,7 +193,6 @@ router.get('/api/business-cases/count', async (req, res) => {
     }
 });
 
-// **MODIFIED**: Now accepts a frameworkId to select which framework to use
 router.post('/api/new-script', async (req, res) => {
     const { frameworkId } = req.body;
     try {
@@ -219,31 +204,8 @@ router.post('/api/new-script', async (req, res) => {
         if (businessCases.length === 0) {
             return res.status(404).json({ error: 'No business cases found.' });
         }
-
         const businessCase = businessCases[0];
-
-        const ctaPromise = framework.useFixedCta 
-            ? Promise.resolve([framework.fixedCtaText || 'Follow for more!'])
-            : generateMoreOptions(businessCase, 'ctas', framework);
-
-        const [hooks, buildUps, stories, psychologies, ctas] = await Promise.all([
-            generateMoreOptions(businessCase, 'hooks', framework),
-            generateMoreOptions(businessCase, 'buildUps', framework),
-            generateMoreOptions(businessCase, 'stories', framework),
-            generateMoreOptions(businessCase, 'psychologies', framework),
-            ctaPromise
-        ]);
-
-        const newScript = {
-            ...businessCase,
-            id: `db-${businessCase._id.toString()}`,
-            hooks,
-            buildUps,
-            stories,
-            psychologies,
-            ctas,
-        };
-        
+        const newScript = await generateScriptContent(businessCase, framework);
         res.json(newScript);
     } catch (error) {
         console.error("Error in /api/new-script:", error);
@@ -251,12 +213,11 @@ router.post('/api/new-script', async (req, res) => {
     }
 });
 
-// **NEW**: Endpoint to get all frameworks
 router.get('/api/frameworks', async (req, res) => {
     try {
         const db = getDB();
         const frameworks = await db.collection('Frameworks').find({}, {
-            projection: { name: 1, isDefault: 1 } // Only fetch name, id, and isDefault flag
+            projection: { name: 1, isDefault: 1, type: 1 }
         }).toArray();
         res.json(frameworks);
     } catch (error) {
@@ -264,7 +225,6 @@ router.get('/api/frameworks', async (req, res) => {
     }
 });
 
-// **NEW**: Endpoint to get a single framework by ID
 router.get('/api/framework/:id', async (req, res) => {
     try {
         const framework = await getFrameworkById(req.params.id);
@@ -274,24 +234,18 @@ router.get('/api/framework/:id', async (req, res) => {
     }
 });
 
-// **MODIFIED**: Now saves a framework by ID or creates a new one
 router.post('/api/frameworks', async (req, res) => {
     try {
         const db = getDB();
         const { framework } = req.body;
         
         if (framework._id) {
-            // Update existing framework
             const frameworkId = new ObjectId(framework._id);
             delete framework._id;
-            const result = await db.collection('Frameworks').updateOne(
-                { _id: frameworkId },
-                { $set: framework }
-            );
+            await db.collection('Frameworks').updateOne({ _id: frameworkId }, { $set: framework });
             res.json({ success: true, message: 'Framework updated successfully.', frameworkId });
         } else {
-            // Create new framework
-            framework.isDefault = false; // New frameworks are never the default
+            framework.isDefault = false;
             const result = await db.collection('Frameworks').insertOne(framework);
             res.status(201).json({ success: true, message: 'Framework created successfully.', frameworkId: result.insertedId });
         }
@@ -300,17 +254,14 @@ router.post('/api/frameworks', async (req, res) => {
     }
 });
 
-// **MODIFIED**: Deletes a framework by ID, but prevents deleting the default
 router.delete('/api/framework/:id', async (req, res) => {
     try {
         const db = getDB();
         const frameworkId = new ObjectId(req.params.id);
-        
         const frameworkToDelete = await db.collection('Frameworks').findOne({ _id: frameworkId });
         if (frameworkToDelete && frameworkToDelete.isDefault) {
             return res.status(400).json({ error: 'Cannot delete the default framework.' });
         }
-        
         await db.collection('Frameworks').deleteOne({ _id: frameworkId });
         res.json({ success: true, message: 'Framework has been deleted.' });
     } catch (error) {
@@ -318,90 +269,51 @@ router.delete('/api/framework/:id', async (req, res) => {
     }
 });
 
-
-// **MODIFIED**: Now accepts a frameworkId
 router.post('/api/create-story-from-news', async (req, res) => {
     const { article, frameworkId } = req.body;
-    if (!article) {
-        return res.status(400).json({ error: 'No article provided.' });
-    }
+    if (!article) return res.status(400).json({ error: 'No article provided.' });
 
     try {
-        const articleContent = article.summary;
-
         const prompt = `
-        As an expert marketing analyst, your task is to dissect the following news article and transform it into a concise, insightful business case study. Your analysis should be structured as a clean JSON object.
-
+        As an expert marketing analyst, transform the following news article into a concise, insightful business case study, structured as a clean JSON object.
         **Article Details:**
-        - **Title:** ${article.title}
-        - **URL:** ${article.url}
-        - **Full Content:** ${articleContent}
-
+        - Title: ${article.title}
+        - URL: ${article.url}
+        - Full Content: ${article.summary}
         **Instructions:**
-        Read the article content thoroughly. Identify the core marketing or business strategy discussed. Then, generate a single, valid JSON object with the following keys. Ensure every field is fully populated with complete sentences and detailed information summarized from the article. Do not use placeholders, abbreviations, or truncated text like "...".
-
-        **JSON Structure and Field Descriptions:**
+        Generate a single, valid JSON object with the following keys, ensuring every field is fully populated:
         {
-            "company": "Identify the primary company involved. If not explicitly mentioned, infer a relevant company or use a descriptive placeholder like 'A leading e-commerce firm'.",
-            "industry": "Specify the industry of the company (e.g., 'Fashion Retail', 'Consumer Electronics', 'SaaS').",
-            "psychology": "Name the core psychological principle or marketing tactic being used (e.g., 'Scarcity Principle', 'Social Proof', 'Gamification').",
-            "problem": "Describe the specific business problem or challenge the company was facing. This should be a full, descriptive sentence.",
-            "solution": "Detail the specific solution or strategy the company implemented. Explain the tactic clearly and completely.",
-            "realStudy": "If the article mentions a specific study, research paper, or data source, summarize it here. If not, state 'No specific study mentioned'.",
-            "findings": "Summarize the key outcomes, results, or findings of the company's strategy. Use complete sentences and provide concrete details if available in the article.",
+            "company": "Primary company involved.",
+            "industry": "Industry of the company.",
+            "psychology": "Core psychological principle or marketing tactic.",
+            "problem": "The business problem or challenge.",
+            "solution": "The specific solution or strategy implemented.",
+            "realStudy": "If a study is mentioned, summarize it. Otherwise, state 'No specific study mentioned'.",
+            "findings": "Key outcomes, results, or findings.",
             "verified": false,
             "sources": ["${article.url}"],
             "source_url": "${article.url}",
-            "hashtags": ["Generate an array of 3-5 relevant, specific hashtags in lowercase (e.g., '#customerloyalty', '#pricingstrategy')."]
-        }
-        `;
+            "hashtags": ["array of 3-5 relevant hashtags"]
+        }`;
 
         let result = await callGeminiAPI(prompt, true);
-        
-        if (Array.isArray(result) && result.length > 0) {
-            result = result[0];
-        }
+        if (Array.isArray(result)) result = result[0];
 
         if (result && typeof result === 'object' && !Array.isArray(result)) {
             const db = getDB();
             await db.collection('Business_Cases').insertOne(result);
-            console.log('Successfully saved new business case to the database.');
-
             const framework = await getFrameworkById(frameworkId);
-            
-            const ctaPromise = framework.useFixedCta 
-                ? Promise.resolve([framework.fixedCtaText || 'Follow for more!'])
-                : generateMoreOptions(result, 'ctas', framework);
-
-            const [hooks, buildUps, stories, psychologies, ctas] = await Promise.all([
-                generateMoreOptions(result, 'hooks', framework),
-                generateMoreOptions(result, 'buildUps', framework),
-                generateMoreOptions(result, 'stories', framework),
-                generateMoreOptions(result, 'psychologies', framework),
-                ctaPromise
-            ]);
-            const newStory = { 
-                ...result, 
-                id: `news-${Date.now()}`, 
-                hooks, 
-                buildUps, 
-                stories, 
-                psychologies,
-                ctas
-            };
+            const newStory = await generateScriptContent(result, framework);
             res.status(201).json(newStory);
         } else {
-            console.error("AI service returned an invalid structure. Received:", JSON.stringify(result, null, 2));
             throw new Error("AI failed to generate a valid story structure.");
         }
-
     } catch (error) {
         console.error('Error creating story from news:', error);
         res.status(500).json({ error: 'Failed to create story from news.' });
     }
 });
 
-// **MODIFIED**: Now accepts a frameworkId
 router.post('/api/regenerate-section', async (req, res) => {
     const { businessCase, sectionType, frameworkId } = req.body;
 
@@ -450,41 +362,6 @@ router.post('/api/rewrite-script', async (req, res) => {
     }
 });
 
-router.post('/api/generate-filters-from-prompt', async (req, res) => {
-    const { userPrompt } = req.body;
-    if (!userPrompt) {
-        return res.status(400).json({ error: 'A prompt is required.' });
-    }
-
-    const validCategories = ["business", "technology", "entertainment", "general", "health", "science", "sports"];
-    
-    const promptForAI = `
-        From the user's request: "${userPrompt}", extract relevant search keywords and news categories.
-        - The keywords should be a concise, comma-separated string of the most important terms.
-        - The categories must be an array containing only strings from this allowed list: ${JSON.stringify(validCategories)}.
-        
-        Return ONLY a single, valid JSON object with this exact structure:
-        {
-          "keywords": "keyword1, keyword2",
-          "categories": ["category1", "category2"]
-        }
-    `;
-
-    try {
-        const result = await callGeminiAPI(promptForAI, true);
-        if (result && typeof result.keywords === 'string' && Array.isArray(result.categories)) {
-            const validResultCategories = result.categories.filter(cat => validCategories.includes(cat));
-            res.json({ keywords: result.keywords, categories: validResultCategories });
-        } else {
-            console.warn("AI returned an invalid data structure:", result);
-            throw new Error("AI returned data in an unexpected format.");
-        }
-    } catch (error) {
-        console.error('Error in /api/generate-filters-from-prompt:', error);
-        res.status(500).json({ error: 'Failed to generate filters using the provided prompt.' });
-    }
-});
-
 router.post('/api/generate-audio', async (req, res) => {
     const { scriptText } = req.body;
     if (!scriptText) {
@@ -513,20 +390,6 @@ router.post('/api/generate-audio', async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ error: `Failed to generate audio. Server error: ${error.message}` });
-    }
-});
-
-router.get('/listen-audio/:filename', (req, res) => {
-    const { filename } = req.params;
-    const audioDir = path.join(__dirname, '..', 'public', 'audio');
-    const filePath = path.join(audioDir, filename);
-
-    if (fs.existsSync(filePath)) {
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Disposition', 'inline');
-        fs.createReadStream(filePath).pipe(res);
-    } else {
-        res.status(404).send('Audio file not found.');
     }
 });
 
@@ -574,7 +437,6 @@ router.post('/api/save-story', async (req, res) => {
         res.status(500).json({ error: 'Failed to save the story.' });
     }
 });
-
 
 router.get('/api/scan-news', async (req, res) => {
     const { keyword, category, page = 1, sortBy = 'rel', dateWindow = '31', validate = 'false' } = req.query;
@@ -731,36 +593,8 @@ router.get('/api/scan-news', async (req, res) => {
     }
 });
 
-router.post('/api/tactic-breakdown', async (req, res) => {
-    const { companyName } = req.body;
-    const prompt = `For the company '${companyName}', create a viral script that breaks down 3 of their most quirky, shocking, or unknown marketing tactics. For each tactic, identify which pillar it belongs to (Psychological triggers, Biases, Behavioural economics, or Neuromarketing). Structure the entire output as a single JSON object for a script with the following keys: 'company', 'hook', 'buildUp', 'storyBreakdown', 'concludingPsychology'.
-
-    - 'company': The name of the company.
-    - 'hook': A compelling opening line for a short video about these tactics.
-    - 'buildUp': A sentence to create anticipation.
-    - 'storyBreakdown': An array of 3 objects, where each object has the keys: 'tacticName', 'pillar', and 'explanation'. The explanation should detail the quirky tactic.
-    - 'concludingPsychology': A concluding sentence that summarizes the overall psychological genius.`;
-
-    try {
-        const result = await callGeminiAPI(prompt, true);
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: `Failed to generate script for ${companyName}. Server error: ${error.message}` });
-    }
-});
-
-router.get('/api/find-companies', async (req, res) => {
-    const prompt = `Generate a diverse list of 5 companies known for using interesting or quirky psychological marketing tactics. Include well-known brands and some lesser-known or foreign examples. Return as a JSON array of strings. e.g., ["Apple", "Shein", "Patagonia", "Liquid Death", "KupiVip"]`;
-    try {
-        const result = await callGeminiAPI(prompt, true);
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: `Could not fetch company list. Server error: ${error.message}` });
-    }
-});
-
 router.post('/api/analyze-sheet', async (req, res) => {
-    const { pastedData, sheetUrl } = req.body;
+    const { pastedData, sheetUrl, frameworkId } = req.body;
     const hasPastedData = pastedData && pastedData.trim().length > 0;
     const hasUrl = sheetUrl && sheetUrl.trim().length > 0;
 
@@ -773,17 +607,22 @@ router.post('/api/analyze-sheet', async (req, res) => {
         : `the data from this Google Sheet: ${sheetUrl}`;
 
     const prompt = `Analyze ${analysisSource}. Assume the data is structured with columns like 'Company', 'Industry', 'Problem', 'Solution'. 
-    For each row/entry, create a business case study object. Then, for each case, generate a hook, a build-up, a story, and a psychology explanation.
-    Return a JSON array of these objects, where each object has this structure:
-    {"company": "string", "industry": "string", "problem": "string", "solution": "string", "findings": "string", "psychology": "string", "hashtags": ["string"], "hooks": ["string"], "buildUps": ["string"], "stories": ["string"], "psychologies": ["string"]}`;
+    For each row/entry, create a business case study object.
+    Return a JSON array of these business case objects.`;
 
     try {
         const results = await callGeminiAPI(prompt, true);
-        const formattedResults = results.map((r, i) => ({
-            ...r,
-            id: `sheet-${Date.now()}-${i}`,
-            sources: [hasPastedData ? 'Pasted Data' : sheetUrl],
-        }));
+        const framework = await getFrameworkById(frameworkId);
+        
+        const formattedResultsPromises = results.map(async (r) => {
+            const scriptContent = await generateScriptContent(r, framework);
+            return {
+                ...scriptContent,
+                sources: [hasPastedData ? 'Pasted Data' : sheetUrl],
+            };
+        });
+        
+        const formattedResults = await Promise.all(formattedResultsPromises);
         res.json(formattedResults);
     } catch (err) {
         console.error(err);

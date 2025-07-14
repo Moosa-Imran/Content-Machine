@@ -55,9 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const showNotification = (title, message, isError = false) => {
         notificationModalTitle.textContent = title;
         notificationModalMessage.textContent = message;
-        
         const iconContainer = document.getElementById('notification-modal-icon-container');
-        
         if (isError) {
             iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-500/20';
             iconContainer.innerHTML = '<i data-lucide="alert-circle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>';
@@ -65,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
             iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20';
             iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-600 dark:text-green-400"></i>';
         }
-        
         notificationModal.classList.remove('hidden');
         lucide.createIcons();
     };
@@ -74,17 +71,25 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationModal.classList.add('hidden');
     };
 
-    // --- CORE LOGIC ---
-
-    const loadFrameworkList = async () => {
-        frameworkListContainer.innerHTML = `<div class="flex justify-center items-center py-10"><i data-lucide="refresh-cw" class="w-8 h-8 animate-spin text-primary-500"></i></div>`;
-        lucide.createIcons();
-        try {
-            const frameworks = await apiCall('/api/frameworks');
-            renderFrameworkList(frameworks);
-        } catch (error) {
-            frameworkListContainer.innerHTML = `<p class="text-center text-red-500 p-4">Failed to load frameworks.</p>`;
-        }
+    const showTypeSelectionModal = () => {
+        showConfirmModal(
+            'Choose Framework Type',
+            'Select the type of script this framework will generate.',
+            (type) => { 
+                hideConfirmModal();
+                renderFrameworkEditor({ name: 'New Framework', type: type }); 
+            }
+        );
+        // Customize the confirmation modal for type selection
+        confirmModalTitle.textContent = 'Choose Framework Type';
+        confirmModalMessage.textContent = 'Select the type of script this framework will generate.';
+        confirmActionBtn.innerHTML = 'News Commentary';
+        confirmActionBtn.onclick = () => confirmCallback('news_commentary');
+        const viralBtn = confirmCancelBtn.cloneNode(true);
+        viralBtn.innerHTML = 'Viral Script';
+        viralBtn.onclick = () => confirmCallback('viral_framework');
+        confirmCancelBtn.replaceWith(viralBtn);
+        confirmCancelBtn.onclick = hideConfirmModal;
     };
 
     const renderFrameworkList = (frameworks) => {
@@ -92,17 +97,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center">
                 <div>
                     <h3 class="font-semibold text-slate-800 dark:text-white">${fw.name}</h3>
-                    ${fw.isDefault ? '<span class="text-xs bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full font-medium">Default</span>' : ''}
+                    <span class="text-xs ${fw.type === 'news_commentary' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'} px-2 py-0.5 rounded-full font-medium">${fw.type === 'news_commentary' ? 'News Commentary' : 'Viral Script'}</span>
+                    ${fw.isDefault ? '<span class="ml-2 text-xs bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full font-medium">Default</span>' : ''}
                 </div>
                 <div class="flex items-center gap-2">
                     <button class="edit-framework-btn p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md" data-id="${fw._id}" title="Edit">
                         <i data-lucide="edit" class="w-4 h-4 text-slate-600 dark:text-slate-300"></i>
                     </button>
-                    ${!fw.isDefault ? `
-                    <button class="delete-framework-btn p-2 hover:bg-red-500/10 rounded-md" data-id="${fw._id}" title="Delete">
-                        <i data-lucide="trash-2" class="w-4 h-4 text-red-500"></i>
-                    </button>
-                    ` : ''}
+                    ${!fw.isDefault ? `<button class="delete-framework-btn p-2 hover:bg-red-500/10 rounded-md" data-id="${fw._id}" title="Delete"><i data-lucide="trash-2" class="w-4 h-4 text-red-500"></i></button>` : ''}
                 </div>
             </div>
         `).join('');
@@ -111,15 +113,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderFrameworkEditor = (framework) => {
         currentFramework = framework;
-        const sections = [
-            { key: 'hooks', title: 'Hooks' },
-            { key: 'buildUps', title: 'Build-Ups' },
-            { key: 'stories', title: 'Stories' },
-            { key: 'psychologies', title: 'Psychologies' }
-        ];
+        let sections;
+        if (framework.type === 'news_commentary') {
+            sections = [
+                { key: 'hooks', title: 'Hook' },
+                { key: 'contexts', title: 'Context' },
+                { key: 'evidences', title: 'Evidence' },
+                { key: 'patterns', title: 'Pattern' }
+            ];
+        } else { // viral_framework
+            sections = [
+                { key: 'hooks', title: 'Hook' },
+                { key: 'buildUps', title: 'Build-Up' },
+                { key: 'stories', title: 'Story' },
+                { key: 'psychologies', title: 'Psychology' }
+            ];
+        }
 
-        let editorHTML = `
-            <div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800 space-y-6">
+        let editorHTML = `<div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800 space-y-6">
                  <div>
                     <label for="frameworkName" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Framework Name</label>
                     <input type="text" id="frameworkName" value="${framework.name || ''}" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none" ${framework.isDefault ? 'disabled' : ''}>
@@ -129,17 +140,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Give the AI overall context on your brand, tone of voice, and content goals.</p>
                     <textarea id="overallPrompt" class="w-full h-24 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">${framework.overallPrompt || ''}</textarea>
                  </div>
-            </div>
-        `;
+            </div>`;
 
         sections.forEach(section => {
             const promptKey = `${section.key}Prompt`;
             const examplesKey = `${section.key}Examples`;
             const promptValue = framework[promptKey] || '';
             const examplesValue = (framework[examplesKey] || []).join('\n');
-
-            editorHTML += `
-                <div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800" data-section-key="${section.key}">
+            editorHTML += `<div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800" data-section-key="${section.key}">
                     <h3 class="text-xl font-semibold mb-1 text-slate-800 dark:text-white">${section.title}</h3>
                     <div class="mt-4">
                         <label for="${promptKey}" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Instruction Prompt for ${section.title}</label>
@@ -149,8 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <label for="${examplesKey}" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Examples for ${section.title} (one per line)</label>
                         <textarea id="${examplesKey}" class="w-full h-40 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">${examplesValue}</textarea>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
         
         const useFixedCta = framework.useFixedCta || false;
@@ -158,8 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctaPrompt = framework.ctasPrompt || '';
         const ctaExamples = (framework.ctasExamples || []).join('\n');
 
-        editorHTML += `
-            <div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
+        editorHTML += `<div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
                 <h3 class="text-xl font-semibold mb-1 text-slate-800 dark:text-white">Call to Action (CTA)</h3>
                 <div class="mt-4 bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg">
                     <label for="use-fixed-cta-toggle" class="flex items-center justify-between cursor-pointer">
@@ -192,8 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="flex justify-end gap-4">
                 <button id="cancel-edit-btn" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg">Cancel</button>
                 <button id="save-framework-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">Save Changes</button>
-            </div>
-        `;
+            </div>`;
 
         frameworkEditorContainer.innerHTML = editorHTML;
         frameworkEditorContainer.classList.remove('hidden');
@@ -210,20 +215,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveFramework = async () => {
         const frameworkData = {
             _id: currentFramework._id,
+            type: currentFramework.type,
             name: document.getElementById('frameworkName').value.trim(),
             overallPrompt: document.getElementById('overallPrompt').value.trim()
         };
         
-        const sections = ['hooks', 'buildUps', 'stories', 'psychologies', 'ctas'];
+        const sections = frameworkData.type === 'news_commentary'
+            ? ['hooks', 'contexts', 'evidences', 'patterns', 'ctas']
+            : ['hooks', 'buildUps', 'stories', 'psychologies', 'ctas'];
+
         sections.forEach(key => {
             const promptKey = `${key}Prompt`;
             const examplesKey = `${key}Examples`;
-            
             frameworkData[promptKey] = document.getElementById(promptKey)?.value.trim() || '';
-            frameworkData[examplesKey] = document.getElementById(examplesKey)?.value
-                .split('\n')
-                .map(line => line.trim())
-                .filter(line => line) || [];
+            frameworkData[examplesKey] = document.getElementById(examplesKey)?.value.split('\n').map(line => line.trim()).filter(line => line) || [];
         });
 
         frameworkData.useFixedCta = document.getElementById('use-fixed-cta-toggle').checked;
@@ -243,22 +248,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const deleteFramework = async (id) => {
-        showConfirmModal(
-            'Delete Framework?',
-            'This will permanently delete this framework. This action cannot be undone.',
-            async () => {
-                try {
-                    await apiCall(`/api/framework/${id}`, { method: 'DELETE' });
-                    hideConfirmModal();
-                    showNotification('Framework Deleted', 'The framework has been successfully deleted.');
-                    loadFrameworkList();
-                } catch (error) {
-                    hideConfirmModal();
-                    showNotification('Error', `Failed to delete framework: ${error.message}`, true);
-                }
-            }
-        );
+    const loadFrameworkList = async () => {
+        frameworkEditorContainer.classList.add('hidden');
+        frameworkListContainer.innerHTML = `<div class="flex justify-center items-center py-10"><i data-lucide="refresh-cw" class="w-8 h-8 animate-spin text-primary-500"></i></div>`;
+        lucide.createIcons();
+        try {
+            const frameworks = await apiCall('/api/frameworks');
+            renderFrameworkList(frameworks);
+        } catch (error) {
+            frameworkListContainer.innerHTML = `<p class="text-center text-red-500 p-4">Failed to load frameworks.</p>`;
+        }
     };
 
     const hideEditor = () => {
@@ -283,25 +282,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (deleteBtn) {
             const id = deleteBtn.dataset.id;
-            deleteFramework(id);
+            showConfirmModal('Delete Framework?', 'This will permanently delete this framework. This action cannot be undone.', async () => {
+                try {
+                    await apiCall(`/api/framework/${id}`, { method: 'DELETE' });
+                    hideConfirmModal();
+                    showNotification('Framework Deleted', 'The framework has been successfully deleted.');
+                    loadFrameworkList();
+                } catch (error) {
+                    hideConfirmModal();
+                    showNotification('Error', `Failed to delete framework: ${error.message}`, true);
+                }
+            });
         }
     };
     
-    const handleCreateNew = () => {
-        renderFrameworkEditor({ name: 'New Framework' });
-    };
-
-    // --- EVENT LISTENERS ---
     frameworkListContainer.addEventListener('click', handleListClick);
-    createNewFrameworkBtn.addEventListener('click', handleCreateNew);
+    createNewFrameworkBtn.addEventListener('click', showTypeSelectionModal);
     confirmCancelBtn.addEventListener('click', hideConfirmModal);
     notificationOkBtn.addEventListener('click', hideNotification);
     confirmActionBtn.addEventListener('click', () => {
-        if (confirmCallback) {
-            confirmCallback();
-        }
+        if (confirmCallback) confirmCallback();
     });
 
-    // --- INITIALIZATION ---
     loadFrameworkList();
 });
