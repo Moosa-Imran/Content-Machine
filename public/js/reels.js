@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let contentFeed = [];
     let currentFeedIndex = 0;
     let totalCases = 0;
+    let selectedFrameworkId = null;
     
     // --- ELEMENT SELECTORS ---
     const reelCardContainer = document.getElementById('reel-card-container');
@@ -15,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeCreateModalBtn = document.getElementById('close-create-modal-btn');
     const createFromNewsBtn = document.getElementById('create-from-news-btn');
     const frameworkUpdateLoader = document.getElementById('framework-update-loader');
+    const frameworkSelectModal = document.getElementById('framework-select-modal');
+    const frameworkOptionsContainer = document.getElementById('framework-options-container');
 
     // Notification Modal Elements
     const notificationModal = document.getElementById('notification-modal');
@@ -59,6 +62,41 @@ document.addEventListener('DOMContentLoaded', () => {
             throw error;
         }
     };
+
+    const showFrameworkSelector = async (onSelectCallback) => {
+        frameworkOptionsContainer.innerHTML = `<div class="flex justify-center items-center py-10"><i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-primary-500"></i></div>`;
+        lucide.createIcons();
+        frameworkSelectModal.classList.remove('hidden');
+
+        try {
+            const frameworks = await apiCall('/api/frameworks');
+            frameworkOptionsContainer.innerHTML = frameworks.map(fw => `
+                <button class="framework-option-btn w-full text-left p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex justify-between items-center" data-id="${fw._id}">
+                    <span>
+                        <span class="font-semibold text-slate-800 dark:text-white">${fw.name}</span>
+                        ${fw.isDefault ? '<span class="ml-2 text-xs bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full font-medium">Default</span>' : ''}
+                    </span>
+                    <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                </button>
+            `).join('');
+            lucide.createIcons();
+            
+            document.querySelectorAll('.framework-option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectedFrameworkId = btn.dataset.id;
+                    frameworkSelectModal.classList.add('hidden');
+                    onSelectCallback(selectedFrameworkId);
+                });
+            });
+        } catch (error) {
+            frameworkOptionsContainer.innerHTML = `<p class="text-red-500">Could not load frameworks. Using default.</p>`;
+            setTimeout(() => {
+                frameworkSelectModal.classList.add('hidden');
+                onSelectCallback(null); // Proceed with default
+            }, 1500);
+        }
+    };
+
 
     // --- INITIALIZATION ---
     const init = async () => {
@@ -109,19 +147,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const [countData, firstScript] = await Promise.all([
-                apiCall('/api/business-cases/count'),
-                apiCall('/api/new-script')
-            ]);
+            const countData = await apiCall('/api/business-cases/count');
             totalCases = countData.total;
-            contentFeed = [firstScript];
-            currentFeedIndex = 0;
-
-            if (contentFeed.length > 0) {
+            
+            showFrameworkSelector(async (frameworkId) => {
+                const firstScript = await apiCall('/api/new-script', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ frameworkId })
+                });
+                contentFeed = [firstScript];
+                currentFeedIndex = 0;
                 renderCurrentReel();
-            } else {
-                reelCardContainer.innerHTML = `<div class="text-center text-slate-500 dark:text-slate-400 p-8 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">No scripts found. Try finding new ones.</div>`;
-            }
+            });
+
         } catch (error) {
             reelCardContainer.innerHTML = `<div class="text-center text-red-500 p-8 bg-red-500/10 rounded-xl border border-red-500/20">Failed to load scripts. Please try again later.</div>`;
             if (error.message === 'MODEL_BUSY') {
@@ -184,7 +223,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 showLoader();
                 try {
-                    const newScript = await apiCall('/api/new-script');
+                    const newScript = await apiCall('/api/new-script', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ frameworkId: selectedFrameworkId })
+                    });
                     contentFeed.push(newScript);
                     currentFeedIndex++;
                     renderCurrentReel();
@@ -212,19 +255,13 @@ document.addEventListener('DOMContentLoaded', () => {
         icon.classList.add('animate-spin');
         button.disabled = true;
 
-        // Show loading skeleton
-        optionsContainer.innerHTML = `
-            <div class="space-y-2 animate-pulse p-3">
-                <div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
-                <div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-                <div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
-            </div>`;
+        optionsContainer.innerHTML = `<div class="space-y-2 animate-pulse p-3"><div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div><div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div></div>`;
 
         try {
             const { newOptions } = await apiCall('/api/regenerate-section', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ businessCase, sectionType })
+                body: JSON.stringify({ businessCase, sectionType, frameworkId: selectedFrameworkId })
             });
 
             contentFeed[currentFeedIndex][sectionType] = newOptions;
@@ -249,8 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showNotification('Error', 'Could not regenerate options. Please try again.', 'error');
             }
         } finally {
-            // This block ensures the spinner stops and the button is re-enabled,
-            // even if the API call fails.
             icon.classList.remove('animate-spin');
             button.disabled = false;
         }
@@ -296,11 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (totalCases === 1 && contentFeed.length === 1) {
-             paginationContainer.innerHTML = `
-                <div class="flex items-center justify-center">
-                     <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Showing 1 of 1 available scripts</span>
-                </div>
-            `;
+             paginationContainer.innerHTML = `<div class="flex items-center justify-center"><span class="text-sm font-medium text-slate-500 dark:text-slate-400">Showing 1 of 1 available scripts</span></div>`;
              return;
         }
 
@@ -314,13 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const prevBtn = paginationContainer.querySelector('#prev-btn');
         const nextBtn = paginationContainer.querySelector('#next-btn');
 
-        if (prevBtn) {
-            prevBtn.disabled = currentFeedIndex === 0;
-        }
-        if (nextBtn) {
-            // **FIX:** Disable next button if the current index is the last available script
-            nextBtn.disabled = currentFeedIndex + 1 >= totalCases;
-        }
+        if (prevBtn) prevBtn.disabled = currentFeedIndex === 0;
+        if (nextBtn) nextBtn.disabled = currentFeedIndex + 1 >= totalCases;
         lucide.createIcons();
     };
 
@@ -330,14 +356,11 @@ document.addEventListener('DOMContentLoaded', () => {
             { type: 'buildUps', title: 'Build-Up (8-20s)', icon: 'trending-up', color: 'blue' },
             { type: 'stories', title: 'Story (20-45s)', icon: 'book-open', color: 'green' },
             { type: 'psychologies', title: 'Psychology (45-60s)', icon: 'brain-circuit', color: 'purple' },
-            { type: 'ctas', title: 'Call to Action (CTA)', icon: 'megaphone', color: 'orange' } // **NEW**
+            { type: 'ctas', title: 'Call to Action (CTA)', icon: 'megaphone', color: 'orange' }
         ];
 
         const generateSectionHTML = (sec) => {
-            if (!sec || !sec.type) {
-                console.error("generateSectionHTML was called with an invalid section:", sec);
-                return ''; 
-            }
+            if (!sec || !sec.type) return ''; 
             const options = story[sec.type] || [];
             return `
                 <div class="section-block rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -433,21 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <textarea id="final-script-textarea" class="w-full h-64 p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:outline-none text-sm">${scriptText}</textarea>
                 <div class="mt-4 space-y-4">
                     <input type="text" id="ai-rewrite-prompt" placeholder="Optional: Enter a rewrite instruction (e.g., 'make it funnier')" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm" />
-                    
-                    <div class="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg mt-2">
-                        <label for="update-framework-toggle" class="flex items-center justify-between cursor-pointer">
-                            <span class="flex flex-col">
-                                <span class="font-semibold text-slate-700 dark:text-slate-200">Evolve AI's Style</span>
-                                <span class="text-xs text-slate-500 dark:text-slate-400">Update the script framework based on this rewrite instruction.</span>
-                            </span>
-                            <div class="relative">
-                                <input type="checkbox" id="update-framework-toggle" class="sr-only peer">
-                                <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-8 rounded-full peer-checked:bg-purple-600"></div>
-                                <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6"></div>
-                            </div>
-                        </label>
-                    </div>
-
                     <button class="rewrite-ai-btn w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="wand-2" data-original-text="Rewrite with AI">
                         <span class="btn-icon"><i data-lucide="wand-2" class="w-5 h-5"></i></span>
                         <span class="btn-text">Rewrite with AI</span>
@@ -470,7 +478,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleAiRewrite = async (rewriteBtn) => {
         const aiPromptInput = document.getElementById('ai-rewrite-prompt');
         const finalScriptTextarea = document.getElementById('final-script-textarea');
-        const updateFrameworkToggle = document.getElementById('update-framework-toggle');
         
         if (!aiPromptInput || !finalScriptTextarea) return;
 
@@ -492,10 +499,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result && result.newScript) {
                 finalScriptTextarea.value = result.newScript;
                 showNotification('Success', 'Script rewritten successfully!');
-
-                if (updateFrameworkToggle.checked) {
-                    await updateFrameworkFromPrompt(aiPrompt);
-                }
             } else {
                 throw new Error('AI did not return a new script.');
             }
@@ -507,26 +510,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } finally {
             toggleButtonLoading(rewriteBtn, false);
-        }
-    };
-
-    const updateFrameworkFromPrompt = async (aiPrompt) => {
-        frameworkUpdateLoader.classList.remove('hidden');
-        try {
-            await apiCall('/api/update-framework-from-prompt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ aiPrompt })
-            });
-            showNotification('Framework Updated', 'The AI has learned your new style for future scripts.');
-        } catch (error) {
-             if (error.message === 'MODEL_BUSY') {
-                showNotification('Oops! Model Is Busy', 'Failed to update framework. Please try again.', 'modelBusy');
-            } else {
-                showNotification('Error', `Failed to update framework: ${error.message}`, 'error');
-            }
-        } finally {
-            frameworkUpdateLoader.classList.add('hidden');
         }
     };
 
@@ -627,57 +610,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 const totalDurationEl = document.getElementById('total-duration');
 
                 const formatTime = (time) => {
-                    if (!isFinite(time) || isNaN(time)) {
-                        return '0:00';
-                    }
+                    if (!isFinite(time) || isNaN(time)) return '0:00';
                     const minutes = Math.floor(time / 60);
                     const seconds = Math.floor(time % 60).toString().padStart(2, '0');
                     return `${minutes}:${seconds}`;
                 };
 
-                audio.addEventListener('loadedmetadata', () => {
-                    totalDurationEl.textContent = formatTime(audio.duration);
-                });
-
+                audio.addEventListener('loadedmetadata', () => totalDurationEl.textContent = formatTime(audio.duration));
                 audio.addEventListener('timeupdate', () => {
-                    const progress = (audio.currentTime / audio.duration) * 100;
-                    progressBar.style.width = `${progress}%`;
+                    progressBar.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
                     currentTimeEl.textContent = formatTime(audio.currentTime);
                 });
-
-                audio.addEventListener('play', () => {
-                    playPauseBtn.innerHTML = pauseIcon;
-                    lucide.createIcons();
-                });
-
-                audio.addEventListener('pause', () => {
-                    playPauseBtn.innerHTML = playIcon;
-                    lucide.createIcons();
-                });
-                
+                audio.addEventListener('play', () => { playPauseBtn.innerHTML = pauseIcon; lucide.createIcons(); });
+                audio.addEventListener('pause', () => { playPauseBtn.innerHTML = playIcon; lucide.createIcons(); });
                 audio.addEventListener('ended', () => {
                     playPauseBtn.innerHTML = playIcon;
                     progressBar.style.width = '0%';
                     audio.currentTime = 0;
                     lucide.createIcons();
                 });
-
-                playPauseBtn.addEventListener('click', () => {
-                    if (audio.paused) {
-                        audio.play();
-                    } else {
-                        audio.pause();
-                    }
-                });
-
+                playPauseBtn.addEventListener('click', () => audio.paused ? audio.play() : audio.pause());
                 progressBarContainer.addEventListener('click', (e) => {
                     const rect = progressBarContainer.getBoundingClientRect();
                     const clickX = e.clientX - rect.left;
                     const width = progressBarContainer.clientWidth;
                     const duration = audio.duration;
-                    if (isFinite(duration)) {
-                        audio.currentTime = (clickX / width) * duration;
-                    }
+                    if (isFinite(duration)) audio.currentTime = (clickX / width) * duration;
                 });
 
             } else {
@@ -701,7 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
             transcript: transcript,
             audioUrl: audioUrl,
             hashtags: story.hashtags,
-            businessCaseId: story._id // **FIX:** Pass the correct business case ID
+            businessCaseId: story._id
         };
 
         toggleButtonLoading(saveBtn, true, 'Saving...');

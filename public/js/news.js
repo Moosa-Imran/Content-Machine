@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const modelBusyContent = document.getElementById('model-busy-content');
     const closeErrorModalBtn = document.getElementById('close-error-modal-btn');
     const validateNewsToggle = document.getElementById('validate-news-toggle');
+    const frameworkSelectModal = document.getElementById('framework-select-modal');
+    const frameworkOptionsContainer = document.getElementById('framework-options-container');
+    const closeFrameworkSelectModalBtn = document.getElementById('close-framework-select-modal-btn');
 
     // --- STATE MANAGEMENT ---
     const DEFAULT_KEYWORDS = ["marketing psychology", "behavioral economics", "neuromarketing", "cognitive bias", "pricing psychology"];
@@ -51,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let currentApiPage = 1;
     let totalApiPages = 1;
+    let articleToProcess = null;
 
     // --- API & UI HELPERS ---
     const showErrorModal = (type = 'general', message = '') => {
@@ -106,11 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let interval = seconds / 86400;
         if (interval > 7) {
-            return new Date(dateString).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+            return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         }
         if (interval > 1) {
             const days = Math.floor(interval);
@@ -128,6 +128,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return "just now";
     };
+    
+    const showFrameworkSelector = async (onSelectCallback) => {
+        frameworkOptionsContainer.innerHTML = `<div class="flex justify-center items-center py-10"><i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-primary-500"></i></div>`;
+        lucide.createIcons();
+        frameworkSelectModal.classList.remove('hidden');
+
+        try {
+            const frameworks = await apiCall('/api/frameworks');
+            frameworkOptionsContainer.innerHTML = frameworks.map(fw => `
+                <button class="framework-option-btn w-full text-left p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex justify-between items-center" data-id="${fw._id}">
+                    <span>
+                        <span class="font-semibold text-slate-800 dark:text-white">${fw.name}</span>
+                        ${fw.isDefault ? '<span class="ml-2 text-xs bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full font-medium">Default</span>' : ''}
+                    </span>
+                    <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                </button>
+            `).join('');
+            lucide.createIcons();
+            
+            document.querySelectorAll('.framework-option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const frameworkId = btn.dataset.id;
+                    frameworkSelectModal.classList.add('hidden');
+                    onSelectCallback(frameworkId);
+                });
+            });
+        } catch (error) {
+            frameworkOptionsContainer.innerHTML = `<p class="text-red-500">Could not load frameworks. Using default.</p>`;
+            setTimeout(() => {
+                frameworkSelectModal.classList.add('hidden');
+                onSelectCallback(null); // Proceed with default
+            }, 1500);
+        }
+    };
+
 
     // --- KEYWORD BUBBLE LOGIC ---
     const renderKeywords = () => {
@@ -187,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentFilters.categories.length > 0) queryParams.append('category', currentFilters.categories.join(','));
         if (currentFilters.sortBy) queryParams.append('sortBy', currentFilters.sortBy);
         if (currentFilters.dateFilter) queryParams.append('dateWindow', currentFilters.dateFilter);
-        queryParams.append('validate', validateNewsToggle.checked); // Add validate parameter
+        queryParams.append('validate', validateNewsToggle.checked);
         queryParams.append('page', page);
 
         try {
@@ -198,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             totalApiPages = apiResponse.articles?.pages || 1;
 
             if (allFetchedArticles.length === 0) {
-                container.innerHTML = `<div class="text-center text-slate-500 dark:text-slate-400 p-8 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">No relevant news found. Try adjusting your filters or scanning again later.</div>`;
+                container.innerHTML = `<div class="text-center text-slate-500 dark:text-slate-400 p-8 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">No relevant news found. Try adjusting your filters.</div>`;
             } else {
                 renderNewsPage();
             }
@@ -280,24 +315,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalPages <= 1) return [];
         
         pages.push(1);
-
-        if (currentPage > contextRange + 2) {
-            pages.push('...');
-        }
-
+        if (currentPage > contextRange + 2) pages.push('...');
         const startPage = Math.max(2, currentPage - contextRange);
         const endPage = Math.min(totalPages - 1, currentPage + contextRange);
-        for (let i = startPage; i <= endPage; i++) {
-            pages.push(i);
-        }
-
-        if (currentPage < totalPages - contextRange - 1) {
-            pages.push('...');
-        }
-
-        if (totalPages > 1) {
-            pages.push(totalPages);
-        }
+        for (let i = startPage; i <= endPage; i++) pages.push(i);
+        if (currentPage < totalPages - contextRange - 1) pages.push('...');
+        if (totalPages > 1) pages.push(totalPages);
         
         return [...new Set(pages)];
     };
@@ -307,11 +330,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalFrontendPages <= 1 && currentApiPage >= totalApiPages) return;
 
         let paginationHTML = '<div class="flex items-center justify-center gap-1 sm:gap-2 mt-8">';
-
         paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" class="w-5 h-5"></i></button>`;
 
-        const paginationItems = getPaginationItems(currentPage, totalFrontendPages);
-        paginationItems.forEach(item => {
+        getPaginationItems(currentPage, totalFrontendPages).forEach(item => {
             if (item === '...') {
                 paginationHTML += `<span class="px-2 py-2 text-sm font-medium text-slate-500">...</span>`;
             } else {
@@ -320,62 +341,52 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         paginationHTML += `<button data-page="${currentPage + 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === totalFrontendPages ? 'disabled' : ''}><i data-lucide="chevron-right" class="w-5 h-5"></i></button>`;
-
         if (currentApiPage < totalApiPages && currentPage === totalFrontendPages) {
              paginationHTML += `<button id="fetch-more-btn" class="ml-2 px-4 py-2 text-sm font-medium rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">Next <i data-lucide="chevrons-right" class="w-4 h-4 inline-block ml-1"></i></button>`;
         }
-        
         paginationHTML += '</div>';
         container.insertAdjacentHTML('beforeend', paginationHTML);
 
-        document.querySelectorAll('.page-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                currentPage = parseInt(e.currentTarget.dataset.page);
-                renderNewsPage();
-            });
-        });
+        document.querySelectorAll('.page-btn').forEach(btn => btn.addEventListener('click', (e) => {
+            currentPage = parseInt(e.currentTarget.dataset.page);
+            renderNewsPage();
+        }));
         
         const fetchMoreBtn = document.getElementById('fetch-more-btn');
-        if (fetchMoreBtn) {
-            fetchMoreBtn.addEventListener('click', () => {
-                scanForNews(currentApiPage + 1);
-            });
-        }
+        if (fetchMoreBtn) fetchMoreBtn.addEventListener('click', () => scanForNews(currentApiPage + 1));
         
         lucide.createIcons();
     };
 
 
-    const handleCreateStoryFromNews = async (e) => {
+    const handleCreateStoryFromNews = (e) => {
         const createBtn = e.target.closest('.create-story-btn');
         if (!createBtn) return;
         
         const articleDiv = createBtn.closest('.article-card');
-        const unescapedArticleString = articleDiv.dataset.article
-            .replace(/&apos;/g, "'")
-            .replace(/&quot;/g, '"');
-        const article = JSON.parse(unescapedArticleString);
+        const unescapedArticleString = articleDiv.dataset.article.replace(/&apos;/g, "'").replace(/&quot;/g, '"');
+        articleToProcess = JSON.parse(unescapedArticleString);
         
+        showFrameworkSelector(processStoryCreation);
+    };
+    
+    const processStoryCreation = async (frameworkId) => {
+        if (!articleToProcess) return;
+
         storyLoaderModal.classList.remove('hidden');
-        const loadingPhrases = [
-            "Analyzing article for key insights...",
-            "Identifying psychological triggers...",
-            "Crafting compelling hooks...",
-            "Building the narrative...",
-            "Finalizing script..."
-        ];
+        const loadingPhrases = ["Analyzing article...", "Crafting hooks...", "Building narrative..."];
         let phraseIndex = 0;
         generationStatusText.textContent = loadingPhrases[0];
         const loadingInterval = setInterval(() => {
-            phraseIndex++;
-            generationStatusText.textContent = loadingPhrases[phraseIndex % loadingPhrases.length];
+            phraseIndex = (phraseIndex + 1) % loadingPhrases.length;
+            generationStatusText.textContent = loadingPhrases[phraseIndex];
         }, 2000);
         
         try {
             const newStory = await apiCall('/api/create-story-from-news', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ article })
+                body: JSON.stringify({ article: articleToProcess, frameworkId })
             });
             
             sessionStorage.setItem('generatedContent', JSON.stringify([newStory]));
@@ -389,6 +400,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 showErrorModal('general', error.message);
             }
+        } finally {
+            articleToProcess = null;
         }
     };
 
@@ -425,11 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isDefaultCategories = currentFilters.categories.length === DEFAULT_CATEGORIES.length && currentFilters.categories.every(cat => DEFAULT_CATEGORIES.includes(cat));
         const isDefaultDateFilter = currentFilters.dateFilter === DEFAULT_DATE_FILTER;
 
-        if (isDefaultKeywords && isDefaultSort && isDefaultCategories && isDefaultDateFilter) {
-            filterIndicator.classList.add('hidden');
-        } else {
-            filterIndicator.classList.remove('hidden');
-        }
+        filterIndicator.classList.toggle('hidden', isDefaultKeywords && isDefaultSort && isDefaultCategories && isDefaultDateFilter);
     };
 
     const setDefaultFilters = () => {
@@ -481,12 +490,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ userPrompt })
             });
 
-            if (result.keywords) {
-                currentFilters.keywords = result.keywords.split(',').map(kw => kw.trim()).filter(kw => kw);
-            }
-            if (result.categories && Array.isArray(result.categories)) {
-                currentFilters.categories = result.categories;
-            }
+            if (result.keywords) currentFilters.keywords = result.keywords.split(',').map(kw => kw.trim()).filter(kw => kw);
+            if (result.categories && Array.isArray(result.categories)) currentFilters.categories = result.categories;
             
             updateFilterModalUI();
             togglePromptUI();
@@ -510,9 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (target.id === 'cat-none' && target.checked) {
             searchCategoryContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                if (cb.id !== 'cat-none') {
-                    cb.checked = false;
-                }
+                if (cb.id !== 'cat-none') cb.checked = false;
             });
         } else if (target.id !== 'cat-none' && target.checked) {
             noneCheckbox.checked = false;
@@ -537,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
     keywordsContainer.addEventListener('click', handleRemoveKeyword);
     closeErrorModalBtn.addEventListener('click', () => errorModal.classList.add('hidden'));
     validateNewsToggle.addEventListener('change', () => scanForNews(1));
-
+    closeFrameworkSelectModalBtn?.addEventListener('click', () => frameworkSelectModal.classList.add('hidden'));
 
     // --- INITIALIZATION ---
     scanForNews();

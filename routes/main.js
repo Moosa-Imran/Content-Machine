@@ -17,13 +17,11 @@ const { callGeminiAPI, generateAudio } = require('../services/aiService');
 // --- HELPER FUNCTIONS ---
 const getBusinessCases = async (limit = 1) => {
     const db = getDB();
-    // Updated pipeline to only select business cases that have not been marked as 'used'.
     const pipeline = [
-        { $match: { used: { $ne: true } } }, 
+        { $match: { used: { $ne: true } } },
         { $sample: { size: limit } }
     ];
     const cases = await db.collection('Business_Cases').aggregate(pipeline).toArray();
-    // Fallback in case no unused cases are found
     if (cases.length === 0) {
         console.warn("No unused business cases found. Fetching from all cases as a fallback.");
         const fallbackPipeline = [{ $sample: { size: limit } }];
@@ -32,23 +30,26 @@ const getBusinessCases = async (limit = 1) => {
     return cases;
 };
 
-
-const getFramework = async () => {
-    try {
-        const db = getDB();
-        let framework = await db.collection('Frameworks').findOne({ name: 'active' });
-        if (!framework) {
-            framework = await db.collection('Frameworks').findOne({ name: 'default' });
+// Fetches a specific framework by its ID. Falls back to the default if ID is not found.
+const getFrameworkById = async (id) => {
+    const db = getDB();
+    let framework;
+    if (id) {
+        try {
+            framework = await db.collection('Frameworks').findOne({ _id: new ObjectId(id) });
+        } catch (error) {
+            console.warn(`Invalid Framework ID: ${id}. Falling back to default.`);
         }
-        if (!framework) {
-            throw new Error("No framework found in the database. Please seed the default framework.");
-        }
-        return framework;
-    } catch (error) {
-        console.error("Error fetching framework from DB:", error);
-        throw error;
     }
+    if (!framework) {
+        framework = await db.collection('Frameworks').findOne({ isDefault: true });
+    }
+    if (!framework) {
+        throw new Error("No default framework found in the database. Please seed the default framework.");
+    }
+    return framework;
 };
+
 
 const getValidationPrompt = async () => {
     try {
@@ -111,13 +112,10 @@ router.post('/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const db = getDB();
-        // For a real application, passwords should be hashed and compared using a library like bcrypt.
-        // For this example, we are comparing plaintext passwords as per the provided document structure.
         const user = await db.collection('Users').findOne({ username: username });
 
         if (user && user.password === password) {
             req.session.isAuthenticated = true;
-            // Regenerate session to prevent session fixation attacks
             req.session.save(() => {
                 res.redirect('/stories');
             });
@@ -134,7 +132,6 @@ router.post('/login', async (req, res) => {
 router.get('/stories', isAuthenticated, async (req, res) => {
     try {
         const db = getDB();
-        // Fetch stories and sort by creation date, newest first
         const stories = await db.collection('Stories').find({}).sort({ createdAt: -1 }).toArray();
         res.render('stories', { title: 'Saved Stories', stories });
     } catch (error) {
@@ -147,11 +144,10 @@ router.get('/stories', isAuthenticated, async (req, res) => {
 router.get('/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
-            // handle error case
             console.error("Session destruction error:", err);
             return res.redirect('/stories');
         }
-        res.clearCookie('connect.sid'); // The default session cookie name
+        res.clearCookie('connect.sid');
         res.redirect('/login');
     });
 });
@@ -203,7 +199,6 @@ router.post('/api/reset-validation-prompt', async (req, res) => {
 router.get('/api/business-cases/count', async (req, res) => {
     try {
         const db = getDB();
-        // **FIX:** Only count documents that have not been marked as used.
         const count = await db.collection('Business_Cases').countDocuments({ used: { $ne: true } });
         res.json({ total: count });
     } catch (error) {
@@ -212,11 +207,13 @@ router.get('/api/business-cases/count', async (req, res) => {
     }
 });
 
-router.get('/api/new-script', async (req, res) => {
+// **MODIFIED**: Now accepts a frameworkId to select which framework to use
+router.post('/api/new-script', async (req, res) => {
+    const { frameworkId } = req.body;
     try {
         const [businessCases, framework] = await Promise.all([
             getBusinessCases(1),
-            getFramework()
+            getFrameworkById(frameworkId)
         ]);
 
         if (businessCases.length === 0) {
@@ -225,7 +222,6 @@ router.get('/api/new-script', async (req, res) => {
 
         const businessCase = businessCases[0];
 
-        // **NEW:** Conditional CTA Generation
         const ctaPromise = framework.useFixedCta 
             ? Promise.resolve([framework.fixedCtaText || 'Follow for more!'])
             : generateMoreOptions(businessCase, 'ctas', framework);
@@ -245,7 +241,7 @@ router.get('/api/new-script', async (req, res) => {
             buildUps,
             stories,
             psychologies,
-            ctas, // Add CTAs to the script object
+            ctas,
         };
         
         res.json(newScript);
@@ -255,122 +251,77 @@ router.get('/api/new-script', async (req, res) => {
     }
 });
 
-router.get('/api/get-framework', async (req, res) => {
+// **NEW**: Endpoint to get all frameworks
+router.get('/api/frameworks', async (req, res) => {
     try {
-        const framework = await getFramework();
+        const db = getDB();
+        const frameworks = await db.collection('Frameworks').find({}, {
+            projection: { name: 1, isDefault: 1 } // Only fetch name, id, and isDefault flag
+        }).toArray();
+        res.json(frameworks);
+    } catch (error) {
+        res.status(500).json({ error: 'Could not load frameworks.' });
+    }
+});
+
+// **NEW**: Endpoint to get a single framework by ID
+router.get('/api/framework/:id', async (req, res) => {
+    try {
+        const framework = await getFrameworkById(req.params.id);
         res.json(framework);
     } catch (error) {
         res.status(500).json({ error: 'Could not load the script framework.' });
     }
 });
 
-router.post('/api/save-framework', async (req, res) => {
+// **MODIFIED**: Now saves a framework by ID or creates a new one
+router.post('/api/frameworks', async (req, res) => {
     try {
         const db = getDB();
         const { framework } = req.body;
         
-        delete framework._id;
-
-        await db.collection('Frameworks').updateOne(
-            { name: 'active' }, 
-            { $set: { ...framework, name: 'active' } },
-            { upsert: true }
-        );
-
-        res.json({ success: true, message: 'Framework saved successfully.' });
+        if (framework._id) {
+            // Update existing framework
+            const frameworkId = new ObjectId(framework._id);
+            delete framework._id;
+            const result = await db.collection('Frameworks').updateOne(
+                { _id: frameworkId },
+                { $set: framework }
+            );
+            res.json({ success: true, message: 'Framework updated successfully.', frameworkId });
+        } else {
+            // Create new framework
+            framework.isDefault = false; // New frameworks are never the default
+            const result = await db.collection('Frameworks').insertOne(framework);
+            res.status(201).json({ success: true, message: 'Framework created successfully.', frameworkId: result.insertedId });
+        }
     } catch (error) {
         res.status(500).json({ error: 'Failed to save the framework.' });
     }
 });
 
-router.post('/api/reset-framework', async (req, res) => {
+// **MODIFIED**: Deletes a framework by ID, but prevents deleting the default
+router.delete('/api/framework/:id', async (req, res) => {
     try {
         const db = getDB();
-        await db.collection('Frameworks').deleteOne({ name: 'active' });
-        res.json({ success: true, message: 'Framework has been reset to default.' });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to reset the framework.' });
-    }
-});
-
-router.post('/api/update-framework-from-prompt', async (req, res) => {
-    const { aiPrompt } = req.body;
-    if (!aiPrompt) {
-        return res.status(400).json({ error: 'Rewrite instruction is required.' });
-    }
-
-    try {
-        const db = getDB();
-        const currentFramework = await getFramework();
+        const frameworkId = new ObjectId(req.params.id);
         
-        const frameworkForPrompt = JSON.parse(JSON.stringify(currentFramework));
-        const MAX_EXAMPLES_IN_PROMPT = 7;
-
-        ['hooks', 'buildUps', 'stories', 'psychologies', 'ctas'].forEach(key => {
-            const examplesKey = `${key}Examples`;
-            if (frameworkForPrompt[examplesKey] && frameworkForPrompt[examplesKey].length > MAX_EXAMPLES_IN_PROMPT) {
-                const shuffled = frameworkForPrompt[examplesKey].sort(() => 0.5 - Math.random());
-                frameworkForPrompt[examplesKey] = shuffled.slice(0, MAX_EXAMPLES_IN_PROMPT);
-            }
-        });
-
-        const updatePrompt = `
-You are an AI assistant that refines script generation frameworks. Below is an existing framework in JSON format and a user's instruction for a new style. Your task is to intelligently update the '...Prompt' and '...Examples' fields in the JSON to reflect the user's new style.
-
-**User's Style Instruction:** "${aiPrompt}"
-
-**Analysis of Instruction:**
-- Tone: Is it funnier, more serious, more technical, simpler?
-- Structure: Does it imply shorter hooks, longer stories, more questions?
-- Content: Does it ask for a specific focus, like data, emotion, or controversy?
-
-**Your Task:**
-Based on your analysis, rewrite the '...Prompt' and '...Examples' values in the following JSON. 
-- The new prompts should guide an AI to generate content in the user's desired style.
-- The new examples should perfectly match the new style.
-- Maintain the use of placeholders like {company}, {psychology}, {industry}, etc., where appropriate in the examples.
-- Do NOT change the JSON structure or key names. Return only the updated, valid JSON object.
-
-**Existing Framework:**
-\`\`\`json
-${JSON.stringify(frameworkForPrompt, null, 2)}
-\`\`\`
-
-Return ONLY the complete, updated, and valid JSON object.
-`;
-
-        const updatedSections = await callGeminiAPI(updatePrompt, true);
-
-        if (!updatedSections || typeof updatedSections.overallPrompt !== 'string') {
-            throw new Error('AI returned an invalid framework structure.');
+        const frameworkToDelete = await db.collection('Frameworks').findOne({ _id: frameworkId });
+        if (frameworkToDelete && frameworkToDelete.isDefault) {
+            return res.status(400).json({ error: 'Cannot delete the default framework.' });
         }
         
-        const finalFramework = { ...currentFramework };
-        Object.keys(updatedSections).forEach(key => {
-            if (key.endsWith('Prompt')) {
-                finalFramework[key] = updatedSections[key];
-            }
-        });
-        
-        delete finalFramework._id;
-
-        await db.collection('Frameworks').updateOne(
-            { name: 'active' },
-            { $set: { ...finalFramework, name: 'active' } },
-            { upsert: true }
-        );
-
-        res.json({ success: true, message: 'Framework updated successfully.' });
-
+        await db.collection('Frameworks').deleteOne({ _id: frameworkId });
+        res.json({ success: true, message: 'Framework has been deleted.' });
     } catch (error) {
-        console.error("Error updating framework from prompt:", error);
-        res.status(500).json({ error: 'Failed to update framework.' });
+        res.status(500).json({ error: 'Failed to delete the framework.' });
     }
 });
 
 
+// **MODIFIED**: Now accepts a frameworkId
 router.post('/api/create-story-from-news', async (req, res) => {
-    const { article } = req.body;
+    const { article, frameworkId } = req.body;
     if (!article) {
         return res.status(400).json({ error: 'No article provided.' });
     }
@@ -416,9 +367,8 @@ router.post('/api/create-story-from-news', async (req, res) => {
             await db.collection('Business_Cases').insertOne(result);
             console.log('Successfully saved new business case to the database.');
 
-            const framework = await getFramework();
+            const framework = await getFrameworkById(frameworkId);
             
-            // **NEW:** Conditional CTA Generation
             const ctaPromise = framework.useFixedCta 
                 ? Promise.resolve([framework.fixedCtaText || 'Follow for more!'])
                 : generateMoreOptions(result, 'ctas', framework);
@@ -451,15 +401,16 @@ router.post('/api/create-story-from-news', async (req, res) => {
     }
 });
 
+// **MODIFIED**: Now accepts a frameworkId
 router.post('/api/regenerate-section', async (req, res) => {
-    const { businessCase, sectionType } = req.body;
+    const { businessCase, sectionType, frameworkId } = req.body;
 
     if (!businessCase || !sectionType) {
         return res.status(400).json({ error: 'Missing business case or section type.' });
     }
 
     try {
-        const framework = await getFramework();
+        const framework = await getFrameworkById(frameworkId);
         const newOptions = await generateMoreOptions(businessCase, sectionType, framework);
         res.json({ newOptions });
     } catch (error) {
@@ -589,7 +540,6 @@ router.post('/api/save-story', async (req, res) => {
     try {
         const db = getDB();
         
-        // Generate IG Description
         const igPrompt = `You are a social media copywriter. Write a short, engaging Instagram description for the following story in a friendly, conversational, and story-driven style. Make it highly readable and SEO-friendly. Use relevant emojis and include exactly 3 trending hashtags that match the story.
 
         Story Transcript:
@@ -611,7 +561,6 @@ router.post('/api/save-story', async (req, res) => {
 
         await db.collection('Stories').insertOne(newStory);
 
-        // Mark the business case as used
         if (businessCaseId) {
             await db.collection('Business_Cases').updateOne(
                 { _id: new ObjectId(businessCaseId) },
