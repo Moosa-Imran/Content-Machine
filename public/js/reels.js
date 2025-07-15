@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const handleCopyScript = () => {
         const scriptTextarea = document.getElementById('final-script-textarea');
-        const body = scriptTextarea.value.split('\n\n').map(part => (part.split(/:\n/)[1] || part).replace(/\*\*/g, '')).join('\n\n');
+        const body = scriptTextarea.value.replace(/^\*\*.+?\*\*:\s*/gm, '').trim();
         navigator.clipboard.writeText(body).then(() => {
             showNotification('Copied!', 'Script text copied to clipboard.');
         }).catch(err => console.error('Copy failed', err));
@@ -365,7 +365,11 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleButtonLoading(audioBtn, true, 'Generating...');
         audioPlayerContainer.innerHTML = '';
         saveStoryContainer.innerHTML = '';
-        const scriptText = scriptTextarea.value.split('\n\n').map(part => (part.split(/:\n/)[1] || part)).join(' ');
+        
+        const scriptText = scriptTextarea.value
+            .replace(/^\*\*[A-Z ]+:\*\*\s*/gim, '')
+            .replace(/\n{2,}/g, '\n\n')
+            .trim();
 
         try {
             const result = await apiCall('/api/generate-audio', {
