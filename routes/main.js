@@ -12,7 +12,7 @@ const session = require('express-session');
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
 const { generateMoreOptions } = require('../utils/scriptGenerator');
-const { callGeminiAPI, generateAudio } = require('../services/aiService');
+const { callGeminiAPI, generateAudio, ApiError } = require('../services/aiService');
 
 // --- HELPER FUNCTIONS ---
 const getBusinessCases = async (limit = 1) => {
@@ -210,6 +210,9 @@ router.post('/api/new-script', async (req, res) => {
         res.json(newScript);
     } catch (error) {
         console.error("Error in /api/new-script:", error);
+        if (error instanceof ApiError && error.status === 503) {
+            return res.status(503).json({ error: 'The AI model is currently overloaded. Please try again in a few moments.' });
+        }
         res.status(500).json({ error: 'Failed to generate new script' });
     }
 });
@@ -225,6 +228,9 @@ router.post('/api/regenerate-script-from-case', async (req, res) => {
         res.json(newScript);
     } catch (error) {
         console.error("Error in /api/regenerate-script-from-case:", error);
+        if (error instanceof ApiError && error.status === 503) {
+            return res.status(503).json({ error: 'The AI model is currently overloaded. Please try again in a few moments.' });
+        }
         res.status(500).json({ error: 'Failed to regenerate script' });
     }
 });
@@ -286,6 +292,25 @@ router.delete('/api/framework/:id', async (req, res) => {
     }
 });
 
+router.delete('/api/business-case/:id', async (req, res) => {
+    try {
+        const db = getDB();
+        const caseId = new ObjectId(req.params.id);
+        
+        const result = await db.collection('Business_Cases').deleteOne({ _id: caseId });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Business case not found.' });
+        }
+
+        res.json({ success: true, message: 'Business case deleted successfully.' });
+    } catch (error) {
+        console.error("Error deleting business case:", error);
+        res.status(500).json({ error: 'Failed to delete the business case.' });
+    }
+});
+
+
 router.post('/api/create-story-from-news', async (req, res) => {
     const { article, frameworkId } = req.body;
     if (!article) return res.status(400).json({ error: 'No article provided.' });
@@ -327,6 +352,9 @@ router.post('/api/create-story-from-news', async (req, res) => {
         }
     } catch (error) {
         console.error('Error creating story from news:', error);
+        if (error instanceof ApiError && error.status === 503) {
+            return res.status(503).json({ error: 'The AI model is currently overloaded. Please try again in a few moments.' });
+        }
         res.status(500).json({ error: 'Failed to create story from news.' });
     }
 });
@@ -344,6 +372,9 @@ router.post('/api/regenerate-section', async (req, res) => {
         res.json({ newOptions });
     } catch (error) {
         console.error(`Error regenerating section ${sectionType}:`, error);
+        if (error instanceof ApiError && error.status === 503) {
+            return res.status(503).json({ error: 'The AI model is currently overloaded. Please try again in a few moments.' });
+        }
         res.status(500).json({ error: `Failed to regenerate ${sectionType}.` });
     }
 });

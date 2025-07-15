@@ -17,6 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeCreateModalBtn = document.getElementById('close-create-modal-btn');
     const createFromNewsBtn = document.getElementById('create-from-news-btn');
     
+    // Confirmation Modal Elements
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmActionBtn = document.getElementById('confirm-action-btn');
+    const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+    const confirmModalTitle = document.getElementById('confirm-modal-title');
+    const confirmModalMessage = document.getElementById('confirm-modal-message');
+    let confirmCallback = null;
+
     // Notification Modal Elements
     const notificationModal = document.getElementById('notification-modal');
     const notificationIconContainer = document.getElementById('notification-icon-container');
@@ -43,6 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (type === 'error') {
             iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-500/20';
             iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>';
+        } else if (type === 'modelBusy') {
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-500/20';
+            iconContainer.innerHTML = '<i data-lucide="bot" class="h-6 w-6 text-yellow-600 dark:text-yellow-400"></i>';
         } else {
             iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20';
             iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-600 dark:text-green-400"></i>';
@@ -51,10 +62,29 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
+    const showConfirmModal = (title, message, onConfirm) => {
+        confirmModalTitle.textContent = title;
+        confirmModalMessage.textContent = message;
+        confirmCallback = onConfirm;
+        confirmModal.classList.remove('hidden');
+        lucide.createIcons();
+    };
+
+    const hideConfirmModal = () => {
+        confirmModal.classList.add('hidden');
+        confirmCallback = null;
+    };
+
     const apiCall = async (endpoint, options = {}) => {
         try {
             const response = await fetch(endpoint, options);
-            if (!response.ok) throw new Error((await response.json()).error || 'Server error');
+            if (!response.ok) {
+                if (response.status === 503) {
+                    throw new Error('MODEL_BUSY');
+                }
+                const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred' }));
+                throw new Error(errorData.error || 'An unknown error occurred.');
+            }
             return await response.json();
         } catch (error) {
             console.error(`API call to ${endpoint} failed:`, error);
@@ -86,13 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const [countData, frameworks, firstScript] = await Promise.all([
                 apiCall('/api/business-cases/count'),
                 apiCall('/api/frameworks'),
-                apiCall('/api/new-script', { method: 'POST', body: JSON.stringify({ frameworkId: null }), headers: { 'Content-Type': 'application/json' } }) // Fetch with default framework
+                apiCall('/api/new-script', { method: 'POST', body: JSON.stringify({ frameworkId: null }), headers: { 'Content-Type': 'application/json' } })
             ]);
             
             totalCases = countData.total;
             allFrameworks = frameworks;
             
-            // Set selectedFrameworkId from the script that was generated with the default framework
             if (firstScript && firstScript.frameworkId) {
                 selectedFrameworkId = firstScript.frameworkId;
             } else {
@@ -105,12 +134,20 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCurrentReel();
 
         } catch (error) {
-            showNotification('Error', error.message, true);
+            if (error.message === 'MODEL_BUSY') {
+                showNotification('Model Overloaded', 'The AI is currently busy. Please try again in a few moments.', 'modelBusy');
+            } else {
+                showNotification('Error', error.message, true);
+            }
         }
     };
     
     const renderCurrentReel = () => {
-        if (!contentFeed || contentFeed.length === 0) return;
+        if (!contentFeed || contentFeed.length === 0) {
+            reelCardContainer.innerHTML = `<div class="text-center text-slate-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl">No more scripts available. Try creating one from the news page!</div>`;
+            paginationContainer.innerHTML = '';
+            return;
+        }
         const story = contentFeed[currentFeedIndex];
         reelCardContainer.innerHTML = story.type === 'news_commentary' 
             ? generateNewsCommentaryCardHTML(story) 
@@ -147,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         selectedFrameworkId = newFrameworkId;
         const currentCase = { ...contentFeed[currentFeedIndex] };
-        // Remove generated parts before sending back
+        
         delete currentCase.hooks;
         delete currentCase.buildUps;
         delete currentCase.stories;
@@ -169,7 +206,11 @@ document.addEventListener('DOMContentLoaded', () => {
             contentFeed[currentFeedIndex] = regeneratedScript;
             renderCurrentReel();
         } catch (error) {
-            showNotification('Error', 'Failed to regenerate script with the new framework.', true);
+            if (error.message === 'MODEL_BUSY') {
+                showNotification('Model Overloaded', 'The AI is currently busy. Please try again in a few moments.', 'modelBusy');
+            } else {
+                showNotification('Error', 'Failed to regenerate script with the new framework.', true);
+            }
             renderCurrentReel(); // Render the old one back
         }
     };
@@ -213,7 +254,12 @@ document.addEventListener('DOMContentLoaded', () => {
                            <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.industry}</span>
                         </div>
                     </div>
-                    <div class="framework-dropdown-container flex-shrink-0"></div>
+                    <div class="flex items-center gap-2">
+                        <div class="framework-dropdown-container flex-shrink-0"></div>
+                        <button class="delete-case-btn p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-md" data-business-case-id="${story._id}" title="Delete this case">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>`;
     };
     
@@ -365,11 +411,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleDeleteCase = (button) => {
+        const businessCaseId = button.dataset.businessCaseId;
+        showConfirmModal(
+            'Delete Business Case?',
+            'This will permanently remove this case study. This action cannot be undone.',
+            async () => {
+                try {
+                    await apiCall(`/api/business-case/${businessCaseId}`, { method: 'DELETE' });
+                    hideConfirmModal();
+                    showNotification('Success', 'Business case deleted.');
+                    contentFeed.splice(currentFeedIndex, 1);
+                    totalCases--;
+                    if (currentFeedIndex >= contentFeed.length && contentFeed.length > 0) {
+                        currentFeedIndex = contentFeed.length - 1;
+                    }
+                    if (contentFeed.length > 0) {
+                        renderCurrentReel();
+                    } else {
+                        fetchInitialData();
+                    }
+                } catch (error) {
+                    hideConfirmModal();
+                    showNotification('Error', `Failed to delete case: ${error.message}`, true);
+                }
+            }
+        );
+    };
+
     const handleCardClick = (e) => {
         if (e.target.closest('.build-script-btn')) handleBuildScript();
         if (e.target.closest('.copy-text-btn')) handleCopyScript();
         if (e.target.closest('.generate-audio-btn')) handleGenerateAudio(e.target.closest('.generate-audio-btn'));
         if (e.target.closest('.save-story-btn')) handleSaveStory(e.target.closest('.save-story-btn'));
+        if (e.target.closest('.delete-case-btn')) handleDeleteCase(e.target.closest('.delete-case-btn'));
     };
 
     const updatePagination = () => {
@@ -426,17 +501,25 @@ document.addEventListener('DOMContentLoaded', () => {
         createFromNewsBtn?.addEventListener('click', () => window.location.href = '/news');
         closeCreateModalBtn?.addEventListener('click', () => createFromModal.classList.add('hidden'));
         notificationOkBtn?.addEventListener('click', () => notificationModal.classList.add('hidden'));
+        confirmCancelBtn.addEventListener('click', hideConfirmModal);
+        confirmActionBtn.addEventListener('click', () => {
+            if (confirmCallback) confirmCallback();
+        });
 
         const generatedContent = sessionStorage.getItem('generatedContent');
         if (generatedContent) {
             contentFeed = JSON.parse(generatedContent);
             sessionStorage.removeItem('generatedContent');
             currentFeedIndex = 0;
-            totalCases = contentFeed.length;
             
-            // Fetch frameworks and then render
             try {
-                allFrameworks = await apiCall('/api/frameworks');
+                const [countData, frameworks] = await Promise.all([
+                    apiCall('/api/business-cases/count'),
+                    apiCall('/api/frameworks')
+                ]);
+                totalCases = countData.total;
+                allFrameworks = frameworks;
+
                 if (contentFeed[0] && contentFeed[0].frameworkId) {
                     selectedFrameworkId = contentFeed[0].frameworkId;
                 } else {
@@ -445,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 renderCurrentReel();
             } catch (error) {
-                showNotification('Error', 'Could not load frameworks.', true);
+                showNotification('Error', 'Could not load initial data.', true);
                 renderCurrentReel(); // Render anyway
             }
         } else {

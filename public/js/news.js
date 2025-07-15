@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const storyLoaderModal = document.getElementById('story-loader-modal');
     const generationStatusText = document.getElementById('generation-status-text');
     const errorModal = document.getElementById('error-modal');
+    const generalErrorContent = document.getElementById('general-error-content');
+    const modelBusyContent = document.getElementById('model-busy-content');
     const closeErrorModalBtn = document.getElementById('close-error-modal-btn');
     const validateNewsToggle = document.getElementById('validate-news-toggle');
     const frameworkSelectModal = document.getElementById('framework-select-modal');
@@ -54,10 +56,32 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
+    const toggleButtonLoading = (button, isLoading, loadingText = 'Loading...') => {
+        if (!button) return;
+        const icon = button.querySelector('.btn-icon');
+        const text = button.querySelector('.btn-text');
+        button.disabled = isLoading;
+
+        if (isLoading) {
+            if (icon) icon.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>';
+            if (text) text.textContent = loadingText;
+        } else {
+            if (icon) icon.innerHTML = `<i data-lucide="${button.dataset.icon || 'search'}" class="w-4 h-4"></i>`;
+            if (text) text.textContent = button.dataset.originalText || 'Submit';
+        }
+        lucide.createIcons();
+    };
+
     const apiCall = async (endpoint, options = {}) => {
         try {
             const response = await fetch(endpoint, options);
-            if (!response.ok) throw new Error((await response.json()).error || 'Server error');
+            if (!response.ok) {
+                if (response.status === 503) {
+                    throw new Error('MODEL_BUSY');
+                }
+                const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred' }));
+                throw new Error(errorData.error || 'An unknown error occurred.');
+            }
             return await response.json();
         } catch (error) {
             console.error(`API call to ${endpoint} failed:`, error);
@@ -111,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1500);
         }
     };
+
 
     const renderKeywords = () => {
         keywordsContainer.innerHTML = currentFilters.keywords.map((keyword, index) => `
@@ -358,13 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const generateBtn = generateFiltersBtn;
-        const icon = generateBtn.querySelector('.btn-icon');
-        const text = generateBtn.querySelector('.btn-text');
-        const originalText = text.textContent;
-        icon.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>';
-        text.textContent = 'Generating...';
-        lucide.createIcons();
-        generateBtn.disabled = true;
+        toggleButtonLoading(generateBtn, true, 'Generating...');
 
         try {
             const result = await apiCall('/api/generate-filters-from-prompt', {
@@ -379,10 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             showErrorModal(error.message === 'MODEL_BUSY' ? 'modelBusy' : 'general', `Failed to generate filters: ${error.message}`);
         } finally {
-            icon.innerHTML = '<i data-lucide="wand-2" class="w-4 h-4"></i>';
-            text.textContent = originalText;
-            lucide.createIcons();
-            generateBtn.disabled = false;
+            toggleButtonLoading(generateBtn, false);
         }
     };
     

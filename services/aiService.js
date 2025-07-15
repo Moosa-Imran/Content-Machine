@@ -3,6 +3,15 @@
 
 const fetch = require('node-fetch');
 
+// Custom Error for specific API issues
+class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 const callGeminiAPI = async (prompt, isJson = false) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -26,7 +35,8 @@ const callGeminiAPI = async (prompt, isJson = false) => {
         if (!response.ok) {
             const errorBody = await response.text();
             console.error(`Gemini API Error [${response.status}]:`, errorBody);
-            throw new Error(`API call failed with status: ${response.status}`);
+            // Throw a custom error with the status code
+            throw new ApiError(`API call failed with status: ${response.status}`, response.status);
         }
 
         const result = await response.json();
@@ -35,16 +45,11 @@ const callGeminiAPI = async (prompt, isJson = false) => {
             let textResponse = result.candidates[0].content.parts[0].text;
             if (isJson) {
                 try {
-                    // **FIX:** More robust JSON parsing. This looks for a JSON object or array
-                    // within the AI's response, ignoring any conversational text around it.
                     const jsonMatch = textResponse.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
                     if (jsonMatch && jsonMatch[0]) {
                         return JSON.parse(jsonMatch[0]);
                     }
-                    
-                    // If no JSON object/array is found, throw an error.
                     throw new Error("No valid JSON object or array found in the AI response.");
-
                 } catch (parseError) {
                     console.error("Failed to parse JSON from Gemini response:", parseError);
                     console.error("Original text response from AI:", textResponse);
@@ -108,5 +113,6 @@ const generateAudio = async (text) => {
 
 module.exports = {
     callGeminiAPI,
-    generateAudio
+    generateAudio,
+    ApiError // Export the custom error class
 };
