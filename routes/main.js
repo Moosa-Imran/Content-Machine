@@ -213,6 +213,23 @@ router.post('/api/new-script', async (req, res) => {
     }
 });
 
+// **NEW**: Regenerates a script for an existing business case with a new framework
+router.post('/api/regenerate-script-from-case', async (req, res) => {
+    const { businessCase, frameworkId } = req.body;
+    if (!businessCase || !frameworkId) {
+        return res.status(400).json({ error: 'Business case and framework ID are required.' });
+    }
+    try {
+        const framework = await getFrameworkById(frameworkId);
+        const newScript = await generateScriptContent(businessCase, framework);
+        res.json(newScript);
+    } catch (error) {
+        console.error("Error in /api/regenerate-script-from-case:", error);
+        res.status(500).json({ error: 'Failed to regenerate script' });
+    }
+});
+
+
 router.get('/api/frameworks', async (req, res) => {
     try {
         const db = getDB();

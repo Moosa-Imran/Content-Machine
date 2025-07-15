@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentFeedIndex = 0;
     let totalCases = 0;
     let selectedFrameworkId = null;
+    let allFrameworks = [];
     
     // --- ELEMENT SELECTORS ---
     const reelCardContainer = document.getElementById('reel-card-container');
@@ -15,10 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const createFromModal = document.getElementById('create-from-modal');
     const closeCreateModalBtn = document.getElementById('close-create-modal-btn');
     const createFromNewsBtn = document.getElementById('create-from-news-btn');
-    const frameworkSelectModal = document.getElementById('framework-select-modal');
-    const frameworkOptionsContainer = document.getElementById('framework-options-container');
-    const frameworkUpdateLoader = document.getElementById('framework-update-loader');
-
+    
     // Notification Modal Elements
     const notificationModal = document.getElementById('notification-modal');
     const notificationIconContainer = document.getElementById('notification-icon-container');
@@ -80,57 +78,26 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
-    const showFrameworkSelector = async (onSelectCallback) => {
-        frameworkOptionsContainer.innerHTML = `<div class="flex justify-center items-center py-10"><i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-primary-500"></i></div>`;
-        lucide.createIcons();
-        frameworkSelectModal.classList.remove('hidden');
-
-        try {
-            const frameworks = await apiCall('/api/frameworks');
-            frameworkOptionsContainer.innerHTML = frameworks.map(fw => `
-                <button class="framework-option-btn w-full text-left p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex justify-between items-center" data-id="${fw._id}">
-                    <span>
-                        <span class="font-semibold text-slate-800 dark:text-white">${fw.name}</span>
-                        <span class="ml-2 text-xs ${fw.type === 'news_commentary' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'} px-2 py-0.5 rounded-full font-medium">${fw.type === 'news_commentary' ? 'News Commentary' : 'Viral Script'}</span>
-                        ${fw.isDefault ? '<span class="ml-2 text-xs bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full font-medium">Default</span>' : ''}
-                    </span>
-                    <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
-                </button>
-            `).join('');
-            lucide.createIcons();
-            
-            document.querySelectorAll('.framework-option-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    selectedFrameworkId = btn.dataset.id;
-                    frameworkSelectModal.classList.add('hidden');
-                    onSelectCallback(selectedFrameworkId);
-                });
-            });
-        } catch (error) {
-            frameworkOptionsContainer.innerHTML = `<p class="text-red-500">Could not load frameworks. Using default.</p>`;
-            setTimeout(() => {
-                frameworkSelectModal.classList.add('hidden');
-                onSelectCallback(null);
-            }, 1500);
-        }
-    };
-
-    const fetchInitialScript = async () => {
+    const fetchInitialData = async () => {
         const loadingTextElement = document.getElementById('loading-text-animation');
         if (loadingTextElement) loadingTextElement.textContent = "Analyzing psychological triggers...";
+        
         try {
-            const countData = await apiCall('/api/business-cases/count');
+            const [countData, frameworks, firstScript] = await Promise.all([
+                apiCall('/api/business-cases/count'),
+                apiCall('/api/frameworks'),
+                apiCall('/api/new-script', { method: 'POST', body: JSON.stringify({ frameworkId: null }), headers: { 'Content-Type': 'application/json' } }) // Fetch with default framework
+            ]);
+            
             totalCases = countData.total;
-            showFrameworkSelector(async (frameworkId) => {
-                const firstScript = await apiCall('/api/new-script', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ frameworkId })
-                });
-                contentFeed = [firstScript];
-                currentFeedIndex = 0;
-                renderCurrentReel();
-            });
+            allFrameworks = frameworks;
+            const defaultFramework = allFrameworks.find(f => f.isDefault);
+            selectedFrameworkId = defaultFramework ? defaultFramework._id : (allFrameworks.length > 0 ? allFrameworks[0]._id : null);
+
+            contentFeed = [firstScript];
+            currentFeedIndex = 0;
+            renderCurrentReel();
+
         } catch (error) {
             showNotification('Error', error.message, true);
         }
@@ -142,12 +109,63 @@ document.addEventListener('DOMContentLoaded', () => {
         reelCardContainer.innerHTML = story.type === 'news_commentary' 
             ? generateNewsCommentaryCardHTML(story) 
             : generateViralScriptCardHTML(story);
+        renderFrameworkDropdown();
         updatePagination();
         document.querySelectorAll('[data-section-type]').forEach(section => {
             const firstOption = section.querySelector('.p-3');
             if (firstOption) selectOption(firstOption, section.dataset.sectionType);
         });
         lucide.createIcons();
+    };
+
+    const renderFrameworkDropdown = () => {
+        const dropdownContainer = document.querySelector('.framework-dropdown-container');
+        if (!dropdownContainer) return;
+
+        const optionsHTML = allFrameworks.map(fw => 
+            `<option value="${fw._id}" ${fw._id === selectedFrameworkId ? 'selected' : ''}>${fw.name}</option>`
+        ).join('');
+
+        dropdownContainer.innerHTML = `
+            <label for="framework-selector" class="text-sm font-medium text-slate-600 dark:text-slate-400">Framework:</label>
+            <select id="framework-selector" class="ml-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md p-2 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                ${optionsHTML}
+            </select>
+        `;
+        document.getElementById('framework-selector').addEventListener('change', handleFrameworkChange);
+    };
+
+    const handleFrameworkChange = async (event) => {
+        const newFrameworkId = event.target.value;
+        if (newFrameworkId === selectedFrameworkId) return;
+
+        selectedFrameworkId = newFrameworkId;
+        const currentCase = { ...contentFeed[currentFeedIndex] };
+        // Remove generated parts before sending back
+        delete currentCase.hooks;
+        delete currentCase.buildUps;
+        delete currentCase.stories;
+        delete currentCase.psychologies;
+        delete currentCase.contexts;
+        delete currentCase.evidences;
+        delete currentCase.patterns;
+        delete currentCase.ctas;
+        
+        reelCardContainer.innerHTML = `<div class="flex justify-center items-center py-40"><i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-primary-500"></i></div>`;
+        lucide.createIcons();
+
+        try {
+            const regeneratedScript = await apiCall('/api/regenerate-script-from-case', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ businessCase: currentCase, frameworkId: newFrameworkId })
+            });
+            contentFeed[currentFeedIndex] = regeneratedScript;
+            renderCurrentReel();
+        } catch (error) {
+            showNotification('Error', 'Failed to regenerate script with the new framework.', true);
+            renderCurrentReel(); // Render the old one back
+        }
     };
 
     const generateSectionHTML = (story, sec) => {
@@ -160,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i data-lucide="${sec.icon}" class="w-5 h-5 ${colors.icon}"></i>
                             <span class="font-semibold text-sm text-slate-700 dark:text-slate-200">${sec.title}</span>
                         </div>
-                        <button class="regenerate-section-btn p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700" data-section-type="${sec.type}" title="Regenerate"><i data-lucide="refresh-cw" class="w-4 h-4 text-slate-500"></i></button>
                     </div>
                     <div class="p-3 space-y-2" data-section-type="${sec.type}">
                         ${options.map((option, index) => `<div class="p-3 rounded-md border cursor-pointer transition-all" onclick="selectOption(this, '${sec.type}')">
@@ -174,6 +191,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`;
     };
     
+    const generateCardHeaderHTML = (story) => {
+        let titleHTML = '';
+        if (story.type === 'news_commentary') {
+            titleHTML = `<h3 class="text-2xl font-bold text-slate-800 dark:text-white">News Commentary: <span class="text-primary-600 dark:text-primary-400">${story.company}</span></h3>`;
+        } else {
+            titleHTML = `<h3 class="text-2xl font-bold text-slate-800 dark:text-white">Principle: <span class="text-primary-600 dark:text-primary-400">${story.psychology}</span></h3>`;
+        }
+
+        return `<div class="flex justify-between items-start gap-4 mb-4">
+                    <div class="flex-grow">
+                        ${titleHTML}
+                        <div class="flex flex-wrap items-center gap-2 mt-2">
+                           <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.company}</span>
+                           <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.industry}</span>
+                        </div>
+                    </div>
+                    <div class="framework-dropdown-container flex-shrink-0"></div>
+                </div>`;
+    };
+    
     const generateViralScriptCardHTML = (story) => {
         const sections = [
             { type: 'hooks', title: 'Hook', icon: 'anchor', color: 'red' },
@@ -183,15 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { type: 'ctas', title: 'Call to Action', icon: 'megaphone', color: 'orange' }
         ];
         return `<div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 card-glow max-w-4xl mx-auto" data-story-id="${story.id}" data-business-case-id="${story._id}">
-                <div class="flex justify-between items-center gap-4 mb-6">
-                    <div>
-                        <h3 class="text-2xl font-bold text-slate-800 dark:text-white">Principle: <span class="text-primary-600 dark:text-primary-400">${story.psychology}</span></h3>
-                        <div class="flex flex-wrap items-center gap-2 mt-2">
-                           <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.company}</span>
-                           <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.industry}</span>
-                        </div>
-                    </div>
-                </div>
+                ${generateCardHeaderHTML(story)}
                 <div class="space-y-4">${sections.map(sec => generateSectionHTML(story, sec)).join('')}</div>
                 <div class="flex justify-center mt-8"><button class="build-script-btn flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg"><i data-lucide="file-text" class="w-5 h-5"></i> Build Script</button></div>
                 <div class="script-editor-container mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 hidden"></div>
@@ -207,14 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { type: 'ctas', title: 'Call to Action', icon: 'megaphone', color: 'orange' }
         ];
         return `<div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 card-glow max-w-4xl mx-auto" data-story-id="${story.id}" data-business-case-id="${story._id}">
-                <div class="flex justify-between items-center gap-4 mb-6">
-                    <div>
-                        <h3 class="text-2xl font-bold text-slate-800 dark:text-white">News Commentary: <span class="text-primary-600 dark:text-primary-400">${story.company}</span></h3>
-                        <div class="flex flex-wrap items-center gap-2 mt-2">
-                           <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.industry}</span>
-                        </div>
-                    </div>
-                </div>
+                ${generateCardHeaderHTML(story)}
                 <div class="space-y-4">${sections.map(sec => generateSectionHTML(story, sec)).join('')}</div>
                 <div class="flex justify-center mt-8"><button class="build-script-btn flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg"><i data-lucide="file-text" class="w-5 h-5"></i> Build Script</button></div>
                 <div class="script-editor-container mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 hidden"></div>
@@ -407,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
             totalCases = contentFeed.length;
             renderCurrentReel();
         } else {
-            fetchInitialScript();
+            fetchInitialData();
         }
     };
 
