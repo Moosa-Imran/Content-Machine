@@ -7,7 +7,6 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 const { ObjectId } = require('mongodb');
-const session = require('express-session');
 
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
@@ -87,50 +86,6 @@ router.get('/framework', (req, res) => {
         title: 'Script Framework Editor',
     });
 });
-
-// --- AUTHENTICATION ---
-const isAuthenticated = (req, res, next) => {
-    if (req.session.isAuthenticated) return next();
-    res.redirect('/login');
-};
-router.get('/login', (req, res) => {
-    if (req.session.isAuthenticated) return res.redirect('/stories');
-    res.render('login', { title: 'Login', error: null });
-});
-router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        const db = getDB();
-        const user = await db.collection('Users').findOne({ username: username });
-        if (user && user.password === password) {
-            req.session.isAuthenticated = true;
-            req.session.save(() => res.redirect('/stories'));
-        } else {
-            res.render('login', { title: 'Login', error: 'Invalid username or password.' });
-        }
-    } catch (error) {
-        console.error("Error during login:", error);
-        res.render('login', { title: 'Login', error: 'An error occurred during login.' });
-    }
-});
-router.get('/stories', isAuthenticated, async (req, res) => {
-    try {
-        const db = getDB();
-        const stories = await db.collection('Stories').find({}).sort({ createdAt: -1 }).toArray();
-        res.render('stories', { title: 'Saved Stories', stories });
-    } catch (error) {
-        console.error("Error fetching stories:", error);
-        res.status(500).send("Error fetching stories from the database.");
-    }
-});
-router.get('/logout', (req, res) => {
-    req.session.destroy(err => {
-        if (err) console.error("Session destruction error:", err);
-        res.clearCookie('connect.sid');
-        res.redirect('/login');
-    });
-});
-
 
 // --- API ROUTES ---
 
@@ -442,9 +397,9 @@ router.post('/api/generate-audio', async (req, res) => {
 });
 
 router.post('/api/save-story', async (req, res) => {
-    const { title, transcript, audioUrl, hashtags, businessCaseId } = req.body;
+    const { title, transcript, audioUrl, hashtags, businessCaseId, style } = req.body;
 
-    if (!title || !transcript || !audioUrl) {
+    if (!title || !transcript || !audioUrl || !style) {
         return res.status(400).json({ error: 'Missing required story data.' });
     }
 
@@ -466,6 +421,7 @@ router.post('/api/save-story', async (req, res) => {
             audioUrl,
             igDescription,
             hashtags: hashtags || [],
+            style: style,
             createdAt: new Date(),
             sourceBusinessCase: businessCaseId ? new ObjectId(businessCaseId) : null
         };

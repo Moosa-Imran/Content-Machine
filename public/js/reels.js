@@ -376,7 +376,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.success && result.audioUrl) {
                 audioPlayerContainer.innerHTML = `<audio controls class="w-full"><source src="${result.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.</audio>`;
-                saveStoryContainer.innerHTML = `<button class="save-story-btn w-full mt-4 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold" data-audio-url="${result.audioUrl}" data-icon="save" data-original-text="Save Story"><span class="btn-icon"><i data-lucide="save" class="w-5 h-5"></i></span><span class="btn-text">Save Story</span></button>`;
+                saveStoryContainer.innerHTML = `<div class="mt-4 space-y-4">
+                    <div>
+                        <label for="save-style-select" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Save script for:</label>
+                        <select id="save-style-select" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            <option value="" disabled selected>Select a style...</option>
+                            <option value="Talking Head">Talking Head</option>
+                            <option value="Faceless">Faceless</option>
+                            <option value="News Commentary">News Commentary</option>
+                        </select>
+                    </div>
+                    <button class="save-story-btn w-full flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold" data-audio-url="${result.audioUrl}" data-icon="save" data-original-text="Save Story">
+                        <span class="btn-icon"><i data-lucide="save" class="w-5 h-5"></i></span>
+                        <span class="btn-text">Save Story</span>
+                    </button>
+                </div>`;
                 lucide.createIcons();
             } else {
                 throw new Error('Audio URL not received.');
@@ -389,11 +403,28 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const handleSaveStory = async (saveBtn) => {
+        const styleSelect = document.getElementById('save-style-select');
+        const selectedStyle = styleSelect.value;
+
+        if (!selectedStyle) {
+            showNotification('Selection Required', 'Please select a script style before saving.', 'error');
+            styleSelect.classList.add('border-red-500', 'ring-red-500');
+            setTimeout(() => styleSelect.classList.remove('border-red-500', 'ring-red-500'), 2000);
+            return;
+        }
+
         const story = contentFeed[currentFeedIndex];
         const scriptTextarea = document.getElementById('final-script-textarea');
         const transcript = scriptTextarea.value;
         const audioUrl = saveBtn.dataset.audioUrl;
-        const storyData = { title: story.psychology || story.company, transcript, audioUrl, hashtags: story.hashtags, businessCaseId: story._id };
+        const storyData = { 
+            title: story.psychology || story.company, 
+            transcript, 
+            audioUrl, 
+            hashtags: story.hashtags, 
+            businessCaseId: story._id,
+            style: selectedStyle
+        };
         
         toggleButtonLoading(saveBtn, true, 'Saving...');
 
@@ -488,7 +519,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderCurrentReel();
                 } catch (error) {
                     renderCurrentReel();
-                    showNotification('Error', 'Could not load the next script.', true);
+                    if (error.message === 'MODEL_BUSY') {
+                        showNotification('Model Overloaded', 'The AI is currently busy. Please try again in a few moments.', 'modelBusy');
+                    } else {
+                        showNotification('Error', 'Could not load the next script.', true);
+                    }
                 }
             }
         }
