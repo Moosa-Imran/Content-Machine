@@ -91,8 +91,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             totalCases = countData.total;
             allFrameworks = frameworks;
-            const defaultFramework = allFrameworks.find(f => f.isDefault);
-            selectedFrameworkId = defaultFramework ? defaultFramework._id : (allFrameworks.length > 0 ? allFrameworks[0]._id : null);
+            
+            // Set selectedFrameworkId from the script that was generated with the default framework
+            if (firstScript && firstScript.frameworkId) {
+                selectedFrameworkId = firstScript.frameworkId;
+            } else {
+                const defaultFramework = allFrameworks.find(f => f.isDefault);
+                selectedFrameworkId = defaultFramework ? defaultFramework._id : (allFrameworks.length > 0 ? allFrameworks[0]._id : null);
+            }
 
             contentFeed = [firstScript];
             currentFeedIndex = 0;
@@ -427,7 +433,21 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.removeItem('generatedContent');
             currentFeedIndex = 0;
             totalCases = contentFeed.length;
-            renderCurrentReel();
+            
+            // Fetch frameworks and then render
+            try {
+                allFrameworks = await apiCall('/api/frameworks');
+                if (contentFeed[0] && contentFeed[0].frameworkId) {
+                    selectedFrameworkId = contentFeed[0].frameworkId;
+                } else {
+                    const defaultFramework = allFrameworks.find(f => f.isDefault);
+                    selectedFrameworkId = defaultFramework ? defaultFramework._id : null;
+                }
+                renderCurrentReel();
+            } catch (error) {
+                showNotification('Error', 'Could not load frameworks.', true);
+                renderCurrentReel(); // Render anyway
+            }
         } else {
             fetchInitialData();
         }

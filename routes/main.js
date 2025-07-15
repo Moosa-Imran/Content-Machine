@@ -165,6 +165,7 @@ const generateScriptContent = async (businessCase, framework) => {
         ...businessCase,
         id: `db-${businessCase._id.toString()}`,
         type: framework.type || 'viral_framework',
+        frameworkId: framework._id, // Pass frameworkId to the frontend
         hooks: results[0],
         ctas: results[results.length - 1]
     };
@@ -198,7 +199,7 @@ router.post('/api/new-script', async (req, res) => {
     try {
         const [businessCases, framework] = await Promise.all([
             getBusinessCases(1),
-            getFrameworkById(frameworkId)
+            getFrameworkById(frameworkId) // Will use default if frameworkId is null/undefined
         ]);
 
         if (businessCases.length === 0) {
@@ -213,7 +214,6 @@ router.post('/api/new-script', async (req, res) => {
     }
 });
 
-// **NEW**: Regenerates a script for an existing business case with a new framework
 router.post('/api/regenerate-script-from-case', async (req, res) => {
     const { businessCase, frameworkId } = req.body;
     if (!businessCase || !frameworkId) {
