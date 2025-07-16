@@ -529,9 +529,10 @@ You are an expert AI system responsible for curating a news feed by refining sea
     * If the feedback is **LIKED (Thumbs Up)**: Your goal is to find **more** articles like this one. Identify the core concepts that make this article interesting. Consider if adding a new, general keyword or category would help achieve this. **Do not add overly specific terms, company names, or product names.** For example, if the article is about "Coca-Cola's new red can design boosting sales", a good keyword to add might be "brand color psychology", not "Coca-Cola" or "red cans". Only add a term if you are highly confident it will broaden the search in a relevant way.
     * If the feedback is **DISLIKED (Thumbs Down)**: Your goal is to find **fewer** articles like this one. Identify why this article was likely irrelevant. Is there a keyword in the current list that is too broad and brought in this unwanted content? For example, if the user dislikes a generic business news article, and "business" is a keyword, you might consider if a more specific keyword is needed. **Be extremely careful about removing keywords.** Only remove a keyword if you are certain it is the primary cause of irrelevant results and its removal will not harm the search for desired content.
 3.  **Formulate the New Parameters:** Based on your analysis, decide on the new list of keywords and categories. It is perfectly acceptable to make no changes if you are not confident that a change would be an improvement.
-4.  **Output:** Return a single, valid JSON object containing the **complete** updated lists. Do not explain your reasoning. The JSON object must have this exact structure:
+4.  **Final Curation:** After generating the new list of keywords, review it and curate it down to a maximum of the 7 most relevant and effective keywords. The final \`keywords\` array in your JSON output must not contain more than 7 items.
+5.  **Output:** Return a single, valid JSON object containing the **complete** updated lists. Do not explain your reasoning. The JSON object must have this exact structure:
     {
-      "keywords": ["full", "list", "of", "keywords"],
+      "keywords": ["full", "list", "of", "up to 7", "keywords"],
       "categories": ["full", "list", "of", "categories"]
     }
 `;
