@@ -476,48 +476,103 @@ router.post('/api/update-validation-prompt', async (req, res) => {
 
     try {
         const db = getDB();
-        const currentPromptDoc = await db.collection('Validate_News').findOne({ name: 'active' }) 
-            || await db.collection('Validate_News').findOne({ name: 'default' });
+
+        // --- Fetch current prompts and keywords in parallel ---
+        const currentPromptDocPromise = db.collection('Validate_News').findOne({ name: 'active' }) 
+            .then(doc => doc || db.collection('Validate_News').findOne({ name: 'default' }));
+        const currentKeywordsDocPromise = getDefaultKeywordsAndCategories();
+
+        const [currentPromptDoc, currentKeywordsDoc] = await Promise.all([currentPromptDocPromise, currentKeywordsDocPromise]);
 
         if (!currentPromptDoc) {
             return res.status(404).json({ error: 'Validation prompt not found.' });
         }
 
-        const instruction = feedback === 'thumbs_up'
+        // --- PROMPT FOR VALIDATION PROMPT UPDATE ---
+        const validationInstruction = feedback === 'thumbs_up'
             ? `The user LIKED this article. Analyze its structure, keywords, and themes. Update the 'MUST-HAVE Elements', 'HIGH-VALUE Content Indicators', and 'PRIORITY KEYWORDS TO SCAN FOR' sections of the prompt to be MORE INCLUSIVE of similar articles. Do not add specific titles or URLs.`
             : `The user DISLIKED this article. Analyze its structure, keywords, and themes. Update the 'REJECT Articles That Are' and 'PRIORITY KEYWORDS TO SCAN FOR' sections of the prompt to be MORE EXCLUSIVE of similar articles. Do not add specific titles or URLs.`;
 
-        const updateRequestPrompt = `
-            You are an AI assistant that refines prompts for another AI.
-            Your task is to update a content validation prompt based on user feedback on a specific article.
-            
+        const updateValidationPrompt = `
+            You are an AI assistant that refines prompts for another AI. Your task is to update a content validation prompt based on user feedback.
             **Current Validation Prompt:**
             ---
             ${currentPromptDoc.prompt}
             ---
-
             **Article for Analysis:**
             ---
             Title: ${article.title}
             Summary: ${article.summary}
             ---
-
-            **Instruction:**
-            ${instruction}
-
-            **Output Format:**
-            Return ONLY the complete, updated prompt text. Do not include any other explanations or surrounding text.
+            **Instruction:** ${validationInstruction}
+            **Output Format:** Return ONLY the complete, updated prompt text.
         `;
+        
+        // --- PROMPT FOR KEYWORDS/CATEGORIES UPDATE ---
+        const keywordUpdatePrompt = `
+You are an expert AI system responsible for curating a news feed by refining search parameters. A user has provided feedback on an article. Your task is to intelligently update the default search keywords and categories to better match the user's preferences. This is a destructive action, so be cautious and precise.
 
-        const updatedPrompt = await callGeminiAPI(updateRequestPrompt, false);
+**Current Search Parameters:**
+- Keywords: ${JSON.stringify(currentKeywordsDoc.keywords)}
+- Categories: ${JSON.stringify(currentKeywordsDoc.categories)}
 
-        await db.collection('Validate_News').updateOne(
-            { name: 'active' },
-            { $set: { prompt: updatedPrompt, name: 'active' } },
-            { upsert: true }
+**Article The User Gave Feedback On:**
+- Title: ${article.title}
+- Summary: ${article.summary}
+
+**User Feedback:** ${feedback === 'thumbs_up' ? 'LIKED (Thumbs Up)' : 'DISLIKED (Thumbs Down)'}
+
+**Your Task & Instructions:**
+
+1.  **Analyze the Article:** Deeply analyze the article's content, main topics, specific terminology, and overall theme.
+2.  **Analyze the Feedback:**
+    * If the feedback is **LIKED (Thumbs Up)**: Your goal is to find **more** articles like this one. Identify the core concepts that make this article interesting. Consider if adding a new, general keyword or category would help achieve this. **Do not add overly specific terms, company names, or product names.** For example, if the article is about "Coca-Cola's new red can design boosting sales", a good keyword to add might be "brand color psychology", not "Coca-Cola" or "red cans". Only add a term if you are highly confident it will broaden the search in a relevant way.
+    * If the feedback is **DISLIKED (Thumbs Down)**: Your goal is to find **fewer** articles like this one. Identify why this article was likely irrelevant. Is there a keyword in the current list that is too broad and brought in this unwanted content? For example, if the user dislikes a generic business news article, and "business" is a keyword, you might consider if a more specific keyword is needed. **Be extremely careful about removing keywords.** Only remove a keyword if you are certain it is the primary cause of irrelevant results and its removal will not harm the search for desired content.
+3.  **Formulate the New Parameters:** Based on your analysis, decide on the new list of keywords and categories. It is perfectly acceptable to make no changes if you are not confident that a change would be an improvement.
+4.  **Output:** Return a single, valid JSON object containing the **complete** updated lists. Do not explain your reasoning. The JSON object must have this exact structure:
+    {
+      "keywords": ["full", "list", "of", "keywords"],
+      "categories": ["full", "list", "of", "categories"]
+    }
+`;
+
+        // --- EXECUTE AI CALLS CONCURRENTLY ---
+        const [updatedPrompt, newKeywordsAndCategories] = await Promise.all([
+            callGeminiAPI(updateValidationPrompt, false),
+            callGeminiAPI(keywordUpdatePrompt, true)
+        ]);
+
+        // --- UPDATE DATABASES ---
+        const dbOperations = [];
+        
+        // 1. Update Validation Prompt
+        dbOperations.push(
+            db.collection('Validate_News').updateOne(
+                { name: 'active' },
+                { $set: { prompt: updatedPrompt, name: 'active' } },
+                { upsert: true }
+            )
         );
 
-        res.json({ success: true, message: 'Validation prompt updated successfully.' });
+        // 2. Update Keywords and Categories
+        if (newKeywordsAndCategories && newKeywordsAndCategories.keywords && newKeywordsAndCategories.categories) {
+            dbOperations.push(
+                db.collection('Keywords').updateOne(
+                    { name: 'default' },
+                    { $set: { 
+                        keywords: newKeywordsAndCategories.keywords,
+                        categories: newKeywordsAndCategories.categories
+                    }},
+                    { upsert: true }
+                )
+            );
+        } else {
+            console.warn("AI did not return valid keywords/categories to update.");
+        }
+
+        await Promise.all(dbOperations);
+
+        res.json({ success: true, message: 'Validation prompt and keywords updated successfully.' });
 
     } catch (error) {
         console.error("Error updating validation prompt:", error);
