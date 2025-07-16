@@ -66,6 +66,32 @@ const getValidationPrompt = async () => {
     }
 };
 
+const getDefaultKeywordsAndCategories = async () => {
+    try {
+        const db = getDB();
+        const doc = await db.collection('Keywords').findOne({ name: 'default' });
+        if (doc && doc.keywords && doc.keywords.length > 0) {
+            return {
+                keywords: doc.keywords,
+                categories: doc.categories || []
+            };
+        }
+        // Hardcoded fallback if DB is empty or not set up
+        console.warn("Default keywords not found in DB, using hardcoded fallback.");
+        return { 
+            keywords: ["marketing psychology", "behavioral economics", "neuromarketing", "cognitive bias", "pricing psychology"], 
+            categories: ["business", "technology", "general"] 
+        };
+    } catch (error) {
+        console.error("Error fetching default keywords/categories:", error);
+        // Hardcoded fallback on error
+        return { 
+            keywords: ["marketing psychology", "behavioral economics", "neuromarketing", "cognitive bias", "pricing psychology"], 
+            categories: ["business", "technology", "general"] 
+        };
+    }
+};
+
 
 // --- PAGE RENDERING ROUTES ---
 router.get('/', (req, res) => res.render('index', { title: 'Dashboard' }));
@@ -442,11 +468,76 @@ router.post('/api/save-story', async (req, res) => {
     }
 });
 
+router.post('/api/update-validation-prompt', async (req, res) => {
+    const { article, feedback } = req.body; // feedback is 'thumbs_up' or 'thumbs_down'
+    if (!article || !feedback) {
+        return res.status(400).json({ error: 'Article and feedback are required.' });
+    }
+
+    try {
+        const db = getDB();
+        const currentPromptDoc = await db.collection('Validate_News').findOne({ name: 'active' }) 
+            || await db.collection('Validate_News').findOne({ name: 'default' });
+
+        if (!currentPromptDoc) {
+            return res.status(404).json({ error: 'Validation prompt not found.' });
+        }
+
+        const instruction = feedback === 'thumbs_up'
+            ? `The user LIKED this article. Analyze its structure, keywords, and themes. Update the 'MUST-HAVE Elements', 'HIGH-VALUE Content Indicators', and 'PRIORITY KEYWORDS TO SCAN FOR' sections of the prompt to be MORE INCLUSIVE of similar articles. Do not add specific titles or URLs.`
+            : `The user DISLIKED this article. Analyze its structure, keywords, and themes. Update the 'REJECT Articles That Are' and 'PRIORITY KEYWORDS TO SCAN FOR' sections of the prompt to be MORE EXCLUSIVE of similar articles. Do not add specific titles or URLs.`;
+
+        const updateRequestPrompt = `
+            You are an AI assistant that refines prompts for another AI.
+            Your task is to update a content validation prompt based on user feedback on a specific article.
+            
+            **Current Validation Prompt:**
+            ---
+            ${currentPromptDoc.prompt}
+            ---
+
+            **Article for Analysis:**
+            ---
+            Title: ${article.title}
+            Summary: ${article.summary}
+            ---
+
+            **Instruction:**
+            ${instruction}
+
+            **Output Format:**
+            Return ONLY the complete, updated prompt text. Do not include any other explanations or surrounding text.
+        `;
+
+        const updatedPrompt = await callGeminiAPI(updateRequestPrompt, false);
+
+        await db.collection('Validate_News').updateOne(
+            { name: 'active' },
+            { $set: { prompt: updatedPrompt, name: 'active' } },
+            { upsert: true }
+        );
+
+        res.json({ success: true, message: 'Validation prompt updated successfully.' });
+
+    } catch (error) {
+        console.error("Error updating validation prompt:", error);
+        if (error instanceof ApiError && error.status === 503) {
+            return res.status(503).json({ error: 'The AI model is currently overloaded. Please try again.' });
+        }
+        res.status(500).json({ error: 'Failed to update validation prompt.' });
+    }
+});
+
+
 router.get('/api/scan-news', async (req, res) => {
     const { keyword, category, page = 1, sortBy = 'rel', dateWindow = '31', validate = 'false' } = req.query;
 
-    const keywords = (keyword || "marketing psychology,behavioral economics,neuromarketing,cognitive bias,pricing psychology").split(',');
-    const categories = category ? category.split(',') : [];
+    const defaults = await getDefaultKeywordsAndCategories();
+
+    // Use query param if it exists, otherwise use the default from the DB/fallback.
+    const keywords = keyword ? keyword.split(',') : defaults.keywords;
+    const categories = category ? category.split(',') : defaults.categories;
+
 
     const categoryMap = {
         business: "dmoz/Business",
@@ -458,9 +549,13 @@ router.get('/api/scan-news', async (req, res) => {
         sports: "dmoz/Sports"
     };
 
-    const queryConditions = [{
-        "$or": keywords.map(kw => ({ "keyword": kw.trim(), "keywordLoc": "body" }))
-    }];
+    const queryConditions = [];
+
+    if (keywords.length > 0) {
+        queryConditions.push({
+            "$or": keywords.map(kw => ({ "keyword": kw.trim(), "keywordLoc": "body" }))
+        });
+    }
 
     if (categories.length > 0) {
         queryConditions.push({
@@ -474,6 +569,11 @@ router.get('/api/scan-news', async (req, res) => {
         startDate.setDate(today.getDate() - parseInt(dateWindow));
         const dateStartString = startDate.toISOString().split('T')[0];
         queryConditions.push({ "dateStart": dateStartString });
+    }
+    
+    if (queryConditions.length === 0) {
+        // Prevent a search with no criteria which might be invalid for the API
+        return res.json({ articles: { results: [], page: 1, pages: 1, totalResults: 0 } });
     }
 
     const query = {
@@ -633,5 +733,61 @@ router.post('/api/analyze-sheet', async (req, res) => {
         res.status(500).json({ error: `Failed to analyze the provided data. Server error: ${err.message}` });
     }
 });
+
+// --- VALIDATION PROMPT ROUTES ---
+
+router.get('/api/get-validation-prompt', async (req, res) => {
+    try {
+        const prompt = await getValidationPrompt();
+        res.json({ prompt });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/api/default-keywords-and-categories', async (req, res) => {
+    try {
+        const defaults = await getDefaultKeywordsAndCategories();
+        res.json(defaults);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch default filters.' });
+    }
+});
+
+router.post('/api/save-validation-prompt', async (req, res) => {
+    const { prompt } = req.body;
+    if (!prompt) {
+        return res.status(400).json({ error: 'Prompt content is required.' });
+    }
+    try {
+        const db = getDB();
+        await db.collection('Validate_News').updateOne(
+            { name: 'active' },
+            { $set: { prompt: prompt, name: 'active' } },
+            { upsert: true }
+        );
+        res.json({ success: true, message: 'Active prompt saved.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to save prompt.' });
+    }
+});
+
+router.post('/api/reset-validation-prompt', async (req, res) => {
+    try {
+        const db = getDB();
+        // Delete the active prompt if it exists
+        await db.collection('Validate_News').deleteOne({ name: 'active' });
+        
+        // Fetch and return the default prompt
+        const defaultDoc = await db.collection('Validate_News').findOne({ name: 'default' });
+        if (!defaultDoc) {
+            return res.status(404).json({ error: 'Default prompt not found.' });
+        }
+        res.json({ success: true, prompt: defaultDoc.prompt });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to reset prompt.' });
+    }
+});
+
 
 module.exports = router;

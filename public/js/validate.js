@@ -7,6 +7,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetBtn = document.getElementById('reset-prompt-btn');
     const feedbackDiv = document.getElementById('action-feedback');
 
+    // Confirmation Modal Elements
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmActionBtn = document.getElementById('confirm-action-btn');
+    const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+    const confirmModalTitle = document.getElementById('confirm-modal-title');
+    const confirmModalMessage = document.getElementById('confirm-modal-message');
+    let confirmCallback = null;
+
     const toggleButtonLoading = (button, isLoading, loadingText = 'Loading...') => {
         if (!button) return;
         const icon = button.querySelector('.btn-icon');
@@ -29,6 +37,19 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             feedbackDiv.textContent = '';
         }, 3000);
+    };
+
+    const showConfirmModal = (title, message, onConfirm) => {
+        confirmModalTitle.textContent = title;
+        confirmModalMessage.textContent = message;
+        confirmCallback = onConfirm;
+        confirmModal.classList.remove('hidden');
+        lucide.createIcons();
+    };
+
+    const hideConfirmModal = () => {
+        confirmModal.classList.add('hidden');
+        confirmCallback = null;
     };
 
     const fetchPrompt = async () => {
@@ -65,10 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const resetPrompt = async () => {
-        if (!confirm('Are you sure you want to reset the prompt to its default version?')) {
-            return;
-        }
+    const performReset = async () => {
         toggleButtonLoading(resetBtn, true, 'Resetting...');
         try {
             const data = await fetch('/api/reset-validation-prompt', {
@@ -84,11 +102,25 @@ document.addEventListener('DOMContentLoaded', () => {
             showFeedback(error.message, true);
         } finally {
             toggleButtonLoading(resetBtn, false);
+            hideConfirmModal();
         }
     };
 
     saveBtn.addEventListener('click', savePrompt);
-    resetBtn.addEventListener('click', resetPrompt);
+    resetBtn.addEventListener('click', () => {
+        showConfirmModal(
+            'Reset to Default?',
+            'Are you sure you want to reset the prompt to its default version? This will discard any custom changes.',
+            performReset
+        );
+    });
+
+    confirmCancelBtn.addEventListener('click', hideConfirmModal);
+    confirmActionBtn.addEventListener('click', () => {
+        if (confirmCallback) {
+            confirmCallback();
+        }
+    });
 
     fetchPrompt();
 });

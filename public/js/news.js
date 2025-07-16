@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const manualFiltersContainer = document.getElementById('manual-filters-container');
     const filterIndicator = document.getElementById('filter-indicator');
     const storyLoaderModal = document.getElementById('story-loader-modal');
+    const promptUpdateLoaderModal = document.getElementById('prompt-update-loader-modal');
     const generationStatusText = document.getElementById('generation-status-text');
     const errorModal = document.getElementById('error-modal');
     const generalErrorContent = document.getElementById('general-error-content');
@@ -35,11 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeFrameworkSelectModalBtn = document.getElementById('close-framework-select-modal-btn');
 
     // --- STATE MANAGEMENT ---
-    const DEFAULT_KEYWORDS = ["marketing psychology", "behavioral economics", "neuromarketing", "cognitive bias", "pricing psychology"];
-    const DEFAULT_CATEGORIES = ["business", "technology", "general"];
+    let DEFAULT_KEYWORDS = [];
+    let DEFAULT_CATEGORIES = [];
     const DEFAULT_SORTBY = 'rel';
     const DEFAULT_DATE_FILTER = '31';
-    let currentFilters = { keywords: [...DEFAULT_KEYWORDS], categories: [...DEFAULT_CATEGORIES], sortBy: DEFAULT_SORTBY, dateFilter: DEFAULT_DATE_FILTER };
+    let currentFilters = { keywords: [], categories: [], sortBy: DEFAULT_SORTBY, dateFilter: DEFAULT_DATE_FILTER };
     let allFetchedArticles = [];
     let currentPage = 1;
     const articlesPerPage = 10;
@@ -184,13 +185,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         currentApiPage = page;
         const queryParams = new URLSearchParams({
-            keyword: currentFilters.keywords.join(','),
-            category: currentFilters.categories.join(','),
             sortBy: currentFilters.sortBy,
             dateWindow: currentFilters.dateFilter,
             validate: validateNewsToggle.checked,
             page: page
         });
+
+        // Only add keywords and categories if they are not empty
+        if (currentFilters.keywords.length > 0) {
+            queryParams.set('keyword', currentFilters.keywords.join(','));
+        }
+        if (currentFilters.categories.length > 0) {
+            queryParams.set('category', currentFilters.categories.join(','));
+        }
+
 
         try {
             const apiResponse = await apiCall(`/api/scan-news?${queryParams.toString()}`);
@@ -237,7 +245,15 @@ document.addEventListener('DOMContentLoaded', () => {
                      </div>
                 </div>
                 <div class="flex justify-between items-center mt-4">
-                    <a href="${article.url}" target="_blank" class="text-xs font-semibold text-slate-500 hover:text-primary-600">View Source</a>
+                    <div class="flex items-center gap-2">
+                         <button class="feedback-btn p-2 rounded-md hover:bg-green-500/10 text-slate-500 hover:text-green-500" data-feedback="thumbs_up" title="Good article, find more like this.">
+                            <i data-lucide="thumbs-up" class="w-5 h-5"></i>
+                        </button>
+                        <button class="feedback-btn p-2 rounded-md hover:bg-red-500/10 text-slate-500 hover:text-red-500" data-feedback="thumbs_down" title="Bad article, find less like this.">
+                            <i data-lucide="thumbs-down" class="w-5 h-5"></i>
+                        </button>
+                         <a href="${article.url}" target="_blank" class="ml-2 text-xs font-semibold text-slate-500 hover:text-primary-600">View Source</a>
+                    </div>
                     <button class="create-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold">Create Story</button>
                 </div>
             </div>`;
@@ -292,6 +308,31 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
     
+    const handleArticleFeedback = async (e) => {
+        const feedbackBtn = e.target.closest('.feedback-btn');
+        if (!feedbackBtn) return;
+
+        const articleDiv = feedbackBtn.closest('.article-card');
+        const article = JSON.parse(articleDiv.dataset.article.replace(/&apos;/g, "'").replace(/&quot;/g, '"'));
+        const feedback = feedbackBtn.dataset.feedback;
+
+        promptUpdateLoaderModal.classList.remove('hidden');
+
+        try {
+            await apiCall('/api/update-validation-prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ article, feedback })
+            });
+            // On success, hide the prompt loader and immediately refresh the news
+            promptUpdateLoaderModal.classList.add('hidden');
+            await scanForNews(1); // Refresh the news feed
+        } catch (error) {
+            promptUpdateLoaderModal.classList.add('hidden');
+            showErrorModal(error.message === 'MODEL_BUSY' ? 'modelBusy' : 'general', error.message);
+        }
+    };
+
     const handleCreateStoryFromNews = (e) => {
         const createBtn = e.target.closest('.create-story-btn');
         if (!createBtn) return;
@@ -352,9 +393,21 @@ document.addEventListener('DOMContentLoaded', () => {
         filterIndicator.classList.toggle('hidden', isDefaultKeywords && isDefaultSort && isDefaultCategories && isDefaultDateFilter);
     };
 
-    const setDefaultFilters = () => {
-        currentFilters = { keywords: [...DEFAULT_KEYWORDS], categories: [...DEFAULT_CATEGORIES], sortBy: DEFAULT_SORTBY, dateFilter: DEFAULT_DATE_FILTER };
-        updateFilterModalUI();
+    const setDefaultFilters = async () => {
+        try {
+            const defaults = await apiCall('/api/default-keywords-and-categories');
+            DEFAULT_KEYWORDS = defaults.keywords || [];
+            DEFAULT_CATEGORIES = defaults.categories || [];
+            currentFilters = { 
+                keywords: [...DEFAULT_KEYWORDS], 
+                categories: [...DEFAULT_CATEGORIES], 
+                sortBy: DEFAULT_SORTBY, 
+                dateFilter: DEFAULT_DATE_FILTER 
+            };
+            updateFilterModalUI();
+        } catch (error) {
+            showErrorModal('general', 'Could not load default filters.');
+        }
     };
 
     const handleExecuteCustomSearch = () => {
@@ -416,24 +469,32 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- EVENT LISTENERS & INITIALIZATION ---
-    shuffleBtn.addEventListener('click', handleShuffleNews);
-    container.addEventListener('click', handleCreateStoryFromNews);
-    customSearchBtn.addEventListener('click', () => {
-        updateFilterModalUI();
-        customSearchModal.classList.remove('hidden');
-    });
-    closeSearchModalBtn.addEventListener('click', () => customSearchModal.classList.add('hidden'));
-    executeSearchBtn.addEventListener('click', handleExecuteCustomSearch);
-    resetSearchBtn.addEventListener('click', setDefaultFilters);
-    usePromptBtn.addEventListener('click', togglePromptUI);
-    generateFiltersBtn.addEventListener('click', handleGenerateFilters);
-    searchCategoryContainer.addEventListener('change', handleCategorySelection);
-    addKeywordInput.addEventListener('keydown', handleAddKeywordKeydown);
-    addKeywordBtn.addEventListener('click', addKeywordFromInput);
-    keywordsContainer.addEventListener('click', handleRemoveKeyword);
-    closeErrorModalBtn.addEventListener('click', () => errorModal.classList.add('hidden'));
-    validateNewsToggle.addEventListener('change', () => scanForNews(1));
-    closeFrameworkSelectModalBtn?.addEventListener('click', () => frameworkSelectModal.classList.add('hidden'));
+    const init = async () => {
+        await setDefaultFilters(); // Load defaults first
+        scanForNews(); // Then perform the initial scan
+
+        shuffleBtn.addEventListener('click', handleShuffleNews);
+        container.addEventListener('click', (e) => {
+            handleCreateStoryFromNews(e);
+            handleArticleFeedback(e);
+        });
+        customSearchBtn.addEventListener('click', () => {
+            updateFilterModalUI();
+            customSearchModal.classList.remove('hidden');
+        });
+        closeSearchModalBtn.addEventListener('click', () => customSearchModal.classList.add('hidden'));
+        executeSearchBtn.addEventListener('click', handleExecuteCustomSearch);
+        resetSearchBtn.addEventListener('click', setDefaultFilters);
+        usePromptBtn.addEventListener('click', togglePromptUI);
+        generateFiltersBtn.addEventListener('click', handleGenerateFilters);
+        searchCategoryContainer.addEventListener('change', handleCategorySelection);
+        addKeywordInput.addEventListener('keydown', handleAddKeywordKeydown);
+        addKeywordBtn.addEventListener('click', addKeywordFromInput);
+        keywordsContainer.addEventListener('click', handleRemoveKeyword);
+        closeErrorModalBtn.addEventListener('click', () => errorModal.classList.add('hidden'));
+        validateNewsToggle.addEventListener('change', () => scanForNews(1));
+        closeFrameworkSelectModalBtn?.addEventListener('click', () => frameworkSelectModal.classList.add('hidden'));
+    };
     
-    scanForNews();
+    init();
 });
