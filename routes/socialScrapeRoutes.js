@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 require('dotenv').config();
 const { ApifyClient } = require('apify-client');
-const fetch = require('node-fetch'); // Import node-fetch
+const fetch = require('node-fetch');
 
 // Initialize the ApifyClient with token from environment
 const client = new ApifyClient({
@@ -13,7 +13,7 @@ const client = new ApifyClient({
 });
 
 router.post('/scrape-instagram-hashtags', async (req, res) => {
-    const { hashtags } = req.body;
+    const { hashtags, resultsType } = req.body;
 
     if (!hashtags || !Array.isArray(hashtags) || hashtags.length === 0) {
         return res.status(400).json({ error: 'Hashtags array is required.' });
@@ -21,8 +21,8 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
 
     const input = {
         hashtags: hashtags,
-        resultsLimit: 25,
-        resultsType: "stories"
+        resultsLimit: 50, // Increased limit to get more data for client-side filtering
+        resultsType: resultsType || "posts" // Use 'stories' for reels
     };
 
     try {
@@ -38,8 +38,7 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
     }
 });
 
-// **NEW:** Image Proxy Route
-// This route fetches an image from a given URL on the server to bypass CORS issues.
+// Image Proxy Route
 router.get('/image-proxy', async (req, res) => {
     try {
         const imageUrl = req.query.url;
@@ -53,7 +52,6 @@ router.get('/image-proxy', async (req, res) => {
             return res.status(imageResponse.status).send('Failed to fetch image.');
         }
 
-        // Set the correct content type and pipe the image stream to the client
         res.setHeader('Content-Type', imageResponse.headers.get('content-type'));
         imageResponse.body.pipe(res);
 

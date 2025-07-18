@@ -18,24 +18,15 @@
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     Back to Social Scrape
                 </a>
-                <button id="scrape-hashtags-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed" data-icon="search" data-original-text="Scrape Hashtags">
-                    <span class="btn-icon"><i data-lucide="search" class="w-4 h-4"></i></span>
-                    <span class="btn-text">Scrape Hashtags</span>
+                <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none">
+                    <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                    Filters
+                </button>
+                <button id="shuffle-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-950">
+                    <i data-lucide="shuffle" class="w-4 h-4"></i>
+                    Shuffle
                 </button>
             </div>
-        </div>
-
-        <!-- Hashtag Input -->
-        <div class="mb-6">
-            <label for="add-keyword-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Hashtags</label>
-            <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
-                <div id="keywords-container" class="flex flex-wrap gap-2">
-                    <!-- Keyword bubbles will be injected here -->
-                </div>
-                <input type="text" id="add-keyword-input" placeholder="Type a hashtag..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
-                <button id="add-keyword-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
-            </div>
-            <p class="text-xs text-slate-400 mt-1">Press Enter or click 'Add' to include a hashtag.</p>
         </div>
 
         <!-- Main Content Area -->
@@ -50,9 +41,70 @@
             <div id="news-articles-container" class="space-y-4">
                 <!-- Scraped posts will be injected here -->
             </div>
+            <div id="pagination-container" class="mt-8">
+                <!-- Pagination controls will be injected here -->
+            </div>
         </div>
     </div>
 </main>
+
+<!-- Filter Modal -->
+<div id="filter-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg">
+        <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Filters</h2>
+            <button id="close-filter-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label for="add-keyword-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Hashtags</label>
+                <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
+                    <div id="keywords-container" class="flex flex-wrap gap-2"></div>
+                    <input type="text" id="add-keyword-input" placeholder="Type a hashtag..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
+                    <button id="add-keyword-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Content Type</label>
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="content-type" value="posts" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                        <span class="text-sm text-slate-700 dark:text-slate-300">Posts</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="content-type" value="stories" checked class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                        <span class="text-sm text-slate-700 dark:text-slate-300">Reels</span>
+                    </label>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div id="min-views-container">
+                    <label for="min-views-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Views</label>
+                    <input type="number" id="min-views-input" value="10000" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                </div>
+                <div>
+                    <label for="min-likes-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Likes</label>
+                    <input type="number" id="min-likes-input" value="100" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                </div>
+                <div>
+                    <label for="date-uploaded-select" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Date Uploaded</label>
+                    <select id="date-uploaded-select" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                        <option value="any">Any Date</option>
+                        <option value="24h">Last 24 hours</option>
+                        <option value="7d">Last 7 days</option>
+                        <option value="30d">Last 30 days</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
+            <button id="reset-filters-btn" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg">Reset</button>
+            <button id="apply-filters-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">Apply Filters</button>
+        </div>
+    </div>
+</div>
 
 <script src="/js/instagram-hashtags.js"></script>
 <script>

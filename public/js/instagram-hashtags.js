@@ -3,16 +3,32 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- ELEMENT SELECTORS ---
-    const scrapeBtn = document.getElementById('scrape-hashtags-btn');
     const loader = document.getElementById('news-loader');
     const container = document.getElementById('news-articles-container');
     const errorContainer = document.getElementById('news-error');
+    const filterBtn = document.getElementById('filter-btn');
+    const filterModal = document.getElementById('filter-modal');
+    const closeFilterModalBtn = document.getElementById('close-filter-modal-btn');
+    const applyFiltersBtn = document.getElementById('apply-filters-btn');
+    const resetFiltersBtn = document.getElementById('reset-filters-btn');
     const keywordsContainer = document.getElementById('keywords-container');
     const addKeywordInput = document.getElementById('add-keyword-input');
     const addKeywordBtn = document.getElementById('add-keyword-btn');
+    const shuffleBtn = document.getElementById('shuffle-btn');
+    const paginationContainer = document.getElementById('pagination-container');
 
     // --- STATE MANAGEMENT ---
-    let hashtags = ["marketingpsychology", "behavioraleconomics", "neuromarketing", "cognitivebias", "pricingpsychology", "marketingtips", "psychologyfacts", "businesstips"];
+    let allPosts = [];
+    let filteredPosts = [];
+    let currentPage = 1;
+    const postsPerPage = 10;
+    let filters = {
+        hashtags: ["marketingpsychology", "behavioraleconomics", "neuromarketing", "cognitivebias", "pricingpsychology", "marketingtips", "psychologyfacts", "businesstips"],
+        contentType: 'stories', // Default to reels
+        minViews: 10000,
+        minLikes: 100, // Default likes for reels
+        dateFilter: 'any'
+    };
 
     // --- API & UI HELPERS ---
     const apiCall = async (endpoint, options = {}) => {
@@ -30,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const renderKeywords = () => {
-        keywordsContainer.innerHTML = hashtags.map((keyword, index) => `
+        keywordsContainer.innerHTML = filters.hashtags.map((keyword, index) => `
             <div class="keyword-bubble flex items-center gap-1.5 bg-primary-500 text-white text-sm font-medium px-3 py-1 rounded-full">
                 <span>${keyword}</span>
                 <button class="remove-keyword-btn" data-index="${index}" title="Remove ${keyword}">
@@ -43,8 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const addKeywordFromInput = () => {
         const newKeyword = addKeywordInput.value.trim().replace(/,$/, '');
-        if (newKeyword && !hashtags.includes(newKeyword)) {
-            hashtags.push(newKeyword);
+        if (newKeyword && !filters.hashtags.includes(newKeyword)) {
+            filters.hashtags.push(newKeyword);
             renderKeywords();
         }
         addKeywordInput.value = '';
@@ -62,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const removeBtn = e.target.closest('.remove-keyword-btn');
         if (removeBtn) {
             const indexToRemove = parseInt(removeBtn.dataset.index);
-            hashtags.splice(indexToRemove, 1);
+            filters.hashtags.splice(indexToRemove, 1);
             renderKeywords();
         }
     };
@@ -76,14 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const results = await apiCall('/api/scrape-instagram-hashtags', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hashtags })
+                body: JSON.stringify({ hashtags: filters.hashtags, resultsType: filters.contentType })
             });
 
-            if (!results || results.length === 0) {
-                container.innerHTML = `<div class="text-center text-slate-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl">No posts found for the given hashtags.</div>`;
-            } else {
-                renderPosts(results);
-            }
+            allPosts = results || [];
+            applyClientSideFilters();
         } catch (error) {
             errorContainer.textContent = `Error: ${error.message}`;
             errorContainer.classList.remove('hidden');
@@ -92,10 +105,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const applyClientSideFilters = () => {
+        const now = new Date();
+        filteredPosts = allPosts.filter(post => {
+            const postDate = new Date(post.timestamp);
+            let dateCondition = true;
+            if (filters.dateFilter !== 'any') {
+                let hours = 0;
+                if (filters.dateFilter === '24h') hours = 24;
+                if (filters.dateFilter === '7d') hours = 24 * 7;
+                if (filters.dateFilter === '30d') hours = 24 * 30;
+                const cutoffDate = new Date(now.getTime() - (hours * 60 * 60 * 1000));
+                dateCondition = postDate >= cutoffDate;
+            }
+
+            const views = post.videoPlayCount || 0;
+            const likes = post.likesCount || 0;
+
+            const viewsCondition = filters.contentType === 'stories' ? views >= filters.minViews : true;
+            const likesCondition = likes >= filters.minLikes;
+
+            return dateCondition && viewsCondition && likesCondition;
+        });
+
+        currentPage = 1;
+        displayCurrentPage();
+    };
+
+    const displayCurrentPage = () => {
+        if (filteredPosts.length === 0) {
+            container.innerHTML = `<div class="text-center text-slate-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl">No posts found matching your filters.</div>`;
+            paginationContainer.innerHTML = '';
+        } else {
+            const startIndex = (currentPage - 1) * postsPerPage;
+            const endIndex = startIndex + postsPerPage;
+            const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
+            renderPosts(paginatedPosts);
+            renderPaginationControls();
+        }
+    };
+
     const renderPosts = (posts) => {
         container.innerHTML = (posts || []).map(post => {
-            // Remove hashtags from the caption and display the full text
             const captionWithoutHashtags = (post.caption || '').replace(/#\w+/g, '').trim();
+            const viewsHTML = filters.contentType === 'stories' 
+                ? `<span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount || 0}</span>`
+                : '';
 
             return `
             <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -110,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
                                 <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${post.likesCount || 0}</span>
                                 <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${post.commentsCount || 0}</span>
-                                <span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount || 0}</span>
+                                ${viewsHTML}
                             </div>
                         </div>
                         <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${captionWithoutHashtags}</p>
@@ -125,13 +180,127 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
+    const renderPaginationControls = () => {
+        const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+        if (totalPages <= 1) {
+            paginationContainer.innerHTML = '';
+            return;
+        }
+        paginationContainer.innerHTML = `
+            <div class="flex items-center justify-between">
+                <button id="prev-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}>
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </button>
+                <span class="text-sm font-medium text-slate-500">Page ${currentPage} of ${totalPages}</span>
+                <button id="next-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}>
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+        `;
+        lucide.createIcons();
+    };
+
+    const handlePaginationClick = (e) => {
+        const prevBtn = e.target.closest('#prev-btn');
+        const nextBtn = e.target.closest('#next-btn');
+
+        if (prevBtn && currentPage > 1) {
+            currentPage--;
+            displayCurrentPage();
+        }
+        if (nextBtn && currentPage < Math.ceil(filteredPosts.length / postsPerPage)) {
+            currentPage++;
+            displayCurrentPage();
+        }
+    };
+
+    const shuffleArray = (array) => {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    };
+
+    const handleShuffle = () => {
+        if (filteredPosts.length > 1) {
+            shuffleArray(filteredPosts);
+            currentPage = 1;
+            displayCurrentPage();
+        }
+    };
+
+    const updateFilterModalUI = () => {
+        document.querySelector(`input[name="content-type"][value="${filters.contentType}"]`).checked = true;
+        const minViewsContainer = document.getElementById('min-views-container');
+        const minLikesInput = document.getElementById('min-likes-input');
+
+        if (filters.contentType === 'stories') {
+            minViewsContainer.style.display = 'block';
+            minViewsContainer.querySelector('input').value = filters.minViews;
+            minLikesInput.value = filters.minLikes;
+        } else {
+            minViewsContainer.style.display = 'none';
+            minLikesInput.value = filters.minLikes;
+        }
+
+        document.getElementById('date-uploaded-select').value = filters.dateFilter;
+        renderKeywords();
+    };
+
+    const handleApplyFilters = () => {
+        filters.contentType = document.querySelector('input[name="content-type"]:checked').value;
+        filters.minViews = parseInt(document.getElementById('min-views-input').value) || 0;
+        filters.minLikes = parseInt(document.getElementById('min-likes-input').value) || 0;
+        filters.dateFilter = document.getElementById('date-uploaded-select').value;
+        filterModal.classList.add('hidden');
+        scrapeHashtags();
+    };
+
+    const handleResetFilters = () => {
+        filters = {
+            hashtags: ["marketingpsychology", "behavioraleconomics", "neuromarketing", "cognitivebias", "pricingpsychology", "marketingtips", "psychologyfacts", "businesstips"],
+            contentType: 'stories',
+            minViews: 10000,
+            minLikes: 100,
+            dateFilter: 'any'
+        };
+        updateFilterModalUI();
+    };
+
+    const handleContentTypeChange = (e) => {
+        const minViewsContainer = document.getElementById('min-views-container');
+        const minLikesInput = document.getElementById('min-likes-input');
+        filters.contentType = e.target.value;
+        if (e.target.value === 'stories') {
+            minViewsContainer.style.display = 'block';
+            minLikesInput.value = 100;
+            filters.minLikes = 100;
+        } else {
+            minViewsContainer.style.display = 'none';
+            minLikesInput.value = 50;
+            filters.minLikes = 50;
+        }
+    };
+
     // --- EVENT LISTENERS & INITIALIZATION ---
     const init = () => {
-        scrapeBtn.addEventListener('click', scrapeHashtags);
+        scrapeHashtags(); // Fetch on page load
+        filterBtn.addEventListener('click', () => {
+            updateFilterModalUI();
+            filterModal.classList.remove('hidden');
+        });
+        closeFilterModalBtn.addEventListener('click', () => filterModal.classList.add('hidden'));
+        applyFiltersBtn.addEventListener('click', handleApplyFilters);
+        resetFiltersBtn.addEventListener('click', handleResetFilters);
         addKeywordInput.addEventListener('keydown', handleAddKeywordKeydown);
         addKeywordBtn.addEventListener('click', addKeywordFromInput);
         keywordsContainer.addEventListener('click', handleRemoveKeyword);
-        renderKeywords();
+        document.querySelectorAll('input[name="content-type"]').forEach(radio => {
+            radio.addEventListener('change', handleContentTypeChange);
+        });
+        shuffleBtn.addEventListener('click', handleShuffle);
+        paginationContainer.addEventListener('click', handlePaginationClick);
+        updateFilterModalUI(); // Set initial state of the modal
     };
     
     init();
