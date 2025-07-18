@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const createFromModal = document.getElementById('create-from-modal');
     const closeCreateModalBtn = document.getElementById('close-create-modal-btn');
     const createFromNewsBtn = document.getElementById('create-from-news-btn');
+    const frameworkUpdateLoader = document.getElementById('framework-update-loader');
     
     // Confirmation Modal Elements
     const confirmModal = document.getElementById('confirm-modal');
@@ -137,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (error.message === 'MODEL_BUSY') {
                 showNotification('Model Overloaded', 'The AI is currently busy. Please try again in a few moments.', 'modelBusy');
             } else {
-                showNotification('Error', error.message, true);
+                showNotification('Error', error.message, 'error');
             }
         }
     };
@@ -209,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (error.message === 'MODEL_BUSY') {
                 showNotification('Model Overloaded', 'The AI is currently busy. Please try again in a few moments.', 'modelBusy');
             } else {
-                showNotification('Error', 'Failed to regenerate script with the new framework.', true);
+                showNotification('Error', 'Failed to regenerate script with the new framework.', 'error');
             }
             renderCurrentReel(); // Render the old one back
         }
@@ -338,10 +339,34 @@ document.addEventListener('DOMContentLoaded', () => {
         editorContainer.innerHTML = `<div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800">
                 <h4 class="text-xl font-bold text-center mb-4 text-slate-800 dark:text-white flex items-center justify-center gap-2"><i data-lucide="edit" class="w-5 h-5 text-primary-500"></i>Script Editor</h4>
                 <textarea id="final-script-textarea" class="w-full h-64 p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700">${scriptText}</textarea>
-                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button class="generate-audio-btn flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg font-semibold" data-icon="music-4" data-original-text="Generate Audio"><span class="btn-icon"><i data-lucide="music-4" class="w-5 h-5"></i></span><span class="btn-text">Generate Audio</span></button>
-                    <button class="copy-text-btn flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"><i data-lucide="copy" class="w-5 h-5"></i>Copy Text</button>
+                
+                <div class="mt-4 space-y-4">
+                    <input type="text" id="ai-rewrite-prompt" placeholder="Optional: Enter a rewrite instruction (e.g., 'make it funnier')" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm" />
+                    
+                    <div class="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg mt-2">
+                        <label for="update-framework-toggle" class="flex items-center justify-between cursor-pointer">
+                            <span class="flex flex-col">
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">Evolve AI's Style</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400">Update the script framework based on this rewrite instruction.</span>
+                            </span>
+                            <div class="relative">
+                                <input type="checkbox" id="update-framework-toggle" class="sr-only peer">
+                                <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-8 rounded-full peer-checked:bg-purple-600"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6"></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <button class="rewrite-ai-btn w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="wand-2" data-original-text="Rewrite with AI">
+                        <span class="btn-icon"><i data-lucide="wand-2" class="w-5 h-5"></i></span>
+                        <span class="btn-text">Rewrite with AI</span>
+                    </button>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button class="generate-audio-btn flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg font-semibold" data-icon="music-4" data-original-text="Generate Audio"><span class="btn-icon"><i data-lucide="music-4" class="w-5 h-5"></i></span><span class="btn-text">Generate Audio</span></button>
+                        <button class="copy-text-btn flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"><i data-lucide="copy" class="w-5 h-5"></i>Copy Text</button>
+                    </div>
                 </div>
+
                 <div class="audio-player-container mt-4"></div>
                 <div class="save-story-container mt-4"></div>
             </div>`;
@@ -381,19 +406,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success && result.audioUrl) {
                 audioPlayerContainer.innerHTML = `<audio controls class="w-full"><source src="${result.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.</audio>`;
                 saveStoryContainer.innerHTML = `<div class="mt-4 space-y-4">
-                    <div>
-                        <label for="save-style-select" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Save script for:</label>
-                        <select id="save-style-select" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                            <option value="" disabled selected>Select a style...</option>
-                            <option value="Talking Head">Talking Head</option>
-                            <option value="Faceless">Faceless</option>
-                            <option value="News Commentary">News Commentary</option>
-                        </select>
-                    </div>
-                    <button class="save-story-btn w-full flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold" data-audio-url="${result.audioUrl}" data-icon="save" data-original-text="Save Story">
-                        <span class="btn-icon"><i data-lucide="save" class="w-5 h-5"></i></span>
-                        <span class="btn-text">Save Story</span>
-                    </button>
+                        <div>
+                            <label for="save-style-select" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Save script for:</label>
+                            <select id="save-style-select" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                <option value="" disabled selected>Select a style...</option>
+                                <option value="Talking Head">Talking Head</option>
+                                <option value="Faceless">Faceless</option>
+                                <option value="News Commentary">News Commentary</option>
+                            </select>
+                        </div>
+                        <button class="save-story-btn w-full flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-semibold" data-audio-url="${result.audioUrl}" data-icon="save" data-original-text="Save Story">
+                            <span class="btn-icon"><i data-lucide="save" class="w-5 h-5"></i></span>
+                            <span class="btn-text">Save Story</span>
+                        </button>
                 </div>`;
                 lucide.createIcons();
             } else {
@@ -440,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             showNotification('Success!', 'Story has been saved successfully.');
         } catch (error) {
-            showNotification('Error', `Failed to save story: ${error.message}`, true);
+            showNotification('Error', `Failed to save story: ${error.message}`, 'error');
         } finally {
             toggleButtonLoading(saveBtn, false);
         }
@@ -468,10 +493,73 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } catch (error) {
                     hideConfirmModal();
-                    showNotification('Error', `Failed to delete case: ${error.message}`, true);
+                    showNotification('Error', `Failed to delete case: ${error.message}`, 'error');
                 }
             }
         );
+    };
+    
+    const handleAiRewrite = async (rewriteBtn) => {
+        const aiPromptInput = document.getElementById('ai-rewrite-prompt');
+        const finalScriptTextarea = document.getElementById('final-script-textarea');
+        const updateFrameworkToggle = document.getElementById('update-framework-toggle');
+        
+        if (!aiPromptInput || !finalScriptTextarea) return;
+
+        const aiPrompt = aiPromptInput.value;
+        const finalScript = finalScriptTextarea.value;
+
+        if (!aiPrompt) {
+            showNotification('Input Required', 'Please enter a rewrite instruction.', 'error');
+            return;
+        }
+
+        toggleButtonLoading(rewriteBtn, true, 'Rewriting...');
+        try {
+            const result = await apiCall('/api/rewrite-script', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ finalScript, aiPrompt })
+            });
+            if (result && result.newScript) {
+                finalScriptTextarea.value = result.newScript;
+                showNotification('Success', 'Script rewritten successfully!');
+
+                if (updateFrameworkToggle.checked) {
+                    await updateFrameworkFromPrompt(aiPrompt, selectedFrameworkId);
+                }
+            } else {
+                throw new Error('AI did not return a new script.');
+            }
+        } catch (error) {
+            if (error.message === 'MODEL_BUSY') {
+                showNotification('Oops! Model Is Busy', 'Failed to rewrite script. Please try again.', 'modelBusy');
+            } else {
+                showNotification('Error', `Failed to rewrite script: ${error.message}`, 'error');
+            }
+        } finally {
+            toggleButtonLoading(rewriteBtn, false);
+        }
+    };
+
+    const updateFrameworkFromPrompt = async (aiPrompt, frameworkId) => {
+        frameworkUpdateLoader.classList.remove('hidden');
+        try {
+            await apiCall('/api/update-framework-from-prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aiPrompt, frameworkId })
+            });
+            showNotification('Framework Updated', 'The AI has learned your new style for future scripts.');
+        } catch (error) {
+             if (error.message === 'MODEL_BUSY') {
+                showNotification('Oops! Model Is Busy', 'Failed to update framework. Please try again.', 'modelBusy');
+            } else {
+                showNotification('Error', `Failed to update framework: ${error.message}`, 'error');
+            }
+        } finally {
+            frameworkUpdateLoader.classList.add('hidden');
+        }
     };
 
     const handleCardClick = (e) => {
@@ -480,6 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.generate-audio-btn')) handleGenerateAudio(e.target.closest('.generate-audio-btn'));
         if (e.target.closest('.save-story-btn')) handleSaveStory(e.target.closest('.save-story-btn'));
         if (e.target.closest('.delete-case-btn')) handleDeleteCase(e.target.closest('.delete-case-btn'));
+        if (e.target.closest('.rewrite-ai-btn')) handleAiRewrite(e.target.closest('.rewrite-ai-btn'));
     };
 
     const updatePagination = () => {
@@ -526,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (error.message === 'MODEL_BUSY') {
                         showNotification('Model Overloaded', 'The AI is currently busy. Please try again in a few moments.', 'modelBusy');
                     } else {
-                        showNotification('Error', 'Could not load the next script.', true);
+                        showNotification('Error', 'Could not load the next script.', 'error');
                     }
                 }
             }
@@ -567,7 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 renderCurrentReel();
             } catch (error) {
-                showNotification('Error', 'Could not load initial data.', true);
+                showNotification('Error', 'Could not load initial data.', 'error');
                 renderCurrentReel(); // Render anyway
             }
         } else {
