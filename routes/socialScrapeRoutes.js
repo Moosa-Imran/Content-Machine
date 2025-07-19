@@ -61,5 +61,32 @@ router.get('/image-proxy', async (req, res) => {
     }
 });
 
+// Transcription Proxy Route
+router.post('/transcribe-video', async (req, res) => {
+    const { url } = req.body;
+    if (!url) {
+        return res.status(400).json({ error: 'URL is required for transcription.' });
+    }
+
+    try {
+        const response = await fetch('http://localhost:3050/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Transcription service failed' }));
+            throw new Error(errorData.error);
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Transcription proxy error:', error);
+        res.status(500).json({ error: 'Failed to transcribe video.' });
+    }
+});
+
 
 module.exports = router;

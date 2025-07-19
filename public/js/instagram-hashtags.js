@@ -16,6 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const addKeywordBtn = document.getElementById('add-keyword-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const paginationContainer = document.getElementById('pagination-container');
+    const transcriptionModal = document.getElementById('transcription-modal');
+    const transcriptionLoading = document.getElementById('transcription-loading');
+    const transcriptionError = document.getElementById('transcription-error');
+    const retryTimer = document.getElementById('retry-timer');
+    const retryTranscriptionBtn = document.getElementById('retry-transcription-btn');
+    const frameworkSelectModal = document.getElementById('framework-select-modal');
+    const frameworkOptionsContainer = document.getElementById('framework-options-container');
+    const closeFrameworkSelectModalBtn = document.getElementById('close-framework-select-modal-btn');
+    const storyLoaderModal = document.getElementById('story-loader-modal');
 
     // --- STATE MANAGEMENT ---
     let allPosts = [];
@@ -29,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
         minLikes: 100, // Default likes for reels
         dateFilter: 'any'
     };
+    let retryInterval;
+    let postToProcess = null;
 
     // --- API & UI HELPERS ---
     const apiCall = async (endpoint, options = {}) => {
@@ -151,9 +162,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const viewsHTML = filters.contentType === 'stories' 
                 ? `<span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount || 0}</span>`
                 : '';
+            const transcriptBtnHTML = filters.contentType === 'stories'
+                ? `<div class="mt-4"><button class="transcribe-btn text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold" data-url="${post.url}">Transcript It</button></div>`
+                : '';
 
             return `
-            <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post.id}">
                 <div class="flex items-start gap-4">
                     <img src="/api/image-proxy?url=${encodeURIComponent(post.displayUrl)}" alt="Post by ${post.ownerUsername}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=Error';">
                     <div class="flex-grow">
@@ -169,10 +183,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
                         <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${captionWithoutHashtags}</p>
+                        <div class="transcript-container"></div>
                         <div class="mt-2 flex flex-wrap gap-1">
                             ${(post.hashtags || []).map(tag => `<span class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-full">#${tag}</span>`).join('')}
                         </div>
                          <a href="${post.url}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on Instagram</a>
+                         ${transcriptBtnHTML}
+                         <div class="generate-story-container"></div>
                     </div>
                 </div>
             </div>
@@ -282,6 +299,136 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleTranscribe = async (e) => {
+        const transcribeBtn = e.target.closest('.transcribe-btn');
+        if (!transcribeBtn) return;
+
+        const url = transcribeBtn.dataset.url;
+        const postContainer = transcribeBtn.closest('[data-post-id]');
+        const transcriptContainer = postContainer.querySelector('.transcript-container');
+        
+        const transcribe = async () => {
+            transcriptionModal.classList.remove('hidden');
+            transcriptionLoading.classList.remove('hidden');
+            transcriptionError.classList.add('hidden');
+            clearInterval(retryInterval);
+
+            try {
+                const result = await apiCall('/api/transcribe-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const postId = postContainer.dataset.postId;
+                const post = allPosts.find(p => p.id === postId);
+                if (post) {
+                    post.transcript = result.transcript;
+                }
+
+                transcriptContainer.innerHTML = `
+                    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Transcript</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${result.transcript}</p>
+                    </div>
+                `;
+                const generateStoryContainer = postContainer.querySelector('.generate-story-container');
+                generateStoryContainer.innerHTML = `<div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${postContainer.dataset.postId}">Generate Story</button></div>`;
+                transcriptionModal.classList.add('hidden');
+                transcribeBtn.style.display = 'none';
+                lucide.createIcons();
+            } catch (error) {
+                transcriptionLoading.classList.add('hidden');
+                transcriptionError.classList.remove('hidden');
+                let countdown = 15;
+                retryTimer.textContent = countdown;
+                retryInterval = setInterval(() => {
+                    countdown--;
+                    retryTimer.textContent = countdown;
+                    if (countdown <= 0) {
+                        clearInterval(retryInterval);
+                        transcribe();
+                    }
+                }, 1000);
+            }
+        };
+
+        retryTranscriptionBtn.onclick = () => {
+            clearInterval(retryInterval);
+            transcribe();
+        };
+
+        transcribe();
+    };
+
+    const handleGenerateStory = (e) => {
+        const generateBtn = e.target.closest('.generate-story-btn');
+        if (!generateBtn) return;
+        
+        const postId = generateBtn.dataset.postId;
+        postToProcess = allPosts.find(p => p.id === postId);
+        
+        if (postToProcess && postToProcess.transcript) {
+            showFrameworkSelector(processStoryCreation);
+        } else {
+            console.error("Could not find post or transcript for story generation.");
+        }
+    };
+
+    const showFrameworkSelector = async (onSelectCallback) => {
+        frameworkOptionsContainer.innerHTML = `<div class="flex justify-center items-center py-10"><i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-primary-500"></i></div>`;
+        lucide.createIcons();
+        frameworkSelectModal.classList.remove('hidden');
+
+        try {
+            const frameworks = await apiCall('/api/frameworks');
+            const viralFrameworks = frameworks.filter(fw => fw.type === 'viral_framework');
+            frameworkOptionsContainer.innerHTML = viralFrameworks.map(fw => `
+                <button class="framework-option-btn w-full text-left p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex justify-between items-center" data-id="${fw._id}">
+                    <span>
+                        <span class="font-semibold text-slate-800 dark:text-white">${fw.name}</span>
+                         <span class="ml-2 text-xs bg-purple-500/10 text-purple-600 px-2 py-0.5 rounded-full font-medium">Viral Script</span>
+                    </span>
+                    <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                </button>
+            `).join('');
+            lucide.createIcons();
+            
+            document.querySelectorAll('.framework-option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const frameworkId = btn.dataset.id;
+                    frameworkSelectModal.classList.add('hidden');
+                    onSelectCallback(frameworkId);
+                });
+            });
+        } catch (error) {
+            frameworkOptionsContainer.innerHTML = `<p class="text-red-500">Could not load frameworks. Using default.</p>`;
+            setTimeout(() => {
+                frameworkSelectModal.classList.add('hidden');
+                onSelectCallback(null);
+            }, 1500);
+        }
+    };
+
+    const processStoryCreation = async (frameworkId) => {
+        if (!postToProcess) return;
+        storyLoaderModal.classList.remove('hidden');
+        try {
+            const newStory = await apiCall('/api/create-story-from-instagram', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post: postToProcess, transcript: postToProcess.transcript, frameworkId })
+            });
+            sessionStorage.setItem('generatedContent', JSON.stringify([newStory]));
+            window.location.href = '/reels';
+        } catch (error) {
+            // showErrorModal(error.message === 'MODEL_BUSY' ? 'modelBusy' : 'general', error.message);
+        } finally {
+            storyLoaderModal.classList.add('hidden');
+            postToProcess = null;
+        }
+    };
+
     // --- EVENT LISTENERS & INITIALIZATION ---
     const init = () => {
         scrapeHashtags(); // Fetch on page load
@@ -300,6 +447,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         shuffleBtn.addEventListener('click', handleShuffle);
         paginationContainer.addEventListener('click', handlePaginationClick);
+        container.addEventListener('click', (e) => {
+            handleTranscribe(e);
+            handleGenerateStory(e);
+        });
         updateFilterModalUI(); // Set initial state of the modal
     };
     

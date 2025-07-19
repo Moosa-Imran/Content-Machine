@@ -15,12 +15,6 @@ const { callGeminiAPI, generateAudio, ApiError } = require('../services/aiServic
 
 // --- HELPER FUNCTION ---
 
-/**
- * Generates all sections of a script based on a business case and a framework.
- * @param {object} businessCase - The source business case.
- * @param {object} framework - The script framework to use.
- * @returns {Promise<object>} A promise that resolves to the complete script object.
- */
 const generateScriptContent = async (businessCase, framework) => {
     const ctaPromise = framework.useFixedCta 
         ? Promise.resolve([framework.fixedCtaText || 'Follow for more!'])
@@ -49,9 +43,9 @@ const generateScriptContent = async (businessCase, framework) => {
     
     const newScript = {
         ...businessCase,
-        id: `db-${businessCase._id.toString()}`,
+        id: `db-${businessCase._id ? businessCase._id.toString() : Date.now()}`,
         type: framework.type || 'viral_framework',
-        frameworkId: framework._id, // Pass frameworkId to the frontend
+        frameworkId: framework._id,
         hooks: results[0],
         ctas: results[results.length - 1]
     };
@@ -72,10 +66,16 @@ const generateScriptContent = async (businessCase, framework) => {
 
 // --- SCRIPT & STORY API ROUTES ---
 
-router.get('/business-cases/count', async (req, res) => {
+router.post('/business-cases/count', async (req, res) => {
+    const { frameworkId } = req.body;
     try {
         const db = getDB();
-        const count = await db.collection('Business_Cases').countDocuments({ used: { $ne: true } });
+        const framework = await getFrameworkById(frameworkId);
+        const filter = { used: { $ne: true } };
+        if (framework.type === 'news_commentary') {
+            filter.origin = 'news';
+        }
+        const count = await db.collection('Business_Cases').countDocuments(filter);
         res.json({ total: count });
     } catch (error) {
         console.error("Error fetching business case count:", error);
@@ -86,13 +86,13 @@ router.get('/business-cases/count', async (req, res) => {
 router.post('/new-script', async (req, res) => {
     const { frameworkId } = req.body;
     try {
-        const [businessCases, framework] = await Promise.all([
-            getBusinessCases(1),
-            getFrameworkById(frameworkId) // Will use default if frameworkId is null/undefined
+        const framework = await getFrameworkById(frameworkId);
+        const [businessCases] = await Promise.all([
+            getBusinessCases(1, framework.type),
         ]);
 
         if (businessCases.length === 0) {
-            return res.status(404).json({ error: 'No business cases found.' });
+            return res.status(404).json({ error: 'No business cases found for the selected framework type.' });
         }
         const businessCase = businessCases[0];
         const newScript = await generateScriptContent(businessCase, framework);
@@ -177,25 +177,33 @@ router.post('/create-story-from-news', async (req, res) => {
 
     try {
         const prompt = `
-        As an expert marketing analyst, transform the following news article into a concise, insightful business case study, structured as a clean JSON object.
-        **Article Details:**
-        - Title: ${article.title}
-        - URL: ${article.url}
-        - Full Content: ${article.summary}
-        **Instructions:**
-        Generate a single, valid JSON object with the following keys, ensuring every field is fully populated:
+        As an expert marketing analyst, transform the following news article into a concise, insightful business case study. Your goal is to extract the core business lesson or marketing tactic being reported.
+
+        **Source Article:**
+        - **Title:** ${article.title}
+        - **URL:** ${article.url}
+        - **Content:** ${article.summary}
+
+        **Your Task & Instructions:**
+        1.  **Identify the Core Subject:** Determine the primary company or industry the news is about.
+        2.  **Extract the Business Case:** Analyze the article to understand the situation (problem), the action taken (solution), and the outcome (findings). News articles may not state these explicitly, so you may need to infer them from the context.
+        3.  **Define the Tactic:** Identify the underlying marketing principle or psychological tactic at play.
+        4.  **Generate JSON:** Create a single, valid JSON object with the following structure. Ensure all fields are fully populated with insightful, well-written information.
+
+        **Final JSON Structure:**
         {
-            "company": "Primary company involved.",
-            "industry": "Industry of the company.",
-            "psychology": "Core psychological principle or marketing tactic.",
-            "problem": "The business problem or challenge.",
-            "solution": "The specific solution or strategy implemented.",
-            "realStudy": "If a study is mentioned, summarize it. Otherwise, state 'No specific study mentioned'.",
-            "findings": "Key outcomes, results, or findings.",
+            "company": "The primary company or industry focus of the article.",
+            "industry": "The industry of the main subject.",
+            "psychology": "The core psychological principle or marketing tactic demonstrated in the news.",
+            "problem": "The business challenge, market condition, or opportunity that prompted the action.",
+            "solution": "The specific strategy, product launch, or campaign that was implemented.",
+            "realStudy": "If a formal study is mentioned, summarize it. Otherwise, state 'No specific study mentioned'.",
+            "findings": "The key results, outcomes, or market impact reported in the article.",
             "verified": false,
             "sources": ["${article.url}"],
             "source_url": "${article.url}",
-            "hashtags": ["array of 3-5 relevant hashtags"]
+            "hashtags": ["#relevant_business_hashtag", "#marketing_tactic", "#industry_news"],
+            "origin": "news"
         }`;
 
         let result = await callGeminiAPI(prompt, true);
@@ -203,7 +211,8 @@ router.post('/create-story-from-news', async (req, res) => {
 
         if (result && typeof result === 'object' && !Array.isArray(result)) {
             const db = getDB();
-            await db.collection('Business_Cases').insertOne(result);
+            const insertResult = await db.collection('Business_Cases').insertOne(result);
+            result._id = insertResult.insertedId;
             const framework = await getFrameworkById(frameworkId);
             const newStory = await generateScriptContent(result, framework);
             res.status(201).json(newStory);
@@ -218,6 +227,75 @@ router.post('/create-story-from-news', async (req, res) => {
         res.status(500).json({ error: 'Failed to create story from news.' });
     }
 });
+
+router.post('/create-story-from-instagram', async (req, res) => {
+    const { post, transcript, frameworkId } = req.body;
+    if (!post || !transcript) return res.status(400).json({ error: 'Post data and transcript are required.' });
+
+    try {
+        const prompt = `
+        As an expert marketing analyst, deconstruct the following Instagram reel transcript to create an insightful business case study. Extract the core marketing tactic, not just summarize the video.
+
+        **Source Content:**
+        - **URL:** ${post.url}
+        - **Caption:** ${post.caption}
+        - **Full Transcript:** ${transcript}
+
+        **Your Task:**
+        1.  **Analyze Deeply:** Identify the underlying business strategy or psychological principle.
+        2.  **Identify the Subject:** Determine if the subject is a specific company (e.g., "Starbucks") or a general category (e.g., "high-end restaurants"). If unclear, infer a subject from the context. **Do NOT use the Instagram author's username.**
+        3.  **Extract the Tactic:** Distill the content into a clear problem, solution, and finding.
+        4.  **Curate Hashtags:** Generate 3-5 new, relevant hashtags for the business case.
+        5.  **Generate JSON:** Create a single, valid JSON object with the structure below, ensuring all fields are fully populated.
+
+        **Example (if transcript is about Starbucks' tables):**
+        {
+            "company": "Starbucks",
+            "industry": "Coffee Shops",
+            "psychology": "Environmental Psychology",
+            "problem": "Making customers feel welcome without them overstaying and reducing table turnover.",
+            "solution": "Using small, round tables to foster comfort and equality, while their size subtly encourages departure.",
+            ...
+        }
+
+        **Final JSON Structure:**
+        {
+            "company": "The identified company or business category.",
+            "industry": "The relevant industry.",
+            "psychology": "The core psychological principle or marketing tactic.",
+            "problem": "The business problem or challenge addressed.",
+            "solution": "The specific solution or strategy implemented.",
+            "realStudy": "If a study is mentioned, summarize it. Otherwise, state 'No specific study mentioned'.",
+            "findings": "The key outcomes, results, or takeaways.",
+            "verified": false,
+            "sources": ["${post.url}"],
+            "source_url": "${post.url}",
+            "hashtags": ["#newly_generated_hashtag1", "#hashtag2", "#hashtag3"],
+            "origin": "social"
+        }`;
+
+        let businessCase = await callGeminiAPI(prompt, true);
+        if (Array.isArray(businessCase)) businessCase = businessCase[0];
+
+        if (businessCase && typeof businessCase === 'object' && !Array.isArray(businessCase)) {
+            const db = getDB();
+            const insertResult = await db.collection('Business_Cases').insertOne(businessCase);
+            businessCase._id = insertResult.insertedId;
+            const framework = await getFrameworkById(frameworkId);
+            const newScript = await generateScriptContent(businessCase, framework);
+            res.status(201).json(newScript);
+        } else {
+            throw new Error("AI failed to generate a valid story structure from the Instagram post.");
+        }
+    } catch (error) {
+        console.error('Error creating story from Instagram:', error);
+        if (error instanceof ApiError && error.status === 503) {
+            return res.status(503).json({ error: 'The AI model is currently overloaded. Please try again.' });
+        }
+        res.status(500).json({ error: 'Failed to create story from Instagram post.' });
+    }
+});
+
 
 router.post('/regenerate-section', async (req, res) => {
     const { businessCase, sectionType, frameworkId } = req.body;

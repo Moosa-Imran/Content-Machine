@@ -5,21 +5,30 @@ const { ObjectId } = require('mongodb');
 const { getDB } = require('../config/database');
 
 /**
- * Fetches a specified number of unused business cases from the database.
- * If no unused cases are found, it falls back to fetching any random cases.
+ * Fetches a specified number of unused business cases from the database,
+ * optionally filtering by origin based on the framework type.
  * @param {number} [limit=1] - The number of business cases to fetch.
+ * @param {string} [frameworkType] - The type of framework being used (e.g., 'news_commentary').
  * @returns {Promise<Array>} A promise that resolves to an array of business cases.
  */
-const getBusinessCases = async (limit = 1) => {
+const getBusinessCases = async (limit = 1, frameworkType) => {
     const db = getDB();
+    const matchStage = { used: { $ne: true } };
+
+    if (frameworkType === 'news_commentary') {
+        matchStage.origin = 'news';
+    }
+
     const pipeline = [
-        { $match: { used: { $ne: true } } },
+        { $match: matchStage },
         { $sample: { size: limit } }
     ];
+    
     const cases = await db.collection('Business_Cases').aggregate(pipeline).toArray();
+    
     if (cases.length === 0) {
-        console.warn("No unused business cases found. Fetching from all cases as a fallback.");
-        const fallbackPipeline = [{ $sample: { size: limit } }];
+        console.warn("No unused business cases found with the current filter. Fetching from all matching cases as a fallback.");
+        const fallbackPipeline = [{ $match: matchStage }, { $sample: { size: limit } }];
         return await db.collection('Business_Cases').aggregate(fallbackPipeline).toArray();
     }
     return cases;
@@ -27,10 +36,10 @@ const getBusinessCases = async (limit = 1) => {
 
 /**
  * Fetches a framework by its ID. If the ID is invalid or not provided,
- * it fetches the default framework.
+ * it fetches the first 'news_commentary' framework as the default.
  * @param {string} id - The ObjectId of the framework to fetch.
  * @returns {Promise<object>} A promise that resolves to a framework object.
- * @throws {Error} If no default framework is found.
+ * @throws {Error} If no frameworks are found in the database.
  */
 const getFrameworkById = async (id) => {
     const db = getDB();
@@ -43,13 +52,17 @@ const getFrameworkById = async (id) => {
         }
     }
     if (!framework) {
-        framework = await db.collection('Frameworks').findOne({ isDefault: true });
+        framework = await db.collection('Frameworks').findOne({ type: 'news_commentary' });
     }
     if (!framework) {
-        throw new Error("No default framework found in the database. Please seed the default framework.");
+        framework = await db.collection('Frameworks').findOne();
+    }
+    if (!framework) {
+        throw new Error("No frameworks found in the database. Please create at least one framework.");
     }
     return framework;
 };
+
 
 /**
  * Retrieves the active or default validation prompt from the database.
@@ -88,7 +101,6 @@ const getDefaultKeywordsAndCategories = async () => {
                 categories: doc.categories || []
             };
         }
-        // Hardcoded fallback if DB is empty or not set up
         console.warn("Default keywords not found in DB, using hardcoded fallback.");
         return { 
             keywords: ["marketing psychology", "behavioral economics", "neuromarketing", "cognitive bias", "pricing psychology"], 
@@ -96,7 +108,6 @@ const getDefaultKeywordsAndCategories = async () => {
         };
     } catch (error) {
         console.error("Error fetching default keywords/categories:", error);
-        // Hardcoded fallback on error
         return { 
             keywords: ["marketing psychology", "behavioral economics", "neuromarketing", "cognitive bias", "pricing psychology"], 
             categories: ["business", "technology", "general"] 

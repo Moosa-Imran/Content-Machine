@@ -114,21 +114,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (loadingTextElement) loadingTextElement.textContent = "Analyzing psychological triggers...";
         
         try {
-            const [countData, frameworks, firstScript] = await Promise.all([
-                apiCall('/api/business-cases/count'),
+            const [frameworks, firstScript] = await Promise.all([
                 apiCall('/api/frameworks'),
                 apiCall('/api/new-script', { method: 'POST', body: JSON.stringify({ frameworkId: null }), headers: { 'Content-Type': 'application/json' } })
             ]);
             
-            totalCases = countData.total;
             allFrameworks = frameworks;
+            selectedFrameworkId = firstScript.frameworkId;
             
-            if (firstScript && firstScript.frameworkId) {
-                selectedFrameworkId = firstScript.frameworkId;
-            } else {
-                const defaultFramework = allFrameworks.find(f => f.isDefault);
-                selectedFrameworkId = defaultFramework ? defaultFramework._id : (allFrameworks.length > 0 ? allFrameworks[0]._id : null);
-            }
+            const countData = await apiCall('/api/business-cases/count', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ frameworkId: selectedFrameworkId })
+            });
+            totalCases = countData.total;
 
             contentFeed = [firstScript];
             currentFeedIndex = 0;
@@ -199,6 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
 
         try {
+            const countData = await apiCall('/api/business-cases/count', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ frameworkId: newFrameworkId })
+            });
+            totalCases = countData.total;
+
             const regeneratedScript = await apiCall('/api/regenerate-script-from-case', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -226,6 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i data-lucide="${sec.icon}" class="w-5 h-5 ${colors.icon}"></i>
                             <span class="font-semibold text-sm text-slate-700 dark:text-slate-200">${sec.title}</span>
                         </div>
+                        <button class="regenerate-section-btn p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700" data-section-type="${sec.type}" title="Regenerate">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-500"></i>
+                        </button>
                     </div>
                     <div class="p-3 space-y-2" data-section-type="${sec.type}">
                         ${options.map((option, index) => `<div class="p-3 rounded-md border cursor-pointer transition-all" onclick="selectOption(this, '${sec.type}')">
@@ -569,6 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.save-story-btn')) handleSaveStory(e.target.closest('.save-story-btn'));
         if (e.target.closest('.delete-case-btn')) handleDeleteCase(e.target.closest('.delete-case-btn'));
         if (e.target.closest('.rewrite-ai-btn')) handleAiRewrite(e.target.closest('.rewrite-ai-btn'));
+        if (e.target.closest('.regenerate-section-btn')) handleRegenerateSection(e.target.closest('.regenerate-section-btn'));
     };
 
     const updatePagination = () => {
@@ -622,6 +632,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleRegenerateSection = async (button) => {
+        const sectionType = button.dataset.sectionType;
+        const businessCase = contentFeed[currentFeedIndex];
+        const icon = button.querySelector('svg'); // **FIX:** Select the SVG element directly
+        const sectionBlock = button.closest('.section-block');
+        const optionsContainer = sectionBlock.querySelector(`div[data-section-type="${sectionType}"]`);
+
+        if (!icon || !optionsContainer) return;
+
+        icon.classList.add('animate-spin');
+        button.disabled = true;
+
+        optionsContainer.innerHTML = `
+            <div class="space-y-2 animate-pulse p-3">
+                <div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                <div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+                <div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
+            </div>`;
+
+        try {
+            const { newOptions } = await apiCall('/api/regenerate-section', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ businessCase, sectionType, frameworkId: selectedFrameworkId })
+            });
+
+            contentFeed[currentFeedIndex][sectionType] = newOptions;
+
+            optionsContainer.innerHTML = newOptions.map((option, index) => `
+                <div class="p-3 rounded-md border cursor-pointer transition-all" onclick="selectOption(this, '${sectionType}')">
+                    <label class="flex items-start text-sm cursor-pointer">
+                        <input type="radio" name="${businessCase.id}-${sectionType}" data-index="${index}" ${index === 0 ? 'checked' : ''} class="sr-only" />
+                        <div class="check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all"></div>
+                        <span class="flex-grow text-slate-600 dark:text-slate-300">${option.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-primary-600 dark:text-primary-400">$1</strong>')}</span>
+                    </label>
+                </div>
+            `).join('');
+            
+            selectOption(optionsContainer.querySelector('.p-3'), sectionType);
+        
+        } catch (error) {
+            optionsContainer.innerHTML = `<p class="text-red-500 text-xs p-2">Failed to load new options.</p>`;
+            if (error.message === 'MODEL_BUSY') {
+                showNotification('Model Overloaded', 'Could not regenerate options. Please try again.', 'modelBusy');
+            } else {
+                showNotification('Error', 'Could not regenerate options. Please try again.', 'error');
+            }
+        } finally {
+            icon.classList.remove('animate-spin');
+            button.disabled = false;
+            lucide.createIcons();
+        }
+    };
+
     const init = async () => {
         findNewScriptsBtn?.addEventListener('click', () => createFromModal.classList.remove('hidden'));
         reelCardContainer.addEventListener('click', handleCardClick);
@@ -641,19 +705,25 @@ document.addEventListener('DOMContentLoaded', () => {
             currentFeedIndex = 0;
             
             try {
-                const [countData, frameworks] = await Promise.all([
-                    apiCall('/api/business-cases/count'),
+                const [frameworks] = await Promise.all([
                     apiCall('/api/frameworks')
                 ]);
-                totalCases = countData.total;
                 allFrameworks = frameworks;
 
                 if (contentFeed[0] && contentFeed[0].frameworkId) {
                     selectedFrameworkId = contentFeed[0].frameworkId;
                 } else {
-                    const defaultFramework = allFrameworks.find(f => f.isDefault);
-                    selectedFrameworkId = defaultFramework ? defaultFramework._id : null;
+                    const newsFramework = allFrameworks.find(f => f.type === 'news_commentary');
+                    selectedFrameworkId = newsFramework ? newsFramework._id : (allFrameworks.length > 0 ? allFrameworks[0]._id : null);
                 }
+
+                const countData = await apiCall('/api/business-cases/count', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ frameworkId: selectedFrameworkId })
+                });
+                totalCases = countData.total;
+
                 renderCurrentReel();
             } catch (error) {
                 showNotification('Error', 'Could not load initial data.', 'error');
