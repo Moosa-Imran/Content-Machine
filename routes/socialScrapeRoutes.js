@@ -17,6 +17,10 @@ const client = new ApifyClient({
 });
 
 router.post('/scrape-instagram-hashtags', async (req, res) => {
+    // **FIX:** Increase the timeout for this specific route to 5 minutes (300,000 ms)
+    // This gives the scraper more time to complete its job before the server times out.
+    res.setTimeout(300000);
+
     const { hashtags, resultsType } = req.body;
 
     if (!hashtags || !Array.isArray(hashtags) || hashtags.length === 0) {
