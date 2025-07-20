@@ -1,0 +1,174 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+
+<main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 dark:from-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
+                    Instagram Competitor Scraper
+                </h1>
+                <p class="mt-1 text-slate-500 dark:text-slate-400">
+                    Analyze your competitors' top-performing content.
+                </p>
+            </div>
+            <div class="flex items-center gap-4">
+                 <a href="/social-scrape" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    Back to Social Scrape
+                </a>
+                <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none">
+                    <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                    Filters
+                </button>
+                <button id="shuffle-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-950">
+                    <i data-lucide="shuffle" class="w-4 h-4"></i>
+                    Shuffle
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="relative">
+            <div id="news-loader" class="hidden fixed inset-0 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-40">
+                <div class="flex flex-col items-center gap-4">
+                    <i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-primary-500"></i>
+                    <p class="text-slate-600 dark:text-slate-300 font-medium">Scraping competitor accounts...</p>
+                </div>
+            </div>
+            <div id="news-error" class="text-center text-red-500 p-4 mb-4 bg-red-500/10 rounded-lg border border-red-500/30 hidden"></div>
+            <div id="news-articles-container" class="space-y-4">
+                <!-- Scraped posts will be injected here -->
+            </div>
+            <div id="pagination-container" class="mt-8">
+                <!-- Pagination controls will be injected here -->
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Filter Modal -->
+<div id="filter-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg">
+        <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Filters</h2>
+            <button id="close-filter-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label for="add-competitor-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Competitor URLs</label>
+                <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
+                    <div id="competitors-container" class="flex flex-wrap gap-2"></div>
+                    <input type="text" id="add-competitor-input" placeholder="Enter a full Instagram URL..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
+                    <button id="add-competitor-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Content Type</label>
+                    <div class="flex items-center gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="content-type" value="posts" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                            <span class="text-sm text-slate-700 dark:text-slate-300">Posts</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="content-type" value="stories" checked class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                            <span class="text-sm text-slate-700 dark:text-slate-300">Reels</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label for="date-uploaded-select" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Posts Newer Than</label>
+                    <select id="date-uploaded-select" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                        <option value="1 week" selected>1 week</option>
+                        <option value="2 weeks">2 weeks</option>
+                        <option value="1 month">1 month</option>
+                        <option value="3 months">3 months</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
+            <button id="reset-filters-btn" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg">Reset</button>
+            <button id="apply-filters-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">Apply Filters</button>
+        </div>
+    </div>
+</div>
+
+<!-- Transcription Modal -->
+<div id="transcription-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md text-center p-6 relative">
+        <button id="close-transcription-modal-btn" class="absolute top-2 right-2 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+        </button>
+        <div id="transcription-loading">
+            <i data-lucide="file-text" class="w-16 h-16 text-primary-500 mx-auto animate-pulse"></i>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Transcribing...</h2>
+            <p class="mt-2 text-slate-500 dark:text-slate-400">Please wait while we transcribe the reel.</p>
+        </div>
+        <div id="transcription-error" class="hidden">
+            <i data-lucide="alert-triangle" class="w-16 h-16 text-red-500 mx-auto"></i>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Transcription Failed</h2>
+            <p class="mt-2 text-slate-500 dark:text-slate-400">Instagram blocked your request. Try again after a few minutes.</p>
+            <button id="retry-transcription-btn" class="mt-4 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg font-semibold">Try Again Now</button>
+        </div>
+    </div>
+</div>
+
+<!-- Story Generation Loader Modal -->
+<div id="story-loader-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+    <div class="flex flex-col items-center gap-4 text-white">
+        <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500"></div>
+        <h2 class="text-2xl font-bold mt-4">Generating Your Viral Script...</h2>
+        <p id="generation-status-text" class="text-slate-300 h-6"></p>
+    </div>
+</div>
+
+<!-- Framework Selection Modal -->
+<div id="framework-select-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md">
+        <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Select a Framework</h2>
+            <button id="close-framework-select-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+            </button>
+        </div>
+        <div id="framework-options-container" class="p-6 max-h-[60vh] overflow-y-auto">
+            <!-- Framework options will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script src="/js/instagram-competitor.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+        const themeToggle = document.getElementById('theme-toggle');
+        const htmlEl = document.documentElement;
+        themeToggle.addEventListener('click', () => {
+            const isDark = htmlEl.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            lucide.createIcons();
+        });
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarCloseButton = document.getElementById('sidebar-close-button');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const openSidebar = () => {
+            sidebar.classList.remove('-translate-x-full');
+            sidebarOverlay.classList.remove('hidden');
+        };
+        const closeSidebar = () => {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        };
+        mobileMenuButton.addEventListener('click', openSidebar);
+        sidebarCloseButton.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    });
+</script>
+
+<%- include('partials/footer') %>

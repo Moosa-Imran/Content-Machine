@@ -10,6 +10,7 @@ const fetch = require('node-fetch');
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
 const { callGeminiAPI } = require('../services/aiService');
+const { getIgHashtags, getIgCompetitors } = require('../utils/dbHelpers');
 
 // Initialize the ApifyClient with token from environment
 const client = new ApifyClient({
@@ -17,8 +18,6 @@ const client = new ApifyClient({
 });
 
 router.post('/scrape-instagram-hashtags', async (req, res) => {
-    // **FIX:** Increase the timeout for this specific route to 5 minutes (300,000 ms)
-    // This gives the scraper more time to complete its job before the server times out.
     res.setTimeout(300000);
 
     const { hashtags, resultsType } = req.body;
@@ -34,13 +33,9 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
     };
 
     try {
-        // Run the Actor and wait for it to finish
         const run = await client.actor("apify/instagram-hashtag-scraper").call(input);
-
-        // Fetch Actor results from the run's dataset
         const { items } = await client.dataset(run.defaultDatasetId).listItems();
 
-        // --- Check for existing URLs in the database ---
         const fetchedUrls = items.map(post => post.url);
         let uniquePosts = [];
 
@@ -54,10 +49,9 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
             uniquePosts = items.filter(post => !existingUrls.has(post.url));
         }
 
-        // --- Translate non-English captions ---
         const processedPostsPromises = uniquePosts.map(async (post) => {
             if (!post.caption || post.caption.trim() === '') {
-                return post; // Return post as is if there's no caption
+                return post;
             }
 
             const translationPrompt = `
@@ -75,20 +69,65 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
 
             try {
                 const translatedCaption = await callGeminiAPI(translationPrompt, false);
-                post.caption = translatedCaption.trim(); // Update the caption with the result
+                post.caption = translatedCaption.trim();
                 return post;
             } catch (error) {
                 console.warn(`Caption translation failed for post ${post.url}. Using original caption.`, error);
-                return post; // In case of an error, return the original post
+                return post;
             }
         });
 
         const processedPosts = await Promise.all(processedPostsPromises);
-
         res.json(processedPosts);
     } catch (error) {
         console.error("Error running Apify actor:", error);
         res.status(500).json({ error: 'Failed to scrape Instagram hashtags.' });
+    }
+});
+
+router.post('/scrape-instagram-competitors', async (req, res) => {
+    res.setTimeout(300000);
+
+    const { directUrls, resultsType, onlyPostsNewerThan } = req.body;
+
+    if (!directUrls || !Array.isArray(directUrls) || directUrls.length === 0) {
+        return res.status(400).json({ error: 'Competitor usernames are required.' });
+    }
+
+    const fullUrls = directUrls.map(username => `https://www.instagram.com/${username}/`);
+
+    const input = {
+        directUrls: fullUrls,
+        resultsType: resultsType || "stories",
+        onlyPostsNewerThan: onlyPostsNewerThan || "1 week",
+        resultsLimit: 25
+    };
+
+    try {
+        const run = await client.actor("apify/instagram-scraper").call(input);
+        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+        res.json(items);
+    } catch (error) {
+        console.error("Error running Apify actor:", error);
+        res.status(500).json({ error: 'Failed to scrape Instagram competitors.' });
+    }
+});
+
+router.get('/default-ig-hashtags', async (req, res) => {
+    try {
+        const hashtags = await getIgHashtags();
+        res.json({ hashtags });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch default hashtags.' });
+    }
+});
+
+router.get('/default-ig-competitors', async (req, res) => {
+    try {
+        const competitors = await getIgCompetitors();
+        res.json({ competitors });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch default competitors.' });
     }
 });
 
@@ -99,16 +138,12 @@ router.get('/image-proxy', async (req, res) => {
         if (!imageUrl) {
             return res.status(400).send('Image URL is required.');
         }
-
         const imageResponse = await fetch(imageUrl);
-
         if (!imageResponse.ok) {
             return res.status(imageResponse.status).send('Failed to fetch image.');
         }
-
         res.setHeader('Content-Type', imageResponse.headers.get('content-type'));
         imageResponse.body.pipe(res);
-
     } catch (error) {
         console.error('Image proxy error:', error);
         res.status(500).send('Error fetching image.');
@@ -121,19 +156,16 @@ router.post('/transcribe-video', async (req, res) => {
     if (!url) {
         return res.status(400).json({ error: 'URL is required for transcription.' });
     }
-
     try {
         const response = await fetch('http://localhost:3050/transcribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url })
         });
-
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Transcription service failed' }));
             throw new Error(errorData.error);
         }
-
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -141,6 +173,5 @@ router.post('/transcribe-video', async (req, res) => {
         res.status(500).json({ error: 'Failed to transcribe video.' });
     }
 });
-
 
 module.exports = router;

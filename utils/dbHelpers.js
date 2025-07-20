@@ -115,9 +115,51 @@ const getDefaultKeywordsAndCategories = async () => {
     }
 };
 
+/**
+ * Fetches the default Instagram hashtags from the database.
+ * Provides a hardcoded fallback if the database entry is not found.
+ * @returns {Promise<Array>} A promise that resolves to an array of hashtags.
+ */
+const getIgHashtags = async () => {
+    try {
+        const db = getDB();
+        const doc = await db.collection('Keywords').findOne({ name: 'ig-hashtags' });
+        if (doc && doc.hashtags && doc.hashtags.length > 0) {
+            return doc.hashtags;
+        }
+        console.warn("Default Instagram hashtags not found in DB, using hardcoded fallback.");
+        return ["marketingpsychology", "behavioraleconomics", "neuromarketing", "cognitivebias", "pricingpsychology", "marketingtips", "psychologyfacts", "businesstips"];
+    } catch (error) {
+        console.error("Error fetching default Instagram hashtags:", error);
+        return ["marketingpsychology", "behavioraleconomics", "neuromarketing", "cognitivebias", "pricingpsychology", "marketingtips", "psychologyfacts", "businesstips"];
+    }
+};
+
+/**
+ * Fetches the default Instagram competitor usernames from the database.
+ * Provides a hardcoded fallback if the database entry is not found.
+ * @returns {Promise<Array>} A promise that resolves to an array of competitor usernames.
+ */
+const getIgCompetitors = async () => {
+    try {
+        const db = getDB();
+        const doc = await db.collection('Keywords').findOne({ name: 'ig-competitors' });
+        if (doc && doc.competitors && doc.competitors.length > 0) {
+            return doc.competitors;
+        }
+        console.warn("Default Instagram competitors not found in DB, using hardcoded fallback.");
+        return ["conexion.irracional", "bellman.media", "jon_davids", "thebrandzine", "badmarketing", "neuromark.pro", "theventure", "maxfinn", "sanjayarora", "brandsmanagement"];
+    } catch (error) {
+        console.error("Error fetching default Instagram competitors:", error);
+        return ["conexion.irracional", "bellman.media", "jon_davids", "thebrandzine", "badmarketing", "neuromark.pro", "theventure", "maxfinn", "sanjayarora", "brandsmanagement"];
+    }
+};
+
 module.exports = {
     getBusinessCases,
     getFrameworkById,
     getValidationPrompt,
-    getDefaultKeywordsAndCategories
+    getDefaultKeywordsAndCategories,
+    getIgHashtags,
+    getIgCompetitors
 };
