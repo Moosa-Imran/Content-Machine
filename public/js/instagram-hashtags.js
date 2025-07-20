@@ -19,8 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const transcriptionModal = document.getElementById('transcription-modal');
     const transcriptionLoading = document.getElementById('transcription-loading');
     const transcriptionError = document.getElementById('transcription-error');
-    const retryTimer = document.getElementById('retry-timer');
     const retryTranscriptionBtn = document.getElementById('retry-transcription-btn');
+    const closeTranscriptionModalBtn = document.getElementById('close-transcription-modal-btn');
     const frameworkSelectModal = document.getElementById('framework-select-modal');
     const frameworkOptionsContainer = document.getElementById('framework-options-container');
     const closeFrameworkSelectModalBtn = document.getElementById('close-framework-select-modal-btn');
@@ -38,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
         minLikes: 100, // Default likes for reels
         dateFilter: 'any'
     };
-    let retryInterval;
     let postToProcess = null;
 
     // --- API & UI HELPERS ---
@@ -311,7 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
             transcriptionModal.classList.remove('hidden');
             transcriptionLoading.classList.remove('hidden');
             transcriptionError.classList.add('hidden');
-            clearInterval(retryInterval);
 
             try {
                 const result = await apiCall('/api/transcribe-video', {
@@ -340,21 +338,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 transcriptionLoading.classList.add('hidden');
                 transcriptionError.classList.remove('hidden');
-                let countdown = 15;
-                retryTimer.textContent = countdown;
-                retryInterval = setInterval(() => {
-                    countdown--;
-                    retryTimer.textContent = countdown;
-                    if (countdown <= 0) {
-                        clearInterval(retryInterval);
-                        transcribe();
-                    }
-                }, 1000);
             }
         };
 
         retryTranscriptionBtn.onclick = () => {
-            clearInterval(retryInterval);
             transcribe();
         };
 
@@ -450,6 +437,9 @@ document.addEventListener('DOMContentLoaded', () => {
         container.addEventListener('click', (e) => {
             handleTranscribe(e);
             handleGenerateStory(e);
+        });
+        closeTranscriptionModalBtn.addEventListener('click', () => {
+            transcriptionModal.classList.add('hidden');
         });
         updateFilterModalUI(); // Set initial state of the modal
     };

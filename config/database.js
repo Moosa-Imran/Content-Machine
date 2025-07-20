@@ -2,9 +2,15 @@
 // Handles the connection to the MongoDB database.
 
 const { MongoClient } = require('mongodb');
+require('dotenv').config(); // Make sure environment variables are loaded
 
-// Connection URI - It's best to use an environment variable for this.
-const uri = "mongodb+srv://mi228334:notcanon321go@cluster0.lhs4vzn.mongodb.net";
+// Connection URI is now loaded from the .env file
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+    console.error("MongoDB connection string is not defined. Please set the MONGODB_URI environment variable.");
+    process.exit(1);
+}
+
 const client = new MongoClient(uri);
 
 let db;
