@@ -7,6 +7,10 @@ require('dotenv').config();
 const { ApifyClient } = require('apify-client');
 const fetch = require('node-fetch');
 
+// --- MODULE IMPORTS ---
+const { getDB } = require('../config/database');
+const { callGeminiAPI } = require('../services/aiService');
+
 // Initialize the ApifyClient with token from environment
 const client = new ApifyClient({
     token: process.env.APIFY_API_TOKEN,
@@ -21,8 +25,8 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
 
     const input = {
         hashtags: hashtags,
-        resultsLimit: 50, // Increased limit to get more data for client-side filtering
-        resultsType: resultsType || "posts" // Use 'stories' for reels
+        resultsLimit: 50,
+        resultsType: resultsType || "posts"
     };
 
     try {
@@ -31,7 +35,53 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
 
         // Fetch Actor results from the run's dataset
         const { items } = await client.dataset(run.defaultDatasetId).listItems();
-        res.json(items);
+
+        // --- Check for existing URLs in the database ---
+        const fetchedUrls = items.map(post => post.url);
+        let uniquePosts = [];
+
+        if (fetchedUrls.length > 0) {
+            const db = getDB();
+            const existingCases = await db.collection('Business_Cases').find({
+                source_url: { $in: fetchedUrls }
+            }).project({ source_url: 1 }).toArray();
+            
+            const existingUrls = new Set(existingCases.map(caseDoc => caseDoc.source_url));
+            uniquePosts = items.filter(post => !existingUrls.has(post.url));
+        }
+
+        // --- Translate non-English captions ---
+        const processedPostsPromises = uniquePosts.map(async (post) => {
+            if (!post.caption || post.caption.trim() === '') {
+                return post; // Return post as is if there's no caption
+            }
+
+            const translationPrompt = `
+                Your task is to analyze the following text to determine if it is in English. If it is not, you must translate it to English.
+
+                **Instructions:**
+                1.  Read the "Text to Analyze".
+                2.  If the text is already in English, return the original text exactly as it is.
+                3.  If the text is NOT in English, translate it to clear, natural-sounding English.
+                4.  Return ONLY the final English text and nothing else. Do not add any introductory phrases or explanations.
+
+                **Text to Analyze:**
+                "${post.caption}"
+            `;
+
+            try {
+                const translatedCaption = await callGeminiAPI(translationPrompt, false);
+                post.caption = translatedCaption.trim(); // Update the caption with the result
+                return post;
+            } catch (error) {
+                console.warn(`Caption translation failed for post ${post.url}. Using original caption.`, error);
+                return post; // In case of an error, return the original post
+            }
+        });
+
+        const processedPosts = await Promise.all(processedPostsPromises);
+
+        res.json(processedPosts);
     } catch (error) {
         console.error("Error running Apify actor:", error);
         res.status(500).json({ error: 'Failed to scrape Instagram hashtags.' });
