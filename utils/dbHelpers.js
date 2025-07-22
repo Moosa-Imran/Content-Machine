@@ -155,11 +155,31 @@ const getIgCompetitors = async () => {
     }
 };
 
+/**
+ * Adds a new competitor username to the database if it doesn't already exist.
+ * @param {string} username - The Instagram username to add.
+ * @returns {Promise<object>} A promise that resolves to the result of the update operation.
+ */
+const addIgCompetitor = async (username) => {
+    try {
+        const db = getDB();
+        return await db.collection('Keywords').updateOne(
+            { name: 'ig-competitors' },
+            { $addToSet: { competitors: username } },
+            { upsert: true } // Creates the document if it doesn't exist
+        );
+    } catch (error) {
+        console.error("Error adding Instagram competitor:", error);
+        throw error;
+    }
+};
+
 module.exports = {
     getBusinessCases,
     getFrameworkById,
     getValidationPrompt,
     getDefaultKeywordsAndCategories,
     getIgHashtags,
-    getIgCompetitors
+    getIgCompetitors,
+    addIgCompetitor
 };

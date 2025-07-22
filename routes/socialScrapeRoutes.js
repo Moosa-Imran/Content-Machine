@@ -10,7 +10,7 @@ const fetch = require('node-fetch');
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
 const { callGeminiAPI } = require('../services/aiService');
-const { getIgHashtags, getIgCompetitors } = require('../utils/dbHelpers');
+const { getIgHashtags, getIgCompetitors, addIgCompetitor } = require('../utils/dbHelpers');
 
 // Initialize the ApifyClient with token from environment
 const client = new ApifyClient({
@@ -128,6 +128,26 @@ router.get('/default-ig-competitors', async (req, res) => {
         res.json({ competitors });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch default competitors.' });
+    }
+});
+
+router.post('/add-competitor', async (req, res) => {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required.' });
+    }
+
+    try {
+        const db = getDB();
+        const existing = await db.collection('Keywords').findOne({ name: 'ig-competitors', competitors: username });
+        if (existing) {
+            return res.json({ success: true, alreadyExists: true, message: `${username} is already in the competitor list.` });
+        }
+
+        await addIgCompetitor(username);
+        res.json({ success: true, message: `${username} added to competitors.` });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to add competitor.' });
     }
 });
 
