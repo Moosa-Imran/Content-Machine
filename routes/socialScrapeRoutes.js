@@ -28,7 +28,7 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
 
     const input = {
         hashtags: hashtags,
-        resultsLimit: 50,
+        resultsLimit: 3,
         resultsType: resultsType || "posts"
     };
 
@@ -100,7 +100,7 @@ router.post('/scrape-instagram-competitors', async (req, res) => {
         directUrls: fullUrls,
         resultsType: resultsType || "stories",
         onlyPostsNewerThan: onlyPostsNewerThan || "1 week",
-        resultsLimit: 25
+        resultsLimit: 2
     };
 
     try {
