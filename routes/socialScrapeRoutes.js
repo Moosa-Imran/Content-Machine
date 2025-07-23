@@ -28,7 +28,7 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
 
     const input = {
         hashtags: hashtags,
-        resultsLimit: 3,
+        resultsLimit: 50,
         resultsType: resultsType || "posts"
     };
 
@@ -100,7 +100,7 @@ router.post('/scrape-instagram-competitors', async (req, res) => {
         directUrls: fullUrls,
         resultsType: resultsType || "stories",
         onlyPostsNewerThan: onlyPostsNewerThan || "1 week",
-        resultsLimit: 2
+        resultsLimit: 25
     };
 
     try {
@@ -148,6 +148,80 @@ router.post('/add-competitor', async (req, res) => {
         res.json({ success: true, message: `${username} added to competitors.` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to add competitor.' });
+    }
+});
+
+// --- NEW CONTENT POOL ROUTES ---
+
+router.get('/instagram-posts', async (req, res) => {
+    try {
+        const db = getDB();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const minViews = parseInt(req.query.minViews) || 0;
+        const minLikes = parseInt(req.query.minLikes) || 0;
+        const dateFilter = req.query.dateFilter || 'any';
+
+        let mongoQuery = {};
+        if (minViews > 0) {
+            mongoQuery.videoPlayCount = { $gte: minViews };
+        }
+        if (minLikes > 0) {
+            mongoQuery.likesCount = { $gte: minLikes };
+        }
+        if (dateFilter !== 'any') {
+            let hours = 0;
+            if (dateFilter === '24h') hours = 24;
+            if (dateFilter === '7d') hours = 24 * 7;
+            if (dateFilter === '30d') hours = 24 * 30;
+            const cutoffDate = new Date(new Date().getTime() - (hours * 60 * 60 * 1000));
+            mongoQuery.timestamp = { $gte: cutoffDate.toISOString() };
+        }
+
+        const posts = await db.collection('ig_posts').find(mongoQuery).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray();
+        const totalPosts = await db.collection('ig_posts').countDocuments(mongoQuery);
+
+        res.json({
+            posts,
+            totalPages: Math.ceil(totalPosts / limit),
+            currentPage: page
+        });
+    } catch (error) {
+        console.error("Error fetching Instagram posts from DB:", error);
+        res.status(500).json({ error: 'Failed to fetch posts from the content pool.' });
+    }
+});
+
+router.post('/run-hashtag-scrape-job', async (req, res) => {
+    const { hashtags, resultsLimit } = req.body;
+    try {
+        const db = getDB();
+        const hashtagsToScrape = hashtags || await getIgHashtags();
+        const limit = resultsLimit || 5;
+
+        const input = {
+            hashtags: hashtagsToScrape,
+            resultsLimit: limit,
+            resultsType: "stories"
+        };
+
+        const run = await client.actor("apify/instagram-hashtag-scraper").call(input);
+        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+
+        let newPostsCount = 0;
+        for (const post of items) {
+            const existingPost = await db.collection('ig_posts').findOne({ url: post.url });
+            if (!existingPost) {
+                await db.collection('ig_posts').insertOne(post);
+                newPostsCount++;
+            }
+        }
+        res.json({ success: true, message: `Scraping complete. Added ${newPostsCount} new posts to the content pool.` });
+    } catch (error) {
+        console.error("Error running hashtag scrape job:", error);
+        res.status(500).json({ error: 'Failed to run the scraping job.' });
     }
 });
 
