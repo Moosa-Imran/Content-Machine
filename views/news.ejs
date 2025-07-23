@@ -47,9 +47,9 @@
 
 
                 <!-- Main Content Area -->
-                <div class="relative">
+                <div class="relative min-h-[400px]">
                     <div id="news-loader"
-                        class="hidden fixed inset-0 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-40">
+                        class="absolute inset-0 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-40 hidden">
                         <div class="flex flex-col items-center gap-4">
                             <i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-primary-500"></i>
                             <p class="text-slate-600 dark:text-slate-300 font-medium">Scanning the latest headlines...
@@ -60,7 +60,11 @@
                         class="text-center text-red-500 p-4 mb-4 bg-red-500/10 rounded-lg border border-red-500/30 hidden">
                     </div>
                     <div id="news-articles-container" class="space-y-4">
-                        <!-- News articles will be injected here by news.js -->
+                        <div id="initial-fetch-container" class="text-center py-20">
+                            <button id="fetch-content-btn" class="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition duration-300 font-semibold text-lg">
+                                Click to Fetch News
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -113,7 +117,7 @@
                             <p class="text-xs text-slate-400 mt-1">Press Enter or click 'Add' to include a keyword.</p>
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">News Within</label>
                                 <select id="date-filter-select" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary-500 focus:outline-none">
@@ -134,6 +138,19 @@
                                     <label for="sort-date" class="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" id="sort-date" name="sort_by" value="date" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
                                         <span class="text-sm text-slate-700 dark:text-slate-300">Date</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Search In</label>
+                                <div id="keyword-loc-container" class="flex items-center gap-4">
+                                    <label for="loc-body" class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" id="loc-body" name="keyword_loc" value="body" checked class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                                        <span class="text-sm text-slate-700 dark:text-slate-300">Body</span>
+                                    </label>
+                                    <label for="loc-title" class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" id="loc-title" name="keyword_loc" value="title" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                                        <span class="text-sm text-slate-700 dark:text-slate-300">Title</span>
                                     </label>
                                 </div>
                             </div>

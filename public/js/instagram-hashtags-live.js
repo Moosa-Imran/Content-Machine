@@ -1,5 +1,5 @@
-// public/js/instagram-competitor.js
-// Handles all client-side interactions for the instagram-competitor.ejs page.
+// public/js/instagram-hashtags-live.js
+// Handles all client-side interactions for the instagram-hashtags-live.ejs page.
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- ELEMENT SELECTORS ---
@@ -11,9 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeFilterModalBtn = document.getElementById('close-filter-modal-btn');
     const applyFiltersBtn = document.getElementById('apply-filters-btn');
     const resetFiltersBtn = document.getElementById('reset-filters-btn');
-    const competitorsContainer = document.getElementById('competitors-container');
-    const addCompetitorInput = document.getElementById('add-competitor-input');
-    const addCompetitorBtn = document.getElementById('add-competitor-btn');
+    const keywordsContainer = document.getElementById('keywords-container');
+    const addKeywordInput = document.getElementById('add-keyword-input');
+    const addKeywordBtn = document.getElementById('add-keyword-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const paginationContainer = document.getElementById('pagination-container');
     const transcriptionModal = document.getElementById('transcription-modal');
@@ -32,11 +32,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let filteredPosts = [];
     let currentPage = 1;
     const postsPerPage = 10;
-    let DEFAULT_COMPETITORS = [];
+    let DEFAULT_HASHTAGS = [];
     let filters = {
-        competitors: [],
+        hashtags: [],
         contentType: 'stories',
-        dateFilter: '1 week'
+        minViews: 10000,
+        minLikes: 100,
+        dateFilter: 'any'
     };
     let postToProcess = null;
 
@@ -55,11 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    const renderCompetitors = () => {
-        competitorsContainer.innerHTML = filters.competitors.map((username, index) => `
+    const renderKeywords = () => {
+        keywordsContainer.innerHTML = filters.hashtags.map((keyword, index) => `
             <div class="keyword-bubble flex items-center gap-1.5 bg-primary-500 text-white text-sm font-medium px-3 py-1 rounded-full">
-                <span>${username}</span>
-                <button class="remove-competitor-btn" data-index="${index}" title="Remove ${username}">
+                <span>${keyword}</span>
+                <button class="remove-keyword-btn" data-index="${index}" title="Remove ${keyword}">
                     <i data-lucide="x" class="w-4 h-4 hover:text-red-200"></i>
                 </button>
             </div>
@@ -67,53 +69,42 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
-    const addCompetitorFromInput = () => {
-        let newCompetitor = addCompetitorInput.value.trim();
-        if (newCompetitor) {
-            try {
-                // Extract username from URL if a full URL is pasted
-                if (newCompetitor.includes('instagram.com')) {
-                    const url = new URL(newCompetitor);
-                    newCompetitor = url.pathname.split('/')[1];
-                }
-                if (newCompetitor && !filters.competitors.includes(newCompetitor)) {
-                    filters.competitors.push(newCompetitor);
-                    renderCompetitors();
-                }
-            } catch (_) {
-                alert("Please enter a valid Instagram username or URL.");
-            }
+    const addKeywordFromInput = () => {
+        const newKeyword = addKeywordInput.value.trim().replace(/,$/, '');
+        if (newKeyword && !filters.hashtags.includes(newKeyword)) {
+            filters.hashtags.push(newKeyword);
+            renderKeywords();
         }
-        addCompetitorInput.value = '';
-        addCompetitorInput.focus();
+        addKeywordInput.value = '';
+        addKeywordInput.focus();
     };
 
-    const handleAddCompetitorKeydown = (e) => {
-        if (e.key === 'Enter') {
+    const handleAddKeywordKeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
-            addCompetitorFromInput();
+            addKeywordFromInput();
         }
     };
 
-    const handleRemoveCompetitor = (e) => {
-        const removeBtn = e.target.closest('.remove-competitor-btn');
+    const handleRemoveKeyword = (e) => {
+        const removeBtn = e.target.closest('.remove-keyword-btn');
         if (removeBtn) {
             const indexToRemove = parseInt(removeBtn.dataset.index);
-            filters.competitors.splice(indexToRemove, 1);
-            renderCompetitors();
+            filters.hashtags.splice(indexToRemove, 1);
+            renderKeywords();
         }
     };
 
-    const scrapeCompetitors = async () => {
+    const scrapeHashtags = async () => {
         loader.classList.remove('hidden');
         errorContainer.classList.add('hidden');
         container.innerHTML = '';
 
         try {
-            const results = await apiCall('/api/scrape-instagram-competitors', {
+            const results = await apiCall('/api/scrape-instagram-hashtags', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ directUrls: filters.competitors, resultsType: filters.contentType, onlyPostsNewerThan: filters.dateFilter })
+                body: JSON.stringify({ hashtags: filters.hashtags, resultsType: filters.contentType })
             });
 
             allPosts = results || [];
@@ -127,7 +118,28 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const applyClientSideFilters = () => {
-        filteredPosts = [...allPosts];
+        const now = new Date();
+        filteredPosts = allPosts.filter(post => {
+            const postDate = new Date(post.timestamp);
+            let dateCondition = true;
+            if (filters.dateFilter !== 'any') {
+                let hours = 0;
+                if (filters.dateFilter === '24h') hours = 24;
+                if (filters.dateFilter === '7d') hours = 24 * 7;
+                if (filters.dateFilter === '30d') hours = 24 * 30;
+                const cutoffDate = new Date(now.getTime() - (hours * 60 * 60 * 1000));
+                dateCondition = postDate >= cutoffDate;
+            }
+
+            const views = post.videoPlayCount || 0;
+            const likes = post.likesCount || 0;
+
+            const viewsCondition = filters.contentType === 'stories' ? views >= filters.minViews : true;
+            const likesCondition = likes >= filters.minLikes;
+
+            return dateCondition && viewsCondition && likesCondition;
+        });
+
         currentPage = 1;
         displayCurrentPage();
     };
@@ -164,6 +176,10 @@ document.addEventListener('DOMContentLoaded', () => {
                              <div>
                                 <div class="flex items-center gap-2">
                                     <p class="font-bold text-slate-800 dark:text-white">${post.ownerUsername}</p>
+                                    <button class="add-competitor-btn text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-md font-semibold flex items-center gap-1" data-username="${post.ownerUsername}" title="Add ${post.ownerUsername} as competitor">
+                                        <i data-lucide="user-plus" class="w-3 h-3"></i>
+                                        <span>Add Competitor</span>
+                                    </button>
                                 </div>
                                 <p class="text-xs text-slate-400">${new Date(post.timestamp).toLocaleString()}</p>
                             </div>
@@ -239,22 +255,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updateFilterModalUI = () => {
         document.querySelector(`input[name="content-type"][value="${filters.contentType}"]`).checked = true;
+        const minViewsContainer = document.getElementById('min-views-container');
+        const minLikesInput = document.getElementById('min-likes-input');
+
+        if (filters.contentType === 'stories') {
+            minViewsContainer.style.display = 'block';
+            minViewsContainer.querySelector('input').value = filters.minViews;
+            minLikesInput.value = filters.minLikes;
+        } else {
+            minViewsContainer.style.display = 'none';
+            minLikesInput.value = filters.minLikes;
+        }
+
         document.getElementById('date-uploaded-select').value = filters.dateFilter;
-        renderCompetitors();
+        renderKeywords();
     };
 
     const handleApplyFilters = () => {
         filters.contentType = document.querySelector('input[name="content-type"]:checked').value;
+        filters.minViews = parseInt(document.getElementById('min-views-input').value) || 0;
+        filters.minLikes = parseInt(document.getElementById('min-likes-input').value) || 0;
         filters.dateFilter = document.getElementById('date-uploaded-select').value;
         filterModal.classList.add('hidden');
-        scrapeCompetitors();
+        scrapeHashtags();
     };
 
     const handleResetFilters = () => {
         filters = {
-            competitors: [...DEFAULT_COMPETITORS],
+            hashtags: [...DEFAULT_HASHTAGS],
             contentType: 'stories',
-            dateFilter: '1 week'
+            minViews: 10000,
+            minLikes: 100,
+            dateFilter: 'any'
         };
         updateFilterModalUI();
     };
@@ -407,19 +439,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS & INITIALIZATION ---
     const init = async () => {
         try {
-            const defaults = await apiCall('/api/default-ig-competitors');
-            DEFAULT_COMPETITORS = defaults.competitors || [];
-            filters.competitors = [...DEFAULT_COMPETITORS];
+            const defaults = await apiCall('/api/default-ig-hashtags');
+            DEFAULT_HASHTAGS = defaults.hashtags || [];
+            filters.hashtags = [...DEFAULT_HASHTAGS];
             
-            renderCompetitors();
+            renderKeywords();
         } catch (error) {
             errorContainer.textContent = `Error loading initial data: ${error.message}`;
             errorContainer.classList.remove('hidden');
         }
 
         fetchContentBtn.addEventListener('click', () => {
-            fetchContentBtn.parentElement.style.display = 'none';
-            scrapeCompetitors();
+            fetchContentBtn.style.display = 'none';
+            scrapeHashtags();
         });
 
         filterBtn.addEventListener('click', () => {
@@ -429,9 +461,9 @@ document.addEventListener('DOMContentLoaded', () => {
         closeFilterModalBtn.addEventListener('click', () => filterModal.classList.add('hidden'));
         applyFiltersBtn.addEventListener('click', handleApplyFilters);
         resetFiltersBtn.addEventListener('click', handleResetFilters);
-        addCompetitorInput.addEventListener('keydown', handleAddCompetitorKeydown);
-        addCompetitorBtn.addEventListener('click', addCompetitorFromInput);
-        competitorsContainer.addEventListener('click', handleRemoveCompetitor);
+        addKeywordInput.addEventListener('keydown', handleAddKeywordKeydown);
+        addKeywordBtn.addEventListener('click', addKeywordFromInput);
+        keywordsContainer.addEventListener('click', handleRemoveKeyword);
         document.querySelectorAll('input[name="content-type"]').forEach(radio => {
             radio.addEventListener('change', handleContentTypeChange);
         });

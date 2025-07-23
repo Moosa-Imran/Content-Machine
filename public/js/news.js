@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchCategoryContainer = document.getElementById('search-category-container');
     const sortByContainer = document.getElementById('sort-by-container');
     const dateFilterSelect = document.getElementById('date-filter-select');
+    const keywordLocContainer = document.getElementById('keyword-loc-container');
     const resetSearchBtn = document.getElementById('reset-search-btn');
     const usePromptBtn = document.getElementById('use-prompt-btn');
     const promptContainer = document.getElementById('prompt-container');
@@ -34,13 +35,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const frameworkSelectModal = document.getElementById('framework-select-modal');
     const frameworkOptionsContainer = document.getElementById('framework-options-container');
     const closeFrameworkSelectModalBtn = document.getElementById('close-framework-select-modal-btn');
+    const fetchContentBtn = document.getElementById('fetch-content-btn');
 
     // --- STATE MANAGEMENT ---
     let DEFAULT_KEYWORDS = [];
     let DEFAULT_CATEGORIES = [];
     const DEFAULT_SORTBY = 'rel';
     const DEFAULT_DATE_FILTER = '31';
-    let currentFilters = { keywords: [], categories: [], sortBy: DEFAULT_SORTBY, dateFilter: DEFAULT_DATE_FILTER };
+    const DEFAULT_KEYWORD_LOC = 'body';
+    let currentFilters = { keywords: [], categories: [], sortBy: DEFAULT_SORTBY, dateFilter: DEFAULT_DATE_FILTER, keywordLoc: DEFAULT_KEYWORD_LOC };
     let allFetchedArticles = [];
     let currentPage = 1;
     const articlesPerPage = 10;
@@ -188,10 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
             sortBy: currentFilters.sortBy,
             dateWindow: currentFilters.dateFilter,
             validate: validateNewsToggle.checked,
-            page: page
+            page: page,
+            keywordLoc: currentFilters.keywordLoc
         });
 
-        // Only add keywords and categories if they are not empty
         if (currentFilters.keywords.length > 0) {
             queryParams.set('keyword', currentFilters.keywords.join(','));
         }
@@ -310,11 +313,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const handleArticleFeedback = async (e) => {
         const feedbackBtn = e.target.closest('.feedback-btn');
-        if (!feedbackBtn) return;
+        if (!feedbackBtn || feedbackBtn.disabled) return;
 
         const articleDiv = feedbackBtn.closest('.article-card');
-        const article = JSON.parse(articleDiv.dataset.article.replace(/&apos;/g, "'").replace(/&quot;/g, '"'));
+        const article = JSON.parse(articleDiv.dataset.article.replace(/&apos;/g, "'").replace(/"/g, '"'));
         const feedback = feedbackBtn.dataset.feedback;
+
+        const thumbsUpBtn = articleDiv.querySelector('[data-feedback="thumbs_up"]');
+        const thumbsDownBtn = articleDiv.querySelector('[data-feedback="thumbs_down"]');
+
+        thumbsUpBtn.disabled = true;
+        thumbsDownBtn.disabled = true;
 
         promptUpdateLoaderModal.classList.remove('hidden');
 
@@ -324,12 +333,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ article, feedback })
             });
-            // On success, hide the prompt loader and immediately refresh the news
-            promptUpdateLoaderModal.classList.add('hidden');
-            await scanForNews(1); // Refresh the news feed
+            console.log("Feedback sent successfully for article:", article.title);
+
+            if (feedback === 'thumbs_down') {
+                articleDiv.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+                articleDiv.style.opacity = '0';
+                articleDiv.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    allFetchedArticles = allFetchedArticles.filter(a => a.url !== article.url);
+                    renderNewsPage();
+                }, 500);
+            } else {
+                thumbsUpBtn.classList.remove('hover:bg-green-500/10', 'hover:text-green-500');
+                thumbsUpBtn.classList.add('bg-green-500/10', 'text-green-500');
+            }
         } catch (error) {
-            promptUpdateLoaderModal.classList.add('hidden');
             showErrorModal(error.message === 'MODEL_BUSY' ? 'modelBusy' : 'general', error.message);
+            thumbsUpBtn.disabled = false;
+            thumbsDownBtn.disabled = false;
+            if (feedback === 'thumbs_up') {
+                thumbsUpBtn.classList.add('hover:bg-green-500/10', 'hover:text-green-500');
+                thumbsUpBtn.classList.remove('bg-green-500/10', 'text-green-500');
+            }
+        } finally {
+            promptUpdateLoaderModal.classList.add('hidden');
         }
     };
 
@@ -337,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const createBtn = e.target.closest('.create-story-btn');
         if (!createBtn) return;
         const articleDiv = createBtn.closest('.article-card');
-        articleToProcess = JSON.parse(articleDiv.dataset.article.replace(/&apos;/g, "'").replace(/&quot;/g, '"'));
+        articleToProcess = JSON.parse(articleDiv.dataset.article.replace(/&apos;/g, "'").replace(/"/g, '"'));
         showFrameworkSelector(processStoryCreation);
     };
     
@@ -375,6 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderKeywords();
         sortByContainer.querySelector(`input[value="${currentFilters.sortBy}"]`).checked = true;
         dateFilterSelect.value = currentFilters.dateFilter;
+        keywordLocContainer.querySelector(`input[value="${currentFilters.keywordLoc}"]`).checked = true;
         const noneCheckbox = document.getElementById('cat-none');
         const hasCategories = currentFilters.categories.length > 0;
         noneCheckbox.checked = !hasCategories;
@@ -402,7 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 keywords: [...DEFAULT_KEYWORDS], 
                 categories: [...DEFAULT_CATEGORIES], 
                 sortBy: DEFAULT_SORTBY, 
-                dateFilter: DEFAULT_DATE_FILTER 
+                dateFilter: DEFAULT_DATE_FILTER,
+                keywordLoc: DEFAULT_KEYWORD_LOC
             };
             updateFilterModalUI();
         } catch (error) {
@@ -414,6 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFilters.categories = Array.from(searchCategoryContainer.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).filter(val => val !== 'none');
         currentFilters.sortBy = sortByContainer.querySelector('input[name="sort_by"]:checked').value;
         currentFilters.dateFilter = dateFilterSelect.value;
+        currentFilters.keywordLoc = keywordLocContainer.querySelector('input[name="keyword_loc"]:checked').value;
         customSearchModal.classList.add('hidden');
         scanForNews(1);
     };
@@ -471,7 +501,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS & INITIALIZATION ---
     const init = async () => {
         await setDefaultFilters(); // Load defaults first
-        scanForNews(); // Then perform the initial scan
+        
+        fetchContentBtn.addEventListener('click', () => {
+            fetchContentBtn.parentElement.style.display = 'none';
+            scanForNews();
+        });
 
         shuffleBtn.addEventListener('click', handleShuffleNews);
         container.addEventListener('click', (e) => {

@@ -53,31 +53,34 @@ router.post('/update-validation-prompt', async (req, res) => {
         
         // --- PROMPT FOR KEYWORDS/CATEGORIES UPDATE ---
         const keywordUpdatePrompt = `
-You are an expert AI system responsible for curating a news feed by refining search parameters. A user has provided feedback on an article. Your task is to intelligently update the default search keywords and categories to better match the user's preferences. This is a destructive action, so be cautious and precise.
+You are an expert AI system that refines search parameters for a news feed. Your task is to update a list of keywords and categories based on user feedback. You must follow the rules with extreme care.
 
-**Current Search Parameters:**
-- Keywords: ${JSON.stringify(currentKeywordsDoc.keywords)}
-- Categories: ${JSON.stringify(currentKeywordsDoc.categories)}
+**CRITICAL RULES FOR YOUR OUTPUT:**
+1.  **JSON ONLY:** Your entire response MUST be a single, valid JSON object. Do not include any text, explanations, or markdown before or after the JSON.
+2.  **KEYWORD LIMIT:** The "keywords" array in your JSON output MUST contain a maximum of 7 strings. Do not exceed this limit under any circumstances.
+3.  **STRICT CATEGORIES:** The "categories" array in your JSON output MUST ONLY contain values from this exact list: ["arts", "business", "computers", "games", "health", "home", "recreation", "science", "shopping", "society", "sports"]. Do not invent new categories or use any other category name.
 
-**Article The User Gave Feedback On:**
-- Title: ${article.title}
-- Summary: ${article.summary}
+**CONTEXT:**
+- **Current Keywords:** ${JSON.stringify(currentKeywordsDoc.keywords)}
+- **Current Categories:** ${JSON.stringify(currentKeywordsDoc.categories)}
+- **Article for Analysis:**
+    - Title: ${article.title}
+    - Summary: ${article.summary}
+- **User Feedback:** ${feedback === 'thumbs_up' ? 'LIKED' : 'DISLIKED'}
 
-**User Feedback:** ${feedback === 'thumbs_up' ? 'LIKED (Thumbs Up)' : 'DISLIKED (Thumbs Down)'}
+**INSTRUCTIONS:**
+1.  **Analyze:** Deeply analyze the article's content and the user's feedback.
+2.  **Evaluate Changes with High Confidence:**
+    * If feedback is **LIKED**: Consider if adding a NEW, GENERAL keyword would improve results. Do not add specific names (e.g., for an article on Coca-Cola's design, add "brand psychology", not "Coca-Cola").
+    * If feedback is **DISLIKED**: Your goal is to find **fewer** articles like this one. Analyze why this article was irrelevant. Is there a keyword in the current list that is too broad? Instead of just removing it, try to **replace it with a more specific term** or **refine it** to be more effective. For example, if the user dislikes a generic business news article and "business" is a keyword, a good refinement might be to replace "business" with "marketing strategies" or "startup funding". Only remove a keyword as a last resort if you are certain it is the primary cause of irrelevant results and cannot be improved.
+3.  **100% Confidence Required:** You should only make changes if you are **100% confident** they will improve the search results. If the current keywords and categories are already effective, it is better to make **NO CHANGES** and return the original keywords and categories.
+4.  **Generate Output:** Based on your analysis, construct the final JSON object containing the complete lists for "keywords" and "categories", adhering strictly to the critical rules above.
 
-**Your Task & Instructions:**
-
-1.  **Analyze the Article:** Deeply analyze the article's content, main topics, specific terminology, and overall theme.
-2.  **Analyze the Feedback:**
-    * If the feedback is **LIKED (Thumbs Up)**: Your goal is to find **more** articles like this one. Identify the core concepts that make this article interesting. Consider if adding a new, general keyword or category would help achieve this. **Do not add overly specific terms, company names, or product names.** For example, if the article is about "Coca-Cola's new red can design boosting sales", a good keyword to add might be "brand color psychology", not "Coca-Cola" or "red cans". Only add a term if you are highly confident it will broaden the search in a relevant way.
-    * If the feedback is **DISLIKED (Thumbs Down)**: Your goal is to find **fewer** articles like this one. Identify why this article was likely irrelevant. Is there a keyword in the current list that is too broad and brought in this unwanted content? For example, if the user dislikes a generic business news article, and "business" is a keyword, you might consider if a more specific keyword is needed. **Be extremely careful about removing keywords.** Only remove a keyword if you are certain it is the primary cause of irrelevant results and its removal will not harm the search for desired content.
-3.  **Formulate the New Parameters:** Based on your analysis, decide on the new list of keywords and categories. It is perfectly acceptable to make no changes if you are not confident that a change would be an improvement.
-4.  **Final Curation:** After generating the new list of keywords, review it and curate it down to a maximum of the 7 most relevant and effective keywords. The final \`keywords\` array in your JSON output must not contain more than 7 items.
-5.  **Output:** Return a single, valid JSON object containing the **complete** updated lists. Do not explain your reasoning. The JSON object must have this exact structure:
-    {
-      "keywords": ["full", "list", "of", "up to 7", "keywords"],
-      "categories": ["full", "list", "of", "categories"]
-    }
+**JSON OUTPUT STRUCTURE:**
+{
+  "keywords": ["list", "of", "up", "to", "7", "keywords"],
+  "categories": ["list", "of", "categories", "from", "the", "allowed", "list"]
+}
 `;
 
         // --- EXECUTE AI CALLS CONCURRENTLY ---
@@ -128,22 +131,24 @@ You are an expert AI system responsible for curating a news feed by refining sea
 });
 
 router.get('/scan-news', async (req, res) => {
-    const { keyword, category, page = 1, sortBy = 'rel', dateWindow = '31', validate = 'false' } = req.query;
+    const { keyword, category, page = 1, sortBy = 'rel', dateWindow = '31', validate = 'false', keywordLoc = 'body' } = req.query;
 
     const defaults = await getDefaultKeywordsAndCategories();
 
-    // Use query param if it exists, otherwise use the default from the DB/fallback.
     const keywords = keyword ? keyword.split(',') : defaults.keywords;
     const categories = category ? category.split(',') : defaults.categories;
 
-
     const categoryMap = {
+        arts: "dmoz/Arts",
         business: "dmoz/Business",
-        technology: "dmoz/Technology",
-        entertainment: "dmoz/Entertainment",
-        general: "dmoz/Society",
+        computers: "dmoz/Computers",
+        games: "dmoz/Games",
         health: "dmoz/Health",
+        home: "dmoz/Home",
+        recreation: "dmoz/Recreation",
         science: "dmoz/Science",
+        shopping: "dmoz/Shopping",
+        society: "dmoz/Society",
         sports: "dmoz/Sports"
     };
 
@@ -151,7 +156,7 @@ router.get('/scan-news', async (req, res) => {
 
     if (keywords.length > 0) {
         queryConditions.push({
-            "$or": keywords.map(kw => ({ "keyword": kw.trim(), "keywordLoc": "body" }))
+            "$or": keywords.map(kw => ({ "keyword": kw.trim(), "keywordLoc": keywordLoc }))
         });
     }
 
@@ -170,7 +175,6 @@ router.get('/scan-news', async (req, res) => {
     }
     
     if (queryConditions.length === 0) {
-        // Prevent a search with no criteria which might be invalid for the API
         return res.json({ articles: { results: [], page: 1, pages: 1, totalResults: 0 } });
     }
 

@@ -7,10 +7,10 @@
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
             <div>
                 <h1 class="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 dark:from-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    Instagram Competitor Scraper
+                    Instagram Hashtag Scraper
                 </h1>
                 <p class="mt-1 text-slate-500 dark:text-slate-400">
-                    Analyze your competitors' top-performing content.
+                    Discover trending posts by scraping Instagram hashtags.
                 </p>
             </div>
             <div class="flex items-center gap-4">
@@ -34,14 +34,14 @@
             <div id="news-loader" class="absolute inset-0 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-40 hidden">
                 <div class="flex flex-col items-center gap-4">
                     <i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-primary-500"></i>
-                    <p class="text-slate-600 dark:text-slate-300 font-medium">Scraping competitor accounts...</p>
+                    <p class="text-slate-600 dark:text-slate-300 font-medium">Scraping Instagram for the latest posts...</p>
                 </div>
             </div>
             <div id="news-error" class="text-center text-red-500 p-4 mb-4 bg-red-500/10 rounded-lg border border-red-500/30 hidden"></div>
             <div id="news-articles-container" class="space-y-4">
                 <div id="initial-fetch-container" class="text-center py-20">
                     <button id="fetch-content-btn" class="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition duration-300 font-semibold text-lg">
-                        Click to Fetch Competitor Content
+                        Click to Fetch Content
                     </button>
                 </div>
             </div>
@@ -63,34 +63,42 @@
         </div>
         <div class="p-6 space-y-6">
             <div>
-                <label for="add-competitor-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Competitor URLs</label>
+                <label for="add-keyword-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Hashtags</label>
                 <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
-                    <div id="competitors-container" class="flex flex-wrap gap-2"></div>
-                    <input type="text" id="add-competitor-input" placeholder="Enter a full Instagram URL..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
-                    <button id="add-competitor-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
+                    <div id="keywords-container" class="flex flex-wrap gap-2"></div>
+                    <input type="text" id="add-keyword-input" placeholder="Type a hashtag..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
+                    <button id="add-keyword-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Content Type</label>
-                    <div class="flex items-center gap-4">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="content-type" value="posts" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
-                            <span class="text-sm text-slate-700 dark:text-slate-300">Posts</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="content-type" value="stories" checked class="w-4 h-4 text-primary-600 focus:ring-primary-500">
-                            <span class="text-sm text-slate-700 dark:text-slate-300">Reels</span>
-                        </label>
-                    </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Content Type</label>
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="content-type" value="posts" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                        <span class="text-sm text-slate-700 dark:text-slate-300">Posts</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="content-type" value="stories" checked class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                        <span class="text-sm text-slate-700 dark:text-slate-300">Reels</span>
+                    </label>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div id="min-views-container">
+                    <label for="min-views-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Views</label>
+                    <input type="number" id="min-views-input" value="10000" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
                 </div>
                 <div>
-                    <label for="date-uploaded-select" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Posts Newer Than</label>
+                    <label for="min-likes-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Likes</label>
+                    <input type="number" id="min-likes-input" value="100" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                </div>
+                <div>
+                    <label for="date-uploaded-select" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Date Uploaded</label>
                     <select id="date-uploaded-select" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
-                        <option value="1 week" selected>1 week</option>
-                        <option value="2 weeks">2 weeks</option>
-                        <option value="1 month">1 month</option>
-                        <option value="3 months">3 months</option>
+                        <option value="any">Any Date</option>
+                        <option value="24h">Last 24 hours</option>
+                        <option value="7d">Last 7 days</option>
+                        <option value="30d">Last 30 days</option>
                     </select>
                 </div>
             </div>
@@ -146,7 +154,7 @@
     </div>
 </div>
 
-<script src="/js/instagram-competitor.js"></script>
+<script src="/js/instagram-hashtags-live.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
