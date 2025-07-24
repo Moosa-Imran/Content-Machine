@@ -27,29 +27,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetFiltersBtn = document.getElementById('reset-filters-btn');
     const filterIndicator = document.getElementById('filter-indicator');
     const shuffleBtn = document.getElementById('shuffle-btn');
+    const costEstimationText = document.getElementById('cost-estimation-text');
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmActionBtn = document.getElementById('confirm-action-btn');
+    const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+    const confirmModalTitle = document.getElementById('confirm-modal-title');
+    const confirmModalMessage = document.getElementById('confirm-modal-message');
+    const fetchContentBtn = document.getElementById('fetch-content-btn');
+    
+    // Additional modal elements
     const transcriptionModal = document.getElementById('transcription-modal');
+    const closeTranscriptionModalBtn = document.getElementById('close-transcription-modal-btn');
     const transcriptionLoading = document.getElementById('transcription-loading');
     const transcriptionError = document.getElementById('transcription-error');
     const retryTranscriptionBtn = document.getElementById('retry-transcription-btn');
-    const closeTranscriptionModalBtn = document.getElementById('close-transcription-modal-btn');
     const frameworkSelectModal = document.getElementById('framework-select-modal');
     const frameworkOptionsContainer = document.getElementById('framework-options-container');
-    const closeFrameworkSelectModalBtn = document.getElementById('close-framework-select-modal-btn');
+    const closeFrameworkModalBtn = document.getElementById('close-framework-modal-btn');
     const storyLoaderModal = document.getElementById('story-loader-modal');
-    const fetchContentBtn = document.getElementById('fetch-content-btn');
 
     // --- STATE MANAGEMENT ---
     let allPosts = [];
     let currentPage = 1;
     const postsPerPage = 10;
     let hashtagsToScrape = [];
+    let DEFAULT_HASHTAGS = [];
+    let postToProcess = null;
+    let currentTranscribingBtn = null;
     const DEFAULT_FILTERS = {
         minViews: 0,
         minLikes: 0,
         dateFilter: 'any'
     };
     let filters = { ...DEFAULT_FILTERS };
-    let postToProcess = null;
+    let confirmCallback = null;
 
     // --- API & UI HELPERS ---
     const showNotification = (title, message, type = 'success') => {
@@ -67,6 +78,19 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
+    const showConfirmModal = (title, message, onConfirm) => {
+        confirmModalTitle.textContent = title;
+        confirmModalMessage.textContent = message;
+        confirmCallback = onConfirm;
+        confirmModal.classList.remove('hidden');
+        lucide.createIcons();
+    };
+
+    const hideConfirmModal = () => {
+        confirmModal.classList.add('hidden');
+        confirmCallback = null;
+    };
+
     const apiCall = async (endpoint, options = {}) => {
         try {
             const response = await fetch(endpoint, options);
@@ -80,6 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
             throw error;
         }
     };
+
+    const updateCostEstimation = () => {
+        const numHashtags = hashtagsToScrape.length;
+        const depth = parseInt(searchDepthInput.value) || 0;
+        const totalPosts = numHashtags * depth;
+        const cost = (totalPosts / 1000) * 2.30;
+        costEstimationText.textContent = `$${cost.toFixed(4)}`;
+    };
     
     const renderHashtagsInModal = () => {
         hashtagsContainerModal.innerHTML = hashtagsToScrape.map((hashtag, index) => `
@@ -91,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `).join('');
         lucide.createIcons();
+        updateCostEstimation();
     };
 
     const addHashtagFromInput = () => {
@@ -134,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await apiCall(`/api/instagram-posts?${queryParams.toString()}`);
             allPosts = data.posts || [];
+            currentPage = data.currentPage;
             renderPosts(allPosts);
             renderPaginationControls(data.totalPages, data.currentPage);
         } catch (error) {
@@ -155,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const viewsHTML = post.videoPlayCount ? `<span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount}</span>` : '';
             const transcriptBtnHTML = post.type === 'Video' ? `<div class="mt-4"><button class="transcribe-btn text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold" data-url="${post.url}">Transcript It</button></div>` : '';
             return `
-            <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post.id}">
+            <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post._id}">
                 <div class="flex items-start gap-4">
                     <img src="/api/image-proxy?url=${encodeURIComponent(post.displayUrl)}" alt="Post by ${post.ownerUsername}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=Error';">
                     <div class="flex-grow">
@@ -168,6 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${post.likesCount || 0}</span>
                                 <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${post.commentsCount || 0}</span>
                                 ${viewsHTML}
+                                <button class="delete-post-btn p-1.5 rounded-full hover:bg-red-500/10 text-red-500" data-post-id="${post._id}" title="Delete Post">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
                             </div>
                         </div>
                         <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${captionWithoutHashtags}</p>
@@ -190,10 +227,31 @@ document.addEventListener('DOMContentLoaded', () => {
             paginationContainer.innerHTML = '';
             return;
         }
-        let paginationHTML = '<div class="flex items-center justify-between">';
-        paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="arrow-left" class="w-5 h-5"></i></button>`;
-        paginationHTML += `<span class="text-sm font-medium text-slate-500">Page ${currentPage} of ${totalPages}</span>`;
-        paginationHTML += `<button data-page="${currentPage + 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="arrow-right" class="w-5 h-5"></i></button>`;
+        let paginationHTML = '<div class="flex items-center justify-center gap-1 sm:gap-2 mt-8">';
+        paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" class="w-5 h-5"></i></button>`;
+
+        const getPaginationItems = (currentPage, totalPages, contextRange = 1) => {
+            const pages = [];
+            if (totalPages <= 1) return [];
+            pages.push(1);
+            if (currentPage > contextRange + 2) pages.push('...');
+            const startPage = Math.max(2, currentPage - contextRange);
+            const endPage = Math.min(totalPages - 1, currentPage + contextRange);
+            for (let i = startPage; i <= endPage; i++) pages.push(i);
+            if (currentPage < totalPages - contextRange - 1) pages.push('...');
+            if (totalPages > 1) pages.push(totalPages);
+            return [...new Set(pages)];
+        };
+
+        getPaginationItems(currentPage, totalPages).forEach(item => {
+            if (item === '...') {
+                paginationHTML += `<span class="px-2 py-2 text-sm font-medium text-slate-500">...</span>`;
+            } else {
+                paginationHTML += `<button data-page="${item}" class="page-btn px-4 py-2 text-sm font-medium rounded-md ${item === currentPage ? 'bg-primary-600 text-white' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}">${item}</button>`;
+            }
+        });
+        
+        paginationHTML += `<button data-page="${currentPage + 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" class="w-5 h-5"></i></button>`;
         paginationHTML += '</div>';
         paginationContainer.innerHTML = paginationHTML;
         lucide.createIcons();
@@ -263,14 +321,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const j = Math.floor(Math.random() * (i + 1));
                 [allPosts[i], allPosts[j]] = [allPosts[j], allPosts[i]];
             }
-            currentPage = 1;
-            displayCurrentPage();
+            renderPosts(allPosts);
         }
     };
 
     const handleTranscribe = async (e) => {
         const transcribeBtn = e.target.closest('.transcribe-btn');
         if (!transcribeBtn) return;
+
+        if (currentTranscribingBtn) return;
+
+        currentTranscribingBtn = transcribeBtn;
+        currentTranscribingBtn.disabled = true;
+        currentTranscribingBtn.innerHTML = 'Transcribing...';
 
         const url = transcribeBtn.dataset.url;
         const postContainer = transcribeBtn.closest('[data-post-id]');
@@ -289,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 const postId = postContainer.dataset.postId;
-                const post = allPosts.find(p => p.id === postId);
+                const post = allPosts.find(p => p._id === postId);
                 if (post) {
                     post.transcript = result.transcript;
                 }
@@ -304,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 generateStoryContainer.innerHTML = `<div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${postContainer.dataset.postId}">Generate Story</button></div>`;
                 transcriptionModal.classList.add('hidden');
                 transcribeBtn.style.display = 'none';
+                currentTranscribingBtn = null;
                 lucide.createIcons();
             } catch (error) {
                 transcriptionLoading.classList.add('hidden');
@@ -323,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!generateBtn) return;
         
         const postId = generateBtn.dataset.postId;
-        postToProcess = allPosts.find(p => p.id === postId);
+        postToProcess = allPosts.find(p => p._id === postId);
         
         if (postToProcess && postToProcess.transcript) {
             showFrameworkSelector(processStoryCreation);
@@ -386,14 +450,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleDeletePost = (button) => {
+        const postId = button.dataset.postId;
+        showConfirmModal('Delete Post?', 'This will permanently remove this post from your content pool. This action cannot be undone.', async () => {
+            try {
+                await apiCall(`/api/instagram-posts/${postId}`, { method: 'DELETE' });
+                hideConfirmModal();
+                showNotification('Post Deleted', 'The post has been successfully removed from your content pool.');
+                fetchPostsFromDB(currentPage);
+            } catch (error) {
+                hideConfirmModal();
+                showNotification('Error', `Failed to delete post: ${error.message}`, 'error');
+            }
+        });
+    };
+
     // --- EVENT LISTENERS & INITIALIZATION ---
     const init = async () => {
         try {
             const defaults = await apiCall('/api/default-ig-hashtags');
             DEFAULT_HASHTAGS = defaults.hashtags || [];
-            filters.hashtags = [...DEFAULT_HASHTAGS];
+            hashtagsToScrape = [...DEFAULT_HASHTAGS];
             
-            renderKeywords();
+            renderHashtagsInModal();
         } catch (error) {
             errorContainer.textContent = `Error loading initial data: ${error.message}`;
             errorContainer.classList.remove('hidden');
@@ -417,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addHashtagInput.addEventListener('keydown', handleAddHashtagKeydown);
         addHashtagBtn.addEventListener('click', addHashtagFromInput);
         hashtagsContainerModal.addEventListener('click', handleRemoveHashtag);
+        searchDepthInput.addEventListener('input', updateCostEstimation);
         paginationContainer.addEventListener('click', handlePaginationClick);
         notificationOkBtn.addEventListener('click', () => notificationModal.classList.add('hidden'));
         filterBtn.addEventListener('click', () => {
@@ -430,6 +510,48 @@ document.addEventListener('DOMContentLoaded', () => {
         container.addEventListener('click', (e) => {
             handleTranscribe(e);
             handleGenerateStory(e);
+            if (e.target.closest('.delete-post-btn')) {
+                handleDeletePost(e.target.closest('.delete-post-btn'));
+            }
+        });
+        closeTranscriptionModalBtn.addEventListener('click', () => {
+            transcriptionModal.classList.add('hidden');
+            if (currentTranscribingBtn) {
+                currentTranscribingBtn.disabled = false;
+                currentTranscribingBtn.innerHTML = 'Transcript It';
+                currentTranscribingBtn = null;
+            }
+        });
+        
+        closeFrameworkModalBtn.addEventListener('click', () => {
+            frameworkSelectModal.classList.add('hidden');
+        });
+        
+        confirmCancelBtn.addEventListener('click', hideConfirmModal);
+        confirmActionBtn.addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            hideConfirmModal();
+        });
+        
+        // Close modals when clicking outside
+        confirmModal.addEventListener('click', (e) => {
+            if (e.target === confirmModal) {
+                hideConfirmModal();
+            }
+        });
+        
+        filterModal.addEventListener('click', (e) => {
+            if (e.target === filterModal) {
+                filterModal.classList.add('hidden');
+            }
+        });
+        
+        updatePoolModal.addEventListener('click', (e) => {
+            if (e.target === updatePoolModal) {
+                updatePoolModal.classList.add('hidden');
+            }
         });
     };
     
