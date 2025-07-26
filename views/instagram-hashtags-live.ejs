@@ -14,15 +14,15 @@
                 </p>
             </div>
             <div class="flex items-center gap-4">
-                 <a href="/social-scrape" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                 <a href="/instagram-hashtags" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                    Back to Social Scrape
+                    Back to Content Pool
                 </a>
-                <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none">
+                <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none hidden">
                     <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
                     Filters
                 </button>
-                <button id="shuffle-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-950">
+                <button id="shuffle-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-950 hidden">
                     <i data-lucide="shuffle" class="w-4 h-4"></i>
                     Shuffle
                 </button>
@@ -39,10 +39,30 @@
             </div>
             <div id="news-error" class="text-center text-red-500 p-4 mb-4 bg-red-500/10 rounded-lg border border-red-500/30 hidden"></div>
             <div id="news-articles-container" class="space-y-4">
-                <div id="initial-fetch-container" class="text-center py-20">
-                    <button id="fetch-content-btn" class="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition duration-300 font-semibold text-lg">
-                        Click to Fetch Content
-                    </button>
+                <div id="initial-search-container" class="bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div class="space-y-6">
+                        <div>
+                            <label for="initial-add-keyword-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Hashtags</label>
+                            <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
+                                <div id="initial-keywords-container" class="flex flex-wrap gap-2"></div>
+                                <input type="text" id="initial-add-keyword-input" placeholder="Type a hashtag..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
+                                <button id="initial-add-keyword-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="initial-search-depth-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Search Depth</label>
+                            <input type="number" id="initial-search-depth-input" value="5" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                            <p class="text-xs text-slate-400 mt-1">Number of posts to fetch per hashtag. More posts use more credits.</p>
+                        </div>
+                        <div id="initial-cost-estimation-container" class="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-lg text-center">
+                            <p class="text-sm text-blue-700 dark:text-blue-300">Estimated Cost:</p>
+                            <p id="initial-cost-estimation-text" class="text-2xl font-bold text-blue-800 dark:text-blue-200">$0.00</p>
+                        </div>
+                        <button id="fetch-content-btn" class="w-full bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition duration-300 font-semibold text-lg flex items-center justify-center gap-2">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                            Search Hashtags
+                        </button>
+                    </div>
                 </div>
             </div>
             <div id="pagination-container" class="mt-8">
@@ -63,14 +83,6 @@
         </div>
         <div class="p-6 space-y-6">
             <div>
-                <label for="add-keyword-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Hashtags</label>
-                <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
-                    <div id="keywords-container" class="flex flex-wrap gap-2"></div>
-                    <input type="text" id="add-keyword-input" placeholder="Type a hashtag..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
-                    <button id="add-keyword-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
-                </div>
-            </div>
-            <div>
                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Content Type</label>
                 <div class="flex items-center gap-4">
                     <label class="flex items-center gap-2 cursor-pointer">
@@ -83,18 +95,22 @@
                     </label>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div id="min-views-container">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
                     <label for="min-views-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Views</label>
-                    <input type="number" id="min-views-input" value="10000" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                    <input type="number" id="min-views-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
                 </div>
                 <div>
                     <label for="min-likes-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Likes</label>
-                    <input type="number" id="min-likes-input" value="100" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                    <input type="number" id="min-likes-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
+                </div>
+                 <div>
+                    <label for="min-comments-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Comments</label>
+                    <input type="number" id="min-comments-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
                 </div>
                 <div>
                     <label for="date-uploaded-select" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Date Uploaded</label>
-                    <select id="date-uploaded-select" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                    <select id="date-uploaded-select" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
                         <option value="any">Any Date</option>
                         <option value="24h">Last 24 hours</option>
                         <option value="7d">Last 7 days</option>

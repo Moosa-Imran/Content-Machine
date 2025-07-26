@@ -17,6 +17,7 @@ router.get('/sheet', (req, res) => res.render('sheet', { title: 'Analyze Sheet' 
 router.get('/news', (req, res) => res.render('news', { title: 'Industry News' }));
 router.get('/validate', (req, res) => res.render('validate', { title: 'Edit Validation Prompt' }));
 router.get('/social-scrape', (req, res) => res.render('social-scrape', { title: 'Social Media Scrape' }));
+router.get('/saved-content', (req, res) => res.render('saved-content', { title: 'Saved Content' }));
 router.get('/instagram-hashtags-live', (req, res) => res.render('instagram-hashtags-live', { title: 'Instagram Hashtag Scraper' }));
 router.get('/instagram-hashtags', (req, res) => res.render('instagram-hashtags', { title: 'Instagram Content Pool' }));
 router.get('/instagram-competitor', (req, res) => res.render('instagram-competitor', { title: 'Instagram Competitor Scraper' }));

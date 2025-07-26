@@ -11,9 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeFilterModalBtn = document.getElementById('close-filter-modal-btn');
     const applyFiltersBtn = document.getElementById('apply-filters-btn');
     const resetFiltersBtn = document.getElementById('reset-filters-btn');
-    const keywordsContainer = document.getElementById('keywords-container');
-    const addKeywordInput = document.getElementById('add-keyword-input');
-    const addKeywordBtn = document.getElementById('add-keyword-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const paginationContainer = document.getElementById('pagination-container');
     const transcriptionModal = document.getElementById('transcription-modal');
@@ -26,21 +23,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeFrameworkSelectModalBtn = document.getElementById('close-framework-select-modal-btn');
     const storyLoaderModal = document.getElementById('story-loader-modal');
     const fetchContentBtn = document.getElementById('fetch-content-btn');
+    const initialKeywordsContainer = document.getElementById('initial-keywords-container');
+    const initialAddKeywordInput = document.getElementById('initial-add-keyword-input');
+    const initialAddKeywordBtn = document.getElementById('initial-add-keyword-btn');
+    const initialSearchDepthInput = document.getElementById('initial-search-depth-input');
+    const initialCostEstimationText = document.getElementById('initial-cost-estimation-text');
 
     // --- STATE MANAGEMENT ---
     let allPosts = [];
     let filteredPosts = [];
     let currentPage = 1;
     const postsPerPage = 10;
-    let DEFAULT_HASHTAGS = [];
     let filters = {
         hashtags: [],
         contentType: 'stories',
-        minViews: 10000,
-        minLikes: 100,
-        dateFilter: 'any'
+        minViews: 0,
+        minLikes: 0,
+        minComments: 0,
+        dateFilter: 'any',
+        resultsLimit: 5
     };
     let postToProcess = null;
+    let currentTranscribingBtn = null;
 
     // --- API & UI HELPERS ---
     const apiCall = async (endpoint, options = {}) => {
@@ -57,8 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    const renderKeywords = () => {
-        keywordsContainer.innerHTML = filters.hashtags.map((keyword, index) => `
+    const renderKeywords = (containerEl) => {
+        containerEl.innerHTML = filters.hashtags.map((keyword, index) => `
             <div class="keyword-bubble flex items-center gap-1.5 bg-primary-500 text-white text-sm font-medium px-3 py-1 rounded-full">
                 <span>${keyword}</span>
                 <button class="remove-keyword-btn" data-index="${index}" title="Remove ${keyword}">
@@ -69,21 +73,15 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
-    const addKeywordFromInput = () => {
-        const newKeyword = addKeywordInput.value.trim().replace(/,$/, '');
+    const addKeywordFromInput = (inputEl, containerEl) => {
+        const newKeyword = inputEl.value.trim().replace(/,$/, '');
         if (newKeyword && !filters.hashtags.includes(newKeyword)) {
             filters.hashtags.push(newKeyword);
-            renderKeywords();
+            renderKeywords(containerEl);
+            updateCostEstimation();
         }
-        addKeywordInput.value = '';
-        addKeywordInput.focus();
-    };
-
-    const handleAddKeywordKeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            addKeywordFromInput();
-        }
+        inputEl.value = '';
+        inputEl.focus();
     };
 
     const handleRemoveKeyword = (e) => {
@@ -91,8 +89,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (removeBtn) {
             const indexToRemove = parseInt(removeBtn.dataset.index);
             filters.hashtags.splice(indexToRemove, 1);
-            renderKeywords();
+            renderKeywords(initialKeywordsContainer);
+            updateCostEstimation();
         }
+    };
+
+    const updateCostEstimation = () => {
+        const numHashtags = filters.hashtags.length;
+        const depth = parseInt(initialSearchDepthInput.value) || 0;
+        const totalPosts = numHashtags * depth;
+        const cost = (totalPosts / 1000) * 2.30;
+        initialCostEstimationText.textContent = `$${cost.toFixed(4)}`;
     };
 
     const scrapeHashtags = async () => {
@@ -104,11 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const results = await apiCall('/api/scrape-instagram-hashtags', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hashtags: filters.hashtags, resultsType: filters.contentType })
+                body: JSON.stringify({ hashtags: filters.hashtags, resultsType: filters.contentType, resultsLimit: filters.resultsLimit })
             });
 
             allPosts = results || [];
             applyClientSideFilters();
+            filterBtn.classList.remove('hidden');
+            shuffleBtn.classList.remove('hidden');
         } catch (error) {
             errorContainer.textContent = `Error: ${error.message}`;
             errorContainer.classList.remove('hidden');
@@ -133,11 +142,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const views = post.videoPlayCount || 0;
             const likes = post.likesCount || 0;
+            const comments = post.commentsCount || 0;
 
-            const viewsCondition = filters.contentType === 'stories' ? views >= filters.minViews : true;
+            const viewsCondition = views >= filters.minViews;
             const likesCondition = likes >= filters.minLikes;
+            const commentsCondition = comments >= filters.minComments;
 
-            return dateCondition && viewsCondition && likesCondition;
+            return dateCondition && viewsCondition && likesCondition && commentsCondition;
         });
 
         currentPage = 1;
@@ -196,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                          <a href="${post.url}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on Instagram</a>
                          ${transcriptBtnHTML}
-                         <div class="generate-story-container"></div>
+                         <div class="save-container"></div>
                     </div>
                 </div>
             </div>
@@ -255,39 +266,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updateFilterModalUI = () => {
         document.querySelector(`input[name="content-type"][value="${filters.contentType}"]`).checked = true;
-        const minViewsContainer = document.getElementById('min-views-container');
-        const minLikesInput = document.getElementById('min-likes-input');
-
-        if (filters.contentType === 'stories') {
-            minViewsContainer.style.display = 'block';
-            minViewsContainer.querySelector('input').value = filters.minViews;
-            minLikesInput.value = filters.minLikes;
-        } else {
-            minViewsContainer.style.display = 'none';
-            minLikesInput.value = filters.minLikes;
-        }
-
+        document.getElementById('min-views-input').value = filters.minViews;
+        document.getElementById('min-likes-input').value = filters.minLikes;
+        document.getElementById('min-comments-input').value = filters.minComments;
         document.getElementById('date-uploaded-select').value = filters.dateFilter;
-        renderKeywords();
     };
 
     const handleApplyFilters = () => {
         filters.contentType = document.querySelector('input[name="content-type"]:checked').value;
         filters.minViews = parseInt(document.getElementById('min-views-input').value) || 0;
         filters.minLikes = parseInt(document.getElementById('min-likes-input').value) || 0;
+        filters.minComments = parseInt(document.getElementById('min-comments-input').value) || 0;
         filters.dateFilter = document.getElementById('date-uploaded-select').value;
         filterModal.classList.add('hidden');
-        scrapeHashtags();
+        applyClientSideFilters();
     };
 
     const handleResetFilters = () => {
-        filters = {
-            hashtags: [...DEFAULT_HASHTAGS],
-            contentType: 'stories',
-            minViews: 10000,
-            minLikes: 100,
-            dateFilter: 'any'
-        };
+        filters.minViews = 0;
+        filters.minLikes = 0;
+        filters.minComments = 0;
+        filters.dateFilter = 'any';
         updateFilterModalUI();
     };
 
@@ -327,8 +326,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${result.transcript}</p>
                     </div>
                 `;
-                const generateStoryContainer = postContainer.querySelector('.generate-story-container');
-                generateStoryContainer.innerHTML = `<div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${postContainer.dataset.postId}">Generate Story</button></div>`;
+                const saveContainer = postContainer.querySelector('.save-container');
+                saveContainer.innerHTML = `<div class="mt-4"><button class="save-post-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${postContainer.dataset.postId}">Save It</button></div>`;
                 transcriptionModal.classList.add('hidden');
                 transcribeBtn.style.display = 'none';
                 lucide.createIcons();
@@ -345,71 +344,34 @@ document.addEventListener('DOMContentLoaded', () => {
         transcribe();
     };
 
-    const handleGenerateStory = (e) => {
-        const generateBtn = e.target.closest('.generate-story-btn');
-        if (!generateBtn) return;
-        
-        const postId = generateBtn.dataset.postId;
-        postToProcess = allPosts.find(p => p.id === postId);
-        
-        if (postToProcess && postToProcess.transcript) {
-            showFrameworkSelector(processStoryCreation);
-        } else {
-            console.error("Could not find post or transcript for story generation.");
-        }
-    };
+    const handleSavePost = async (button) => {
+        const postId = button.dataset.postId;
+        const post = allPosts.find(p => p.id === postId);
 
-    const showFrameworkSelector = async (onSelectCallback) => {
-        frameworkOptionsContainer.innerHTML = `<div class="flex justify-center items-center py-10"><i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-primary-500"></i></div>`;
+        if (!post) {
+            alert('Error: Could not find the post to save.');
+            return;
+        }
+
+        button.disabled = true;
+        button.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin mr-2"></i>Saving...';
         lucide.createIcons();
-        frameworkSelectModal.classList.remove('hidden');
 
         try {
-            const frameworks = await apiCall('/api/frameworks');
-            const viralFrameworks = frameworks.filter(fw => fw.type === 'viral_framework');
-            frameworkOptionsContainer.innerHTML = viralFrameworks.map(fw => `
-                <button class="framework-option-btn w-full text-left p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex justify-between items-center" data-id="${fw._id}">
-                    <span>
-                        <span class="font-semibold text-slate-800 dark:text-white">${fw.name}</span>
-                         <span class="ml-2 text-xs bg-purple-500/10 text-purple-600 px-2 py-0.5 rounded-full font-medium">Viral Script</span>
-                    </span>
-                    <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
-                </button>
-            `).join('');
-            lucide.createIcons();
-            
-            document.querySelectorAll('.framework-option-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const frameworkId = btn.dataset.id;
-                    frameworkSelectModal.classList.add('hidden');
-                    onSelectCallback(frameworkId);
-                });
-            });
-        } catch (error) {
-            frameworkOptionsContainer.innerHTML = `<p class="text-red-500">Could not load frameworks. Using default.</p>`;
-            setTimeout(() => {
-                frameworkSelectModal.classList.add('hidden');
-                onSelectCallback(null);
-            }, 1500);
-        }
-    };
-
-    const processStoryCreation = async (frameworkId) => {
-        if (!postToProcess) return;
-        storyLoaderModal.classList.remove('hidden');
-        try {
-            const newStory = await apiCall('/api/create-story-from-instagram', {
+            const result = await apiCall('/api/save-live-post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post: postToProcess, transcript: postToProcess.transcript, frameworkId })
+                body: JSON.stringify({ post })
             });
-            sessionStorage.setItem('generatedContent', JSON.stringify([newStory]));
-            window.location.href = '/reels';
+            
+            button.innerHTML = '<i data-lucide="check" class="w-4 h-4 mr-2"></i>Saved';
+            button.classList.remove('bg-green-600', 'hover:bg-green-700');
+            button.classList.add('bg-slate-400', 'cursor-not-allowed');
+            lucide.createIcons();
         } catch (error) {
-            // showErrorModal(error.message === 'MODEL_BUSY' ? 'modelBusy' : 'general', error.message);
-        } finally {
-            storyLoaderModal.classList.add('hidden');
-            postToProcess = null;
+            alert(`Error: ${error.message}`);
+            button.disabled = false;
+            button.innerHTML = 'Save It';
         }
     };
 
@@ -437,20 +399,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- EVENT LISTENERS & INITIALIZATION ---
-    const init = async () => {
-        try {
-            const defaults = await apiCall('/api/default-ig-hashtags');
-            DEFAULT_HASHTAGS = defaults.hashtags || [];
-            filters.hashtags = [...DEFAULT_HASHTAGS];
-            
-            renderKeywords();
-        } catch (error) {
-            errorContainer.textContent = `Error loading initial data: ${error.message}`;
-            errorContainer.classList.remove('hidden');
-        }
+    const init = () => {
+        renderKeywords(initialKeywordsContainer);
+        updateCostEstimation();
 
         fetchContentBtn.addEventListener('click', () => {
-            fetchContentBtn.style.display = 'none';
+            document.getElementById('initial-search-container').style.display = 'none';
+            filters.resultsLimit = parseInt(initialSearchDepthInput.value) || 5;
             scrapeHashtags();
         });
 
@@ -461,9 +416,15 @@ document.addEventListener('DOMContentLoaded', () => {
         closeFilterModalBtn.addEventListener('click', () => filterModal.classList.add('hidden'));
         applyFiltersBtn.addEventListener('click', handleApplyFilters);
         resetFiltersBtn.addEventListener('click', handleResetFilters);
-        addKeywordInput.addEventListener('keydown', handleAddKeywordKeydown);
-        addKeywordBtn.addEventListener('click', addKeywordFromInput);
-        keywordsContainer.addEventListener('click', handleRemoveKeyword);
+        initialAddKeywordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addKeywordFromInput(initialAddKeywordInput, initialKeywordsContainer);
+            }
+        });
+        initialAddKeywordBtn.addEventListener('click', () => addKeywordFromInput(initialAddKeywordInput, initialKeywordsContainer));
+        initialKeywordsContainer.addEventListener('click', handleRemoveKeyword);
+        initialSearchDepthInput.addEventListener('input', updateCostEstimation);
         document.querySelectorAll('input[name="content-type"]').forEach(radio => {
             radio.addEventListener('change', handleContentTypeChange);
         });
@@ -471,7 +432,9 @@ document.addEventListener('DOMContentLoaded', () => {
         paginationContainer.addEventListener('click', handlePaginationClick);
         container.addEventListener('click', (e) => {
             handleTranscribe(e);
-            handleGenerateStory(e);
+            if (e.target.closest('.save-post-btn')) {
+                handleSavePost(e.target.closest('.save-post-btn'));
+            }
             if (e.target.closest('.add-competitor-btn')) {
                 handleAddCompetitor(e.target.closest('.add-competitor-btn'));
             }

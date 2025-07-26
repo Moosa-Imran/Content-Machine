@@ -395,15 +395,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const scriptTextarea = document.getElementById('final-script-textarea');
         const audioPlayerContainer = document.querySelector('.audio-player-container');
         const saveStoryContainer = document.querySelector('.save-story-container');
-        
+
         toggleButtonLoading(audioBtn, true, 'Generating...');
         audioPlayerContainer.innerHTML = '';
         saveStoryContainer.innerHTML = '';
-        
-        const scriptText = scriptTextarea.value
-            .replace(/^\*\*[A-Z ]+:\*\*\s*/gim, '')
-            .replace(/\n{2,}/g, '\n\n')
-            .trim();
+
+        // Remove all **LABEL:** style headings (e.g., **HOOK:**, **BUILD-UP:**, etc.)
+        let scriptText = scriptTextarea.value.replace(/\*\*[A-Z0-9 \-]+:\*\*/g, '');
+        // Also remove any lines that are just whitespace or empty after label removal
+        scriptText = scriptText.split('\n').map(line => line.trim()).filter(line => line.length > 0).join('\n');
 
         try {
             const result = await apiCall('/api/generate-audio', {

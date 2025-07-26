@@ -283,6 +283,12 @@ router.post('/create-story-from-instagram', async (req, res) => {
             businessCase._id = insertResult.insertedId;
             const framework = await getFrameworkById(frameworkId);
             const newScript = await generateScriptContent(businessCase, framework);
+            
+            // If the post came from the saved_content collection, delete it
+            if (post.savedAt) {
+                await db.collection('saved_content').deleteOne({ _id: new ObjectId(post._id) });
+            }
+
             res.status(201).json(newScript);
         } else {
             throw new Error("AI failed to generate a valid story structure from the Instagram post.");

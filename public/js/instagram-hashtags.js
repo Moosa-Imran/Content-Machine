@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
     const confirmModalTitle = document.getElementById('confirm-modal-title');
     const confirmModalMessage = document.getElementById('confirm-modal-message');
-    const fetchContentBtn = document.getElementById('fetch-content-btn');
     
     // Additional modal elements
     const transcriptionModal = document.getElementById('transcription-modal');
@@ -55,8 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let postToProcess = null;
     let currentTranscribingBtn = null;
     const DEFAULT_FILTERS = {
-        minViews: 0,
+        minViews: 10000,
         minLikes: 0,
+        minComments: 0,
         dateFilter: 'any'
     };
     let filters = { ...DEFAULT_FILTERS };
@@ -163,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 limit: postsPerPage,
                 minViews: filters.minViews,
                 minLikes: filters.minLikes,
+                minComments: filters.minComments,
                 dateFilter: filters.dateFilter
             });
             const data = await apiCall(`/api/instagram-posts?${queryParams.toString()}`);
@@ -214,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                          <a href="${post.url}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on Instagram</a>
                          ${transcriptBtnHTML}
-                         <div class="generate-story-container"></div>
+                         <div class="save-container"></div>
                     </div>
                 </div>
             </div>`;
@@ -291,12 +292,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateFilterModalUI = () => {
         document.getElementById('min-views-input').value = filters.minViews;
         document.getElementById('min-likes-input').value = filters.minLikes;
+        document.getElementById('min-comments-input').value = filters.minComments;
         document.getElementById('date-uploaded-select').value = filters.dateFilter;
     };
 
     const updateFilterIndicator = () => {
         const isDefault = filters.minViews === DEFAULT_FILTERS.minViews &&
                           filters.minLikes === DEFAULT_FILTERS.minLikes &&
+                          filters.minComments === DEFAULT_FILTERS.minComments &&
                           filters.dateFilter === DEFAULT_FILTERS.dateFilter;
         filterIndicator.classList.toggle('hidden', isDefault);
     };
@@ -304,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleApplyFilters = () => {
         filters.minViews = parseInt(document.getElementById('min-views-input').value) || 0;
         filters.minLikes = parseInt(document.getElementById('min-likes-input').value) || 0;
+        filters.minComments = parseInt(document.getElementById('min-comments-input').value) || 0;
         filters.dateFilter = document.getElementById('date-uploaded-select').value;
         filterModal.classList.add('hidden');
         updateFilterIndicator();
@@ -363,8 +367,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${result.transcript}</p>
                     </div>
                 `;
-                const generateStoryContainer = postContainer.querySelector('.generate-story-container');
-                generateStoryContainer.innerHTML = `<div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${postContainer.dataset.postId}">Generate Story</button></div>`;
+                const saveContainer = postContainer.querySelector('.save-container');
+                saveContainer.innerHTML = `<div class="mt-4"><button class="save-post-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${postContainer.dataset.postId}">Save It</button></div>`;
                 transcriptionModal.classList.add('hidden');
                 transcribeBtn.style.display = 'none';
                 currentTranscribingBtn = null;
@@ -382,87 +386,64 @@ document.addEventListener('DOMContentLoaded', () => {
         transcribe();
     };
 
-    const handleGenerateStory = (e) => {
-        const generateBtn = e.target.closest('.generate-story-btn');
-        if (!generateBtn) return;
-        
-        const postId = generateBtn.dataset.postId;
-        postToProcess = allPosts.find(p => p._id === postId);
-        
-        if (postToProcess && postToProcess.transcript) {
-            showFrameworkSelector(processStoryCreation);
-        } else {
-            console.error("Could not find post or transcript for story generation.");
-        }
-    };
+    const handleSavePost = async (button) => {
+        const postId = button.dataset.postId;
+        const post = allPosts.find(p => p._id === postId);
 
-    const showFrameworkSelector = async (onSelectCallback) => {
-        frameworkOptionsContainer.innerHTML = `<div class="flex justify-center items-center py-10"><i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-primary-500"></i></div>`;
+        if (!post) {
+            showNotification('Error', 'Could not find the post to save.', 'error');
+            return;
+        }
+
+        button.disabled = true;
+        button.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin mr-2"></i>Saving...';
         lucide.createIcons();
-        frameworkSelectModal.classList.remove('hidden');
 
         try {
-            const frameworks = await apiCall('/api/frameworks');
-            const viralFrameworks = frameworks.filter(fw => fw.type === 'viral_framework');
-            frameworkOptionsContainer.innerHTML = viralFrameworks.map(fw => `
-                <button class="framework-option-btn w-full text-left p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex justify-between items-center" data-id="${fw._id}">
-                    <span>
-                        <span class="font-semibold text-slate-800 dark:text-white">${fw.name}</span>
-                         <span class="ml-2 text-xs bg-purple-500/10 text-purple-600 px-2 py-0.5 rounded-full font-medium">Viral Script</span>
-                    </span>
-                    <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
-                </button>
-            `).join('');
-            lucide.createIcons();
-            
-            document.querySelectorAll('.framework-option-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const frameworkId = btn.dataset.id;
-                    frameworkSelectModal.classList.add('hidden');
-                    onSelectCallback(frameworkId);
-                });
-            });
-        } catch (error) {
-            frameworkOptionsContainer.innerHTML = `<p class="text-red-500">Could not load frameworks. Using default.</p>`;
-            setTimeout(() => {
-                frameworkSelectModal.classList.add('hidden');
-                onSelectCallback(null);
-            }, 1500);
-        }
-    };
-
-    const processStoryCreation = async (frameworkId) => {
-        if (!postToProcess) return;
-        storyLoaderModal.classList.remove('hidden');
-        try {
-            const newStory = await apiCall('/api/create-story-from-instagram', {
+            const result = await apiCall('/api/save-instagram-post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post: postToProcess, transcript: postToProcess.transcript, frameworkId })
+                body: JSON.stringify({ post })
             });
-            sessionStorage.setItem('generatedContent', JSON.stringify([newStory]));
-            window.location.href = '/reels';
+            
+            button.innerHTML = '<i data-lucide="check" class="w-4 h-4 mr-2"></i>Saved';
+            button.classList.remove('bg-green-600', 'hover:bg-green-700');
+            button.classList.add('bg-slate-400', 'cursor-not-allowed');
+            lucide.createIcons();
+
         } catch (error) {
-            // showErrorModal(error.message === 'MODEL_BUSY' ? 'modelBusy' : 'general', error.message);
-        } finally {
-            storyLoaderModal.classList.add('hidden');
-            postToProcess = null;
+            showNotification('Error', `Failed to save post: ${error.message}`, 'error');
+            button.disabled = false;
+            button.innerHTML = 'Save It';
         }
     };
 
-    const handleDeletePost = (button) => {
+    const handleDeletePost = async (button) => {
         const postId = button.dataset.postId;
-        showConfirmModal('Delete Post?', 'This will permanently remove this post from your content pool. This action cannot be undone.', async () => {
-            try {
-                await apiCall(`/api/instagram-posts/${postId}`, { method: 'DELETE' });
-                hideConfirmModal();
-                showNotification('Post Deleted', 'The post has been successfully removed from your content pool.');
-                fetchPostsFromDB(currentPage);
-            } catch (error) {
-                hideConfirmModal();
-                showNotification('Error', `Failed to delete post: ${error.message}`, 'error');
-            }
-        });
+        const postCard = button.closest('[data-post-id]');
+
+        if (!postCard) return;
+
+        postCard.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+        postCard.style.opacity = '0';
+        postCard.style.transform = 'scale(0.95)';
+
+        try {
+            await apiCall(`/api/instagram-posts/${postId}`, { method: 'DELETE' });
+            
+            setTimeout(() => {
+                allPosts = allPosts.filter(p => p._id !== postId);
+                renderPosts(allPosts);
+                if (container.children.length === 0) {
+                    fetchPostsFromDB(Math.max(1, currentPage - 1));
+                }
+            }, 500);
+
+        } catch (error) {
+            showNotification('Error', `Failed to delete post: ${error.message}`, 'error');
+            postCard.style.opacity = '1';
+            postCard.style.transform = 'scale(1)';
+        }
     };
 
     // --- EVENT LISTENERS & INITIALIZATION ---
@@ -509,7 +490,9 @@ document.addEventListener('DOMContentLoaded', () => {
         shuffleBtn.addEventListener('click', handleShuffle);
         container.addEventListener('click', (e) => {
             handleTranscribe(e);
-            handleGenerateStory(e);
+            if (e.target.closest('.save-post-btn')) {
+                handleSavePost(e.target.closest('.save-post-btn'));
+            }
             if (e.target.closest('.delete-post-btn')) {
                 handleDeletePost(e.target.closest('.delete-post-btn'));
             }
@@ -521,10 +504,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentTranscribingBtn.innerHTML = 'Transcript It';
                 currentTranscribingBtn = null;
             }
-        });
-        
-        closeFrameworkModalBtn.addEventListener('click', () => {
-            frameworkSelectModal.classList.add('hidden');
         });
         
         confirmCancelBtn.addEventListener('click', hideConfirmModal);

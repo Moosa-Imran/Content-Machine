@@ -21,7 +21,7 @@ const client = new ApifyClient({
 router.post('/scrape-instagram-hashtags', async (req, res) => {
     res.setTimeout(300000);
 
-    const { hashtags, resultsType } = req.body;
+    const { hashtags, resultsType, resultsLimit } = req.body;
 
     if (!hashtags || !Array.isArray(hashtags) || hashtags.length === 0) {
         return res.status(400).json({ error: 'Hashtags array is required.' });
@@ -29,8 +29,8 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
 
     const input = {
         hashtags: hashtags,
-        resultsLimit: 50,
-        resultsType: resultsType || "posts"
+        resultsLimit: resultsLimit || 5,
+        resultsType: resultsType || "stories"
     };
 
     try {
@@ -163,6 +163,7 @@ router.get('/instagram-posts', async (req, res) => {
 
         const minViews = parseInt(req.query.minViews) || 0;
         const minLikes = parseInt(req.query.minLikes) || 0;
+        const minComments = parseInt(req.query.minComments) || 0;
         const dateFilter = req.query.dateFilter || 'any';
 
         let mongoQuery = { used: { $ne: true } };
@@ -171,6 +172,9 @@ router.get('/instagram-posts', async (req, res) => {
         }
         if (minLikes > 0) {
             mongoQuery.likesCount = { $gte: minLikes };
+        }
+        if (minComments > 0) {
+            mongoQuery.commentsCount = { $gte: minComments };
         }
         if (dateFilter !== 'any') {
             let hours = 0;
@@ -192,6 +196,27 @@ router.get('/instagram-posts', async (req, res) => {
     } catch (error) {
         console.error("Error fetching Instagram posts from DB:", error);
         res.status(500).json({ error: 'Failed to fetch posts from the content pool.' });
+    }
+});
+
+router.get('/saved-instagram-posts', async (req, res) => {
+    try {
+        const db = getDB();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const posts = await db.collection('saved_content').find().sort({ savedAt: -1 }).skip(skip).limit(limit).toArray();
+        const totalPosts = await db.collection('saved_content').countDocuments();
+
+        res.json({
+            posts,
+            totalPages: Math.ceil(totalPosts / limit),
+            currentPage: page
+        });
+    } catch (error) {
+        console.error("Error fetching saved Instagram posts from DB:", error);
+        res.status(500).json({ error: 'Failed to fetch saved posts.' });
     }
 });
 
@@ -226,19 +251,38 @@ router.post('/run-hashtag-scrape-job', async (req, res) => {
     }
 });
 
+router.post('/save-instagram-post', async (req, res) => {
+    const { post } = req.body;
+    if (!post || !post._id) {
+        return res.status(400).json({ error: 'Post data is required.' });
+    }
+
+    try {
+        const db = getDB();
+        const postId = new ObjectId(post._id);
+
+        await db.collection('saved_content').insertOne({ ...post, originalId: postId, savedAt: new Date() });
+        const result = await db.collection('ig_posts').updateOne({ _id: postId }, { $set: { used: true } });
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ error: 'Post not found in the content pool or already marked as used.' });
+        }
+        res.json({ success: true, message: 'Post successfully saved and marked as used.' });
+    } catch (error) {
+        console.error("Error saving post:", error);
+        res.status(500).json({ error: 'Failed to save the post.' });
+    }
+});
+
 router.delete('/instagram-posts/:id', async (req, res) => {
     try {
         const db = getDB();
         const postId = new ObjectId(req.params.id);
-        const result = await db.collection('ig_posts').updateOne(
-            { _id: postId },
-            { $set: { used: true } }
-        );
+        const result = await db.collection('ig_posts').updateOne({ _id: postId }, { $set: { used: true } });
 
         if (result.modifiedCount === 0) {
             return res.status(404).json({ error: 'Post not found or already marked as used.' });
         }
-
         res.json({ success: true, message: 'Post marked as used.' });
     } catch (error) {
         console.error("Error marking post as used:", error);
@@ -246,7 +290,42 @@ router.delete('/instagram-posts/:id', async (req, res) => {
     }
 });
 
-// Image Proxy Route
+router.delete('/saved-instagram-posts/:id', async (req, res) => {
+    try {
+        const db = getDB();
+        const { id } = req.params;
+        let query;
+
+        // Check if the provided ID is a valid BSON ObjectId string
+        if (ObjectId.isValid(id)) {
+            // If it's valid, the _id in the DB could be an ObjectId or a string.
+            // This query handles both cases.
+            query = {
+                $or: [
+                    { _id: new ObjectId(id) },
+                    { _id: id } 
+                ]
+            };
+        } else {
+            // If it's not a valid ObjectId string, it must be stored as a string.
+            query = { _id: id };
+        }
+
+        const result = await db.collection('saved_content').deleteOne(query);
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Saved post not found.' });
+        }
+
+        res.json({ success: true, message: 'Saved post deleted successfully.' });
+    } catch (error) {
+        console.error("Error deleting saved post:", error);
+        res.status(500).json({ error: 'Failed to delete the saved post.' });
+    }
+});
+
+// --- UTILITY ROUTES ---
+
 router.get('/image-proxy', async (req, res) => {
     try {
         const imageUrl = req.query.url;
@@ -265,7 +344,6 @@ router.get('/image-proxy', async (req, res) => {
     }
 });
 
-// Transcription Proxy Route
 router.post('/transcribe-video', async (req, res) => {
     const { url } = req.body;
     if (!url) {
@@ -286,205 +364,6 @@ router.post('/transcribe-video', async (req, res) => {
     } catch (error) {
         console.error('Transcription proxy error:', error);
         res.status(500).json({ error: 'Failed to transcribe video.' });
-    }
-});
-
-// --- INSTAGRAM HASHTAGS API ENDPOINTS ---
-
-// Get Instagram posts from database with pagination and filters
-router.get('/instagram-posts', async (req, res) => {
-    try {
-        const db = getDB();
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const minViews = parseInt(req.query.minViews) || 0;
-        const minLikes = parseInt(req.query.minLikes) || 0;
-        const dateFilter = req.query.dateFilter || 'any';
-        
-        const skip = (page - 1) * limit;
-        
-        // Build filter query
-        let filter = {
-            likesCount: { $gte: minLikes }
-        };
-        
-        if (minViews > 0) {
-            filter.videoPlayCount = { $gte: minViews };
-        }
-        
-        if (dateFilter !== 'any') {
-            const now = new Date();
-            let startDate;
-            
-            switch (dateFilter) {
-                case '24h':
-                    startDate = new Date(now - 24 * 60 * 60 * 1000);
-                    break;
-                case '7d':
-                    startDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
-                    break;
-                case '30d':
-                    startDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
-                    break;
-            }
-            
-            if (startDate) {
-                filter.timestamp = { $gte: startDate };
-            }
-        }
-        
-        const totalPosts = await db.collection('Instagram_Posts').countDocuments(filter);
-        const posts = await db.collection('Instagram_Posts')
-            .find(filter)
-            .sort({ timestamp: -1 })
-            .skip(skip)
-            .limit(limit)
-            .toArray();
-        
-        const totalPages = Math.ceil(totalPosts / limit);
-        
-        res.json({
-            posts,
-            currentPage: page,
-            totalPages,
-            totalPosts
-        });
-    } catch (error) {
-        console.error('Error fetching Instagram posts:', error);
-        res.status(500).json({ error: 'Failed to fetch Instagram posts.' });
-    }
-});
-
-// Get default Instagram hashtags
-router.get('/default-ig-hashtags', async (req, res) => {
-    try {
-        const db = getDB();
-        const doc = await db.collection('Instagram_Hashtags').findOne({ name: 'default' });
-        const hashtags = doc ? doc.hashtags : [
-            'marketingtips',
-            'psychologyfacts', 
-            'businesstips',
-            'branding101',
-            'digitalmarketing',
-            'business',
-            'sales',
-            'entrepreneurship',
-            'consumerbehavior',
-            'marketingdigital'
-        ];
-        res.json({ hashtags });
-    } catch (error) {
-        console.error('Error fetching default hashtags:', error);
-        res.status(500).json({ error: 'Failed to fetch default hashtags.' });
-    }
-});
-
-// Run hashtag scrape job using Apify
-router.post('/run-hashtag-scrape-job', async (req, res) => {
-    const { hashtags, resultsLimit } = req.body;
-    
-    if (!hashtags || !Array.isArray(hashtags)) {
-        return res.status(400).json({ error: 'Hashtags array is required.' });
-    }
-    
-    try {
-        const input = {
-            hashtags: hashtags,
-            resultsLimit: resultsLimit || 25,
-            resultsType: "stories"
-        };
-        
-        // Run the Actor and wait for it to finish
-        const run = await client.actor("reGe1ST3OBgYZSsZJ").call(input);
-        
-        // Fetch and process Actor results
-        const { items } = await client.dataset(run.defaultDatasetId).listItems();
-        
-        if (items.length > 0) {
-            const db = getDB();
-            
-            // Check for existing posts
-            const existingUrls = await db.collection('Instagram_Posts')
-                .find({ url: { $in: items.map(item => item.url) } })
-                .project({ url: 1 })
-                .toArray();
-            
-            const existingUrlSet = new Set(existingUrls.map(doc => doc.url));
-            const newPosts = items.filter(item => !existingUrlSet.has(item.url));
-            
-            if (newPosts.length > 0) {
-                // Add timestamp and process hashtags
-                const processedPosts = newPosts.map(post => ({
-                    ...post,
-                    scrapedAt: new Date(),
-                    hashtags: Array.isArray(post.hashtags) ? post.hashtags : []
-                }));
-                
-                await db.collection('Instagram_Posts').insertMany(processedPosts);
-            }
-            
-            res.json({ 
-                message: `Successfully scraped ${items.length} posts, added ${newPosts.length} new posts to database.`,
-                totalScraped: items.length,
-                newPosts: newPosts.length
-            });
-        } else {
-            res.json({ message: 'No posts found for the given hashtags.' });
-        }
-    } catch (error) {
-        console.error('Error running hashtag scrape job:', error);
-        res.status(500).json({ error: 'Failed to run scrape job.' });
-    }
-});
-
-// Delete Instagram post
-router.delete('/instagram-posts/:id', async (req, res) => {
-    try {
-        const db = getDB();
-        const postId = new ObjectId(req.params.id);
-        
-        const result = await db.collection('Instagram_Posts').deleteOne({ _id: postId });
-        
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ error: 'Post not found.' });
-        }
-        
-        res.json({ success: true, message: 'Post deleted successfully.' });
-    } catch (error) {
-        console.error('Error deleting Instagram post:', error);
-        res.status(500).json({ error: 'Failed to delete post.' });
-    }
-});
-
-// Create story from Instagram post
-router.post('/create-story-from-instagram', async (req, res) => {
-    const { post, transcript, frameworkId } = req.body;
-    
-    if (!post || !transcript) {
-        return res.status(400).json({ error: 'Post and transcript are required.' });
-    }
-    
-    try {
-        // Create a business case from the Instagram post
-        const businessCase = {
-            company: post.ownerUsername,
-            industry: "Social Media",
-            psychology: "Viral Content Strategy",
-            problem: "Creating engaging social media content",
-            solution: post.caption || "Viral social media post strategy",
-            realStudy: "Instagram engagement analysis",
-            findings: `Post received ${post.likesCount} likes and ${post.commentsCount} comments`,
-            verified: false,
-            sources: [post.url],
-            source_url: post.url,
-            hashtags: post.hashtags || [],
-            transcript: transcript
-        };
-        
-        res.json(businessCase);
-    } catch (error) {
-        console.error('Error creating story from Instagram post:', error);
-        res.status(500).json({ error: 'Failed to create story from Instagram post.' });
     }
 });
 
