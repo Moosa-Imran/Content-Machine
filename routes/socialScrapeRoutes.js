@@ -89,7 +89,7 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
 router.post('/scrape-instagram-competitors', async (req, res) => {
     res.setTimeout(300000);
 
-    const { directUrls, resultsType, onlyPostsNewerThan } = req.body;
+    const { directUrls, resultsType, onlyPostsNewerThan, resultsLimit } = req.body;
 
     if (!directUrls || !Array.isArray(directUrls) || directUrls.length === 0) {
         return res.status(400).json({ error: 'Competitor usernames are required.' });
@@ -101,7 +101,7 @@ router.post('/scrape-instagram-competitors', async (req, res) => {
         directUrls: fullUrls,
         resultsType: resultsType || "stories",
         onlyPostsNewerThan: onlyPostsNewerThan || "1 week",
-        resultsLimit: 25
+        resultsLimit: resultsLimit || 5
     };
 
     try {
@@ -321,6 +321,123 @@ router.delete('/saved-instagram-posts/:id', async (req, res) => {
     } catch (error) {
         console.error("Error deleting saved post:", error);
         res.status(500).json({ error: 'Failed to delete the saved post.' });
+    }
+});
+
+// --- COMPETITOR CONTENT POOL ROUTES ---
+
+// Get paginated competitor posts
+router.get('/competitor-posts', async (req, res) => {
+    try {
+        const db = getDB();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const minViews = parseInt(req.query.minViews) || 0;
+        const minLikes = parseInt(req.query.minLikes) || 0;
+        const minComments = parseInt(req.query.minComments) || 0;
+        const dateFilter = req.query.dateFilter || 'any';
+
+        let mongoQuery = { used: { $ne: true } };
+        if (minViews > 0) {
+            mongoQuery.videoPlayCount = { $gte: minViews };
+        }
+        if (minLikes > 0) {
+            mongoQuery.likesCount = { $gte: minLikes };
+        }
+        if (minComments > 0) {
+            mongoQuery.commentsCount = { $gte: minComments };
+        }
+        if (dateFilter !== 'any') {
+            let hours = 0;
+            if (dateFilter === '24h') hours = 24;
+            if (dateFilter === '7d') hours = 24 * 7;
+            if (dateFilter === '30d') hours = 24 * 30;
+            const cutoffDate = new Date(new Date().getTime() - (hours * 60 * 60 * 1000));
+            mongoQuery.timestamp = { $gte: cutoffDate.toISOString() };
+        }
+
+        const posts = await db.collection('ig_competitor').find(mongoQuery).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray();
+        const totalPosts = await db.collection('ig_competitor').countDocuments(mongoQuery);
+
+        res.json({
+            posts,
+            totalPages: Math.ceil(totalPosts / limit),
+            currentPage: page
+        });
+    } catch (error) {
+        console.error("Error fetching competitor posts from DB:", error);
+        res.status(500).json({ error: 'Failed to fetch competitor posts.' });
+    }
+});
+
+// Save competitor post
+router.post('/save-competitor-post', async (req, res) => {
+    const { post } = req.body;
+    if (!post || !post._id) {
+        return res.status(400).json({ error: 'Post data is required.' });
+    }
+    try {
+        const db = getDB();
+        const postId = new ObjectId(post._id);
+        await db.collection('saved_competitor_content').insertOne({ ...post, originalId: postId, savedAt: new Date() });
+        const result = await db.collection('ig_competitor').updateOne({ _id: postId }, { $set: { used: true } });
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ error: 'Post not found in the competitor pool or already marked as used.' });
+        }
+        res.json({ success: true, message: 'Post successfully saved and marked as used.' });
+    } catch (error) {
+        console.error("Error saving competitor post:", error);
+        res.status(500).json({ error: 'Failed to save the competitor post.' });
+    }
+});
+
+// Mark competitor post as used (delete from pool)
+router.delete('/competitor-posts/:id', async (req, res) => {
+    try {
+        const db = getDB();
+        const postId = new ObjectId(req.params.id);
+        const result = await db.collection('ig_competitor').updateOne({ _id: postId }, { $set: { used: true } });
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ error: 'Post not found or already marked as used.' });
+        }
+        res.json({ success: true, message: 'Competitor post marked as used.' });
+    } catch (error) {
+        console.error("Error marking competitor post as used:", error);
+        res.status(500).json({ error: 'Failed to mark the competitor post as used.' });
+    }
+});
+
+// Run competitor scrape job and update pool
+router.post('/run-competitor-scrape-job', async (req, res) => {
+    const { competitors, resultsLimit } = req.body;
+    try {
+        const db = getDB();
+        // If not provided, get default competitors
+        const competitorsToScrape = competitors || (await getIgCompetitors());
+        const limit = resultsLimit || 5;
+        const fullUrls = competitorsToScrape.map(username => `https://www.instagram.com/${username}/`);
+        const input = {
+            directUrls: fullUrls,
+            resultsType: "stories",
+            onlyPostsNewerThan: "1 week",
+            resultsLimit: limit
+        };
+        const run = await client.actor("apify/instagram-scraper").call(input);
+        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+        let newPostsCount = 0;
+        for (const post of items) {
+            const existingPost = await db.collection('ig_competitor').findOne({ url: post.url });
+            if (!existingPost) {
+                await db.collection('ig_competitor').insertOne(post);
+                newPostsCount++;
+            }
+        }
+        res.json({ success: true, message: `Scraping complete. Added ${newPostsCount} new competitor posts to the pool.` });
+    } catch (error) {
+        console.error("Error running competitor scrape job:", error);
+        res.status(500).json({ error: 'Failed to run the competitor scraping job.' });
     }
 });
 

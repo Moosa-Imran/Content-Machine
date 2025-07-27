@@ -21,6 +21,7 @@ router.get('/saved-content', (req, res) => res.render('saved-content', { title: 
 router.get('/instagram-hashtags-live', (req, res) => res.render('instagram-hashtags-live', { title: 'Instagram Hashtag Scraper' }));
 router.get('/instagram-hashtags', (req, res) => res.render('instagram-hashtags', { title: 'Instagram Content Pool' }));
 router.get('/instagram-competitor', (req, res) => res.render('instagram-competitor', { title: 'Instagram Competitor Scraper' }));
+router.get('/instagram-competitor-live', (req, res) => res.render('instagram-competitors-live', { title: 'Instagram Competitor Live' }));
 router.get('/reels', (req, res) => res.render('reels', { title: 'Viral Scripts', contentFeed: [] }));
 router.get('/framework', (req, res) => res.render('framework', { title: 'Script Framework Editor' }));
 

@@ -196,7 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="flex-grow">
                         <div class="flex justify-between items-start">
                             <div>
-                                <p class="font-bold text-slate-800 dark:text-white">${post.ownerUsername}</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-bold text-slate-800 dark:text-white">${post.ownerUsername}</p>
+                                    <button class="add-competitor-btn text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-md font-semibold flex items-center gap-1" data-username="${post.ownerUsername}" title="Add ${post.ownerUsername} as competitor">
+                                        <i data-lucide="user-plus" class="w-3 h-3"></i>
+                                        <span>Add Competitor</span>
+                                    </button>
+                                </div>
                                 <p class="text-xs text-slate-400">${new Date(post.timestamp).toLocaleString()}</p>
                             </div>
                             <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
@@ -446,6 +452,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleAddCompetitor = async (button) => {
+        const username = button.dataset.username;
+        if (!username) return;
+
+        button.disabled = true;
+        button.innerHTML = '<i data-lucide="check" class="w-3 h-3 text-green-500"></i>';
+        lucide.createIcons();
+
+        try {
+            const result = await apiCall('/api/add-competitor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+            console.log(result.message);
+        } catch (error) {
+            console.error("Failed to add competitor:", error);
+            button.disabled = false;
+            button.innerHTML = '<i data-lucide="user-plus" class="w-3 h-3"></i>';
+            lucide.createIcons();
+        }
+    };
+
     // --- EVENT LISTENERS & INITIALIZATION ---
     const init = async () => {
         try {
@@ -495,6 +524,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (e.target.closest('.delete-post-btn')) {
                 handleDeletePost(e.target.closest('.delete-post-btn'));
+            }
+            if (e.target.closest('.add-competitor-btn')) {
+                handleAddCompetitor(e.target.closest('.add-competitor-btn'));
             }
         });
         closeTranscriptionModalBtn.addEventListener('click', () => {
