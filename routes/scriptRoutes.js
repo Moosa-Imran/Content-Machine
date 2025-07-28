@@ -468,4 +468,16 @@ router.post('/analyze-sheet', async (req, res) => {
     }
 });
 
+// --- VERIFY STORY API ---
+router.post('/api/verify-story', async (req, res) => {
+    const { company, solution, psychology, findings, sources } = req.body;
+    const prompt = `Please verify the following business story. Check for the accuracy of the company's action, the stated psychological principle, and the claimed outcome. Provide a step-by-step verification process and a final conclusion.\nStory to Verify:\n- Company: ${company}\n- Tactic: ${solution}\n- Stated Psychology: ${psychology}\n- Claimed Finding: ${findings}\n- Source: ${sources ? sources[0] : 'N/A'}\nReturn your verification as a JSON object with the structure: {\"checks\": [{\"check\": \"string\", \"is_correct\": boolean, \"comment\": \"string\"}], \"conclusion\": \"string\", \"confidence_score\": number_between_0_and_100}`;
+    try {
+        const result = await callGeminiAPI(prompt, true);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: `Verification process failed. Server error: ${error.message}` });
+    }
+});
+
 module.exports = router;

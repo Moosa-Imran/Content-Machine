@@ -346,41 +346,114 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const editorContainer = document.querySelector('.script-editor-container');
         editorContainer.innerHTML = `<div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800">
-                <h4 class="text-xl font-bold text-center mb-4 text-slate-800 dark:text-white flex items-center justify-center gap-2"><i data-lucide="edit" class="w-5 h-5 text-primary-500"></i>Script Editor</h4>
-                <textarea id="final-script-textarea" class="w-full h-64 p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700">${scriptText}</textarea>
-                
-                <div class="mt-4 space-y-4">
-                    <input type="text" id="ai-rewrite-prompt" placeholder="Optional: Enter a rewrite instruction (e.g., 'make it funnier')" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm" />
-                    
-                    <div class="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg mt-2">
-                        <label for="update-framework-toggle" class="flex items-center justify-between cursor-pointer">
-                            <span class="flex flex-col">
-                                <span class="font-semibold text-slate-700 dark:text-slate-200">Evolve AI's Style</span>
-                                <span class="text-xs text-slate-500 dark:text-slate-400">Update the script framework based on this rewrite instruction.</span>
-                            </span>
-                            <div class="relative">
-                                <input type="checkbox" id="update-framework-toggle" class="sr-only peer">
-                                <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-8 rounded-full peer-checked:bg-purple-600"></div>
-                                <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6"></div>
-                            </div>
-                        </label>
-                    </div>
+                <h4 class="text-xl font-bold text-center mb-4 text-slate-800 dark:text-white flex items-center justify-center gap-2"><i data-lucide="shield-check" class="w-5 h-5 text-green-500"></i>Script Verification</h4>
+                <p class="text-center text-sm text-slate-500 dark:text-slate-400 mb-4">Cross-reference the case study findings with the original sources to ensure accuracy.</p>
+                <button class="verify-script-btn w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="shield-check" data-original-text="Verify Script">
+                    <span class="btn-icon"><i data-lucide="shield-check" class="w-5 h-5"></i></span>
+                    <span class="btn-text">Verify Script</span>
+                </button>
+                <div class="verify-result-container mt-4"></div>
 
-                    <button class="rewrite-ai-btn w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="wand-2" data-original-text="Rewrite with AI">
-                        <span class="btn-icon"><i data-lucide="wand-2" class="w-5 h-5"></i></span>
-                        <span class="btn-text">Rewrite with AI</span>
-                    </button>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button class="generate-audio-btn flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg font-semibold" data-icon="music-4" data-original-text="Generate Audio"><span class="btn-icon"><i data-lucide="music-4" class="w-5 h-5"></i></span><span class="btn-text">Generate Audio</span></button>
-                        <button class="copy-text-btn flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"><i data-lucide="copy" class="w-5 h-5"></i>Copy Text</button>
+                <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
+                    <h4 class="text-xl font-bold text-center mb-4 text-slate-800 dark:text-white flex items-center justify-center gap-2"><i data-lucide="edit" class="w-5 h-5 text-primary-500"></i>Script Editor</h4>
+                    <textarea id="final-script-textarea" class="w-full h-64 p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700">${scriptText}</textarea>
+                    
+                    <div class="mt-4 space-y-4">
+                        <input type="text" id="ai-rewrite-prompt" placeholder="Optional: Enter a rewrite instruction (e.g., 'make it funnier')" class="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm" />
+                        
+                        <div class="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg mt-2">
+                            <label for="update-framework-toggle" class="flex items-center justify-between cursor-pointer">
+                                <span class="flex flex-col">
+                                    <span class="font-semibold text-slate-700 dark:text-slate-200">Evolve AI's Style</span>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">Update the script framework based on this rewrite instruction.</span>
+                                </span>
+                                <div class="relative">
+                                    <input type="checkbox" id="update-framework-toggle" class="sr-only peer">
+                                    <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-8 rounded-full peer-checked:bg-purple-600"></div>
+                                    <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6"></div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <button class="rewrite-ai-btn w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50" data-icon="wand-2" data-original-text="Rewrite with AI">
+                            <span class="btn-icon"><i data-lucide="wand-2" class="w-5 h-5"></i></span>
+                            <span class="btn-text">Rewrite with AI</span>
+                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button class="generate-audio-btn flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg font-semibold" data-icon="music-4" data-original-text="Generate Audio"><span class="btn-icon"><i data-lucide="music-4" class="w-5 h-5"></i></span><span class="btn-text">Generate Audio</span></button>
+                            <button class="copy-text-btn flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"><i data-lucide="copy" class="w-5 h-5"></i>Copy Text</button>
+                        </div>
                     </div>
                 </div>
-
                 <div class="audio-player-container mt-4"></div>
                 <div class="save-story-container mt-4"></div>
             </div>`;
         editorContainer.classList.remove('hidden');
         lucide.createIcons();
+    };
+    const handleVerifyScript = async (verifyBtn) => {
+        const verifyResultContainer = document.querySelector('.verify-result-container');
+        verifyResultContainer.innerHTML = '';
+        toggleButtonLoading(verifyBtn, true, 'Verifying...');
+        try {
+            const story = contentFeed[currentFeedIndex];
+            const payload = {
+                company: story.company,
+                solution: story.solution,
+                psychology: story.psychology,
+                findings: story.findings,
+                sources: story.sources
+            };
+            const result = await apiCall('/api/verify-story', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (result && result.checks && Array.isArray(result.checks)) {
+                const overallColor = result.confidence_score > 75 ? 'green' : result.confidence_score > 50 ? 'yellow' : 'red';
+                const overallIcon = result.confidence_score > 75 ? 'check-circle' : result.confidence_score > 50 ? 'alert-triangle' : 'x-circle';
+
+                verifyResultContainer.innerHTML = `
+                    <div class="border rounded-lg overflow-hidden mt-4 border-${overallColor}-500/50">
+                        <div class="p-4 bg-${overallColor}-500/10">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="${overallIcon}" class="w-8 h-8 text-${overallColor}-600 dark:text-${overallColor}-400"></i>
+                                <div>
+                                    <h4 class="text-lg font-bold text-${overallColor}-800 dark:text-${overallColor}-200">Verification Complete</h4>
+                                    <p class="text-sm text-${overallColor}-700 dark:text-${overallColor}-300">${result.conclusion}</p>
+                                </div>
+                                <div class="ml-auto text-right">
+                                     <div class="text-xs text-slate-500 dark:text-slate-400">Confidence</div>
+                                     <div class="text-2xl font-bold text-slate-800 dark:text-white">${result.confidence_score}%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-white dark:bg-slate-900/50">
+                             <ul class="space-y-3">
+                                ${result.checks.map(check => `
+                                    <li class="flex items-start gap-3">
+                                        <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${check.is_correct ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}">
+                                            <i data-lucide="${check.is_correct ? 'check' : 'x'}" class="w-4 h-4"></i>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <strong class="font-semibold text-slate-700 dark:text-slate-200">${check.check}</strong>
+                                            <p class="text-sm text-slate-600 dark:text-slate-400">${check.comment}</p>
+                                        </div>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+            } else {
+                verifyResultContainer.innerHTML = `<p class="text-red-500">Verification failed or returned unexpected result.</p>`;
+            }
+        } catch (error) {
+            verifyResultContainer.innerHTML = `<p class="text-red-500">Failed to verify script: ${error.message}</p>`;
+        } finally {
+            toggleButtonLoading(verifyBtn, false);
+        }
     };
 
     const handleCopyScript = () => {
@@ -578,6 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.save-story-btn')) handleSaveStory(e.target.closest('.save-story-btn'));
         if (e.target.closest('.delete-case-btn')) handleDeleteCase(e.target.closest('.delete-case-btn'));
         if (e.target.closest('.rewrite-ai-btn')) handleAiRewrite(e.target.closest('.rewrite-ai-btn'));
+        if (e.target.closest('.verify-script-btn')) handleVerifyScript(e.target.closest('.verify-script-btn'));
         if (e.target.closest('.regenerate-section-btn')) handleRegenerateSection(e.target.closest('.regenerate-section-btn'));
     };
 
