@@ -34,14 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmModalTitle = document.getElementById('confirm-modal-title');
     const confirmModalMessage = document.getElementById('confirm-modal-message');
 
+    // Transcription Modal Elements
+    const transcriptionModal = document.getElementById('transcription-modal');
+    const closeTranscriptionModalBtn = document.getElementById('close-transcription-modal-btn');
+    const transcriptionLoading = document.getElementById('transcription-loading');
+    const transcriptionError = document.getElementById('transcription-error');
+    const retryTranscriptionBtn = document.getElementById('retry-transcription-btn');
+
     // --- STATE MANAGEMENT ---
     let allPosts = [];
     let currentPage = 1;
     const postsPerPage = 10;
     let competitorsToScrape = [];
     let DEFAULT_COMPETITORS = [];
-    let postToProcess = null;
     let confirmCallback = null;
+    let currentTranscribingBtn = null;
     const DEFAULT_FILTERS = {
         minViews: 10000,
         minLikes: 0,
@@ -83,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(endpoint, options);
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred' }));
                 throw new Error(errorData.error || 'An unknown error occurred.');
             }
             return await response.json();
@@ -155,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await apiCall(`/api/competitor-posts?${params.toString()}`);
             allPosts = data.posts || [];
+            currentPage = data.currentPage;
             renderPosts(allPosts);
             renderPaginationControls(data.totalPages, data.currentPage);
         } catch (error) {
@@ -172,13 +180,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         container.innerHTML = posts.map(post => {
             const captionWithoutHashtags = (post.caption || '').replace(/#\w+/g, '').trim();
-            const viewsHTML = post.videoPlayCount ? `<span class="flex items-center gap-1"><i data-lucide=\"play-circle\" class=\"w-4 h-4\"></i> ${post.videoPlayCount}</span>` : '';
+            const viewsHTML = post.videoPlayCount ? `<span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount}</span>` : '';
             const transcriptBtnHTML = post.type === 'Video' ? `<div class="mt-4"><button class="transcribe-btn text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold" data-url="${post.url}">Transcript It</button></div>` : '';
             return `
-            <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 group relative" data-post-id="${post._id}">
-                <button class="delete-btn p-1.5 rounded-full hover:bg-red-500/10 text-red-500 absolute top-4 right-4 z-10" data-post-id="${post._id}" title="Delete Post">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
+            <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post._id}">
                 <div class="flex items-start gap-4">
                     <img src="/api/image-proxy?url=${encodeURIComponent(post.displayUrl)}" alt="Post by ${post.ownerUsername}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=Error';">
                     <div class="flex-grow">
@@ -193,6 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${post.likesCount || 0}</span>
                                 <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${post.commentsCount || 0}</span>
                                 ${viewsHTML}
+                                <button class="delete-btn p-1.5 rounded-full hover:bg-red-500/10 text-red-500" data-post-id="${post._id}" title="Delete Post">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
                             </div>
                         </div>
                         <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${captionWithoutHashtags}</p>
@@ -202,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <a href="${post.url}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on Instagram</a>
                         ${transcriptBtnHTML}
-                        <div class="save-container mt-4"></div>
+                        <div class="save-container"></div>
                     </div>
                 </div>
             </div>
@@ -218,9 +226,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         let paginationHTML = '<div class="flex items-center justify-center gap-1 sm:gap-2 mt-8">';
         paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" class="w-5 h-5"></i></button>`;
-        for (let i = 1; i <= totalPages; i++) {
-            paginationHTML += `<button data-page="${i}" class="page-btn px-3 py-1 rounded-md ${i === currentPage ? 'bg-primary-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'}">${i}</button>`;
-        }
+        
+        const getPaginationItems = (currentPage, totalPages, contextRange = 1) => {
+            const pages = [];
+            if (totalPages <= 1) return [];
+            pages.push(1);
+            if (currentPage > contextRange + 2) pages.push('...');
+            const startPage = Math.max(2, currentPage - contextRange);
+            const endPage = Math.min(totalPages - 1, currentPage + contextRange);
+            for (let i = startPage; i <= endPage; i++) pages.push(i);
+            if (currentPage < totalPages - contextRange - 1) pages.push('...');
+            if (totalPages > 1) pages.push(totalPages);
+            return [...new Set(pages)];
+        };
+
+        getPaginationItems(currentPage, totalPages).forEach(item => {
+            if (item === '...') {
+                paginationHTML += `<span class="px-2 py-2 text-sm font-medium text-slate-500">...</span>`;
+            } else {
+                paginationHTML += `<button data-page="${item}" class="page-btn px-4 py-2 text-sm font-medium rounded-md ${item === currentPage ? 'bg-primary-600 text-white' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}">${item}</button>`;
+            }
+        });
+
         paginationHTML += `<button data-page="${currentPage + 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" class="w-5 h-5"></i></button>`;
         paginationHTML += '</div>';
         paginationContainer.innerHTML = paginationHTML;
@@ -278,7 +305,63 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFilterModalUI();
     };
 
-    // Save button will be rendered after transcription (if any)
+    const handleTranscribe = async (e) => {
+        const transcribeBtn = e.target.closest('.transcribe-btn');
+        if (!transcribeBtn) return;
+
+        if (currentTranscribingBtn) return; // Prevent multiple transcriptions
+
+        currentTranscribingBtn = transcribeBtn;
+        currentTranscribingBtn.disabled = true;
+        currentTranscribingBtn.innerHTML = 'Transcribing...';
+
+        const url = transcribeBtn.dataset.url;
+        const postContainer = transcribeBtn.closest('[data-post-id]');
+        const transcriptContainer = postContainer.querySelector('.transcript-container');
+        
+        const transcribe = async () => {
+            transcriptionModal.classList.remove('hidden');
+            transcriptionLoading.classList.remove('hidden');
+            transcriptionError.classList.add('hidden');
+
+            try {
+                const result = await apiCall('/api/transcribe-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const postId = postContainer.dataset.postId;
+                const post = allPosts.find(p => p._id === postId);
+                if (post) {
+                    post.transcript = result.transcript;
+                }
+
+                transcriptContainer.innerHTML = `
+                    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Transcript</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${result.transcript}</p>
+                    </div>
+                `;
+                const saveContainer = postContainer.querySelector('.save-container');
+                saveContainer.innerHTML = `<div class="mt-4"><button class="save-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${postContainer.dataset.postId}">Save It</button></div>`;
+                transcriptionModal.classList.add('hidden');
+                transcribeBtn.style.display = 'none';
+                currentTranscribingBtn = null;
+                lucide.createIcons();
+            } catch (error) {
+                transcriptionLoading.classList.add('hidden');
+                transcriptionError.classList.remove('hidden');
+            }
+        };
+
+        retryTranscriptionBtn.onclick = () => {
+            transcribe();
+        };
+
+        transcribe();
+    };
+
     const handleSavePost = async (button) => {
         const postId = button.dataset.postId;
         const post = allPosts.find(p => p._id === postId);
@@ -293,9 +376,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ post })
             });
             showNotification('Saved', 'Post successfully saved and marked as used.');
-            fetchPostsFromDB(currentPage);
+            // Remove the post from the UI
+            const postCard = button.closest('[data-post-id]');
+            if (postCard) {
+                postCard.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+                postCard.style.opacity = '0';
+                postCard.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    postCard.remove();
+                    allPosts = allPosts.filter(p => p._id !== postId);
+                    if (allPosts.length === 0) {
+                        container.innerHTML = `<div class="text-center text-slate-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl">No competitor posts found matching your filters.</div>`;
+                    }
+                }, 500);
+            }
         } catch (error) {
             showNotification('Error', error.message || 'Failed to save post.', 'error');
+            button.disabled = false;
+            button.innerHTML = 'Save It';
         }
     };
 
@@ -303,15 +401,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const postId = button.dataset.postId;
         const postCard = button.closest('[data-post-id]');
         if (!postCard) return;
-        postCard.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
-        postCard.style.opacity = '0';
-        postCard.style.transform = 'scale(0.95)';
+        
         try {
             await apiCall(`/api/competitor-posts/${postId}`, { method: 'DELETE' });
             showNotification('Deleted', 'Post marked as used.');
-            fetchPostsFromDB(currentPage);
+            postCard.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+            postCard.style.opacity = '0';
+            postCard.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                postCard.remove();
+                allPosts = allPosts.filter(p => p._id !== postId);
+                if (allPosts.length === 0) {
+                    container.innerHTML = `<div class="text-center text-slate-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl">No competitor posts found matching your filters.</div>`;
+                }
+            }, 500);
         } catch (error) {
             showNotification('Error', error.message || 'Failed to delete post.', 'error');
+            postCard.style.opacity = '1';
+            postCard.style.transform = 'scale(1)';
         }
     };
 
@@ -338,7 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Save button after transcription, delete icon in upper right
     const init = async () => {
         competitorsToScrape = [];
         renderCompetitorsInModal();
@@ -373,14 +479,14 @@ document.addEventListener('DOMContentLoaded', () => {
         applyFiltersBtn.addEventListener('click', handleApplyFilters);
         resetFiltersBtn.addEventListener('click', handleResetFilters);
         shuffleBtn.addEventListener('click', handleShuffle);
+        
         container.addEventListener('click', (e) => {
-            // Save button after transcription
             const saveBtn = e.target.closest('.save-btn');
             if (saveBtn) {
                 handleSavePost(saveBtn);
                 return;
             }
-            // Delete icon in upper right
+            
             const deleteBtn = e.target.closest('.delete-btn');
             if (deleteBtn) {
                 showConfirmModal('Delete Post', 'Are you sure you want to mark this post as used?', () => {
@@ -389,34 +495,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 return;
             }
-            // Transcript button logic (if you have it)
-            const transcribeBtn = e.target.closest('.transcribe-btn');
-            if (transcribeBtn) {
-                // Insert your transcription logic here, and after transcription, render the save button in the .save-container
-                // For now, just show the save button immediately for demonstration
-                const postCard = transcribeBtn.closest('[data-post-id]');
-                if (postCard) {
-                    const saveContainer = postCard.querySelector('.save-container');
-                    if (saveContainer && !saveContainer.querySelector('.save-btn')) {
-                        saveContainer.innerHTML = `<button class="save-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold mt-2" data-post-id="${postCard.dataset.postId}">Save</button>`;
-                        lucide.createIcons();
-                    }
-                }
+            
+            handleTranscribe(e);
+        });
+
+        closeTranscriptionModalBtn.addEventListener('click', () => {
+            transcriptionModal.classList.add('hidden');
+            if (currentTranscribingBtn) {
+                currentTranscribingBtn.disabled = false;
+                currentTranscribingBtn.innerHTML = 'Transcript It';
+                currentTranscribingBtn = null;
             }
         });
+
         confirmCancelBtn.addEventListener('click', hideConfirmModal);
         confirmActionBtn.addEventListener('click', () => {
             if (confirmCallback) confirmCallback();
         });
+
         // Close modals when clicking outside
-        confirmModal.addEventListener('click', (e) => {
-            if (e.target === confirmModal) hideConfirmModal();
-        });
-        filterModal.addEventListener('click', (e) => {
-            if (e.target === filterModal) filterModal.classList.add('hidden');
-        });
-        updatePoolModal.addEventListener('click', (e) => {
-            if (e.target === updatePoolModal) updatePoolModal.classList.add('hidden');
+        [confirmModal, filterModal, updatePoolModal, transcriptionModal].forEach(modal => {
+            if(modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.add('hidden');
+                        if (modal === transcriptionModal && currentTranscribingBtn) {
+                             currentTranscribingBtn.disabled = false;
+                             currentTranscribingBtn.innerHTML = 'Transcript It';
+                             currentTranscribingBtn = null;
+                        }
+                    }
+                });
+            }
         });
     };
     init();

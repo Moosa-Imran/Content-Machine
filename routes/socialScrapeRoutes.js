@@ -381,7 +381,7 @@ router.post('/save-competitor-post', async (req, res) => {
     try {
         const db = getDB();
         const postId = new ObjectId(post._id);
-        await db.collection('saved_competitor_content').insertOne({ ...post, originalId: postId, savedAt: new Date() });
+        await db.collection('saved_content').insertOne({ ...post, originalId: postId, savedAt: new Date() });
         const result = await db.collection('ig_competitor').updateOne({ _id: postId }, { $set: { used: true } });
         if (result.modifiedCount === 0) {
             return res.status(404).json({ error: 'Post not found in the competitor pool or already marked as used.' });
