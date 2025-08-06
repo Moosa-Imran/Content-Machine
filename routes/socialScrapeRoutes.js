@@ -19,7 +19,7 @@ const client = new ApifyClient({
 });
 
 router.post('/scrape-instagram-hashtags', async (req, res) => {
-    res.setTimeout(300000);
+    res.setTimeout(600000);
 
     const { hashtags, resultsType, resultsLimit } = req.body;
 
@@ -87,7 +87,7 @@ router.post('/scrape-instagram-hashtags', async (req, res) => {
 });
 
 router.post('/scrape-instagram-competitors', async (req, res) => {
-    res.setTimeout(300000);
+    res.setTimeout(600000);
 
     const { directUrls, resultsType, onlyPostsNewerThan, resultsLimit } = req.body;
 
@@ -221,6 +221,8 @@ router.get('/saved-instagram-posts', async (req, res) => {
 });
 
 router.post('/run-hashtag-scrape-job', async (req, res) => {
+        res.setTimeout(600000);
+
     const { hashtags, resultsLimit } = req.body;
     try {
         const db = getDB();
@@ -411,6 +413,7 @@ router.delete('/competitor-posts/:id', async (req, res) => {
 
 // Run competitor scrape job and update pool
 router.post('/run-competitor-scrape-job', async (req, res) => {
+        res.setTimeout(600000);
     const { competitors, resultsLimit } = req.body;
     try {
         const db = getDB();
