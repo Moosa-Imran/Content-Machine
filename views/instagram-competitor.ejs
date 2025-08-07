@@ -103,15 +103,15 @@
 </div>
 
 <!-- Update Pool Modal -->
-<div id="update-pool-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg">
+<div id="update-pool-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg sm:max-w-lg max-w-full" style="min-width:0;">
         <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
             <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Update Competitor Pool Settings</h2>
             <button id="close-update-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
                 <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
             </button>
         </div>
-        <div class="p-6 space-y-6">
+        <div class="p-4 sm:p-6 space-y-6">
             <div>
                 <label for="add-competitor-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Competitors to Scrape</label>
                 <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
@@ -130,7 +130,7 @@
                 <p id="cost-estimation-text" class="text-2xl font-bold text-blue-800 dark:text-blue-200">$0.00</p>
             </div>
         </div>
-        <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+        <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-end items-center gap-2 sm:gap-4">
             <button id="run-scrape-job-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">
                 Start Scraping
             </button>

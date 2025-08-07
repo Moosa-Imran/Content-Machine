@@ -274,8 +274,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const handleRunScrapeJob = async () => {
         runScrapeJobBtn.disabled = true;
-        runScrapeJobBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i> Updating...';
+        runScrapeJobBtn.innerHTML = '<span style="display: flex; align-items: center; gap: 0.5em;"><i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>Updating...</span>';
         lucide.createIcons();
+        // Show patience message next to the button
+        let patienceMsg = document.getElementById('patience-message');
+        if (!patienceMsg) {
+            patienceMsg = document.createElement('div');
+            patienceMsg.id = 'patience-message';
+            patienceMsg.style.marginLeft = '1rem';
+            patienceMsg.style.display = 'inline-block';
+            patienceMsg.style.verticalAlign = 'middle';
+            patienceMsg.style.color = '#fbbf24'; // amber-400
+            patienceMsg.style.fontWeight = '500';
+            patienceMsg.style.fontSize = '0.95em';
+            runScrapeJobBtn.parentNode.insertBefore(patienceMsg, runScrapeJobBtn.nextSibling);
+        }
+        patienceMsg.textContent = 'Updating the content pool can take a few minutes. Please be patient.';
 
         try {
             const resultsLimit = parseInt(searchDepthInput.value) || 5;
@@ -290,7 +304,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showNotification('Error', error.message, 'error');
         } finally {
             runScrapeJobBtn.disabled = false;
-            runScrapeJobBtn.innerHTML = 'Start Scraping';
+            runScrapeJobBtn.innerHTML = '<span style="display: flex; align-items: center; gap: 0.5em;"><i data-lucide="refresh-cw" class="w-4 h-4"></i>Start Scraping</span>';
+            lucide.createIcons();
+            // Remove patience message after update
+            if (patienceMsg) {
+                setTimeout(() => { patienceMsg.remove(); }, 2000);
+            }
             updatePoolModal.classList.add('hidden');
         }
     };
