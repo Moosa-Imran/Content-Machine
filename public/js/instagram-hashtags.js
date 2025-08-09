@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const frameworkOptionsContainer = document.getElementById('framework-options-container');
     const closeFrameworkModalBtn = document.getElementById('close-framework-modal-btn');
     const storyLoaderModal = document.getElementById('story-loader-modal');
+    const makeDefaultHashtagsBtn = document.getElementById('make-default-hashtags-btn');
 
     // --- STATE MANAGEMENT ---
     let allPosts = [];
@@ -354,6 +355,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleMakeDefaultHashtags = async () => {
+        if (hashtagsToScrape.length === 0) {
+            showNotification('Warning', 'Please add some hashtags before saving as default.', 'error');
+            return;
+        }
+
+        try {
+            // Store original button state
+            const originalText = makeDefaultHashtagsBtn.innerHTML;
+            makeDefaultHashtagsBtn.disabled = true;
+            makeDefaultHashtagsBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i><span>Saving...</span>';
+            lucide.createIcons();
+
+            await apiCall('/api/save-default-ig-hashtags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hashtags: hashtagsToScrape })
+            });
+
+            showNotification('Success', 'Default hashtags saved successfully!');
+
+        } catch (error) {
+            console.error('Error saving default hashtags:', error);
+            showNotification('Error', error.message || 'Failed to save default hashtags.', 'error');
+        } finally {
+            // Restore button state
+            makeDefaultHashtagsBtn.disabled = false;
+            makeDefaultHashtagsBtn.innerHTML = '<i data-lucide="bookmark" class="w-4 h-4"></i><span>Make Default</span>';
+            lucide.createIcons();
+        }
+    };
+
     const handleTranscribe = async (e) => {
         const transcribeBtn = e.target.closest('.transcribe-btn');
         if (!transcribeBtn) return;
@@ -536,6 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applyFiltersBtn.addEventListener('click', handleApplyFilters);
         resetFiltersBtn.addEventListener('click', handleResetFilters);
         shuffleBtn.addEventListener('click', handleShuffle);
+        makeDefaultHashtagsBtn.addEventListener('click', handleMakeDefaultHashtags);
         container.addEventListener('click', (e) => {
             handleTranscribe(e);
             if (e.target.closest('.save-post-btn')) {

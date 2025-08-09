@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updatePoolModal = document.getElementById('update-pool-modal');
     const closeUpdateModalBtn = document.getElementById('close-update-modal-btn');
     const runScrapeJobBtn = document.getElementById('run-scrape-job-btn');
+    const makeDefaultHashtagsBtn = document.getElementById('make-default-hashtags-btn');
     const hashtagsContainerModal = document.getElementById('hashtags-container-modal');
     const addHashtagInput = document.getElementById('add-hashtag-input');
     const addHashtagBtn = document.getElementById('add-hashtag-btn');
@@ -373,6 +374,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleMakeDefaultHashtags = async () => {
+        const hashtags = Array.from(hashtagsContainerModal.children).map(tag => {
+            const text = tag.textContent.trim();
+            return text.replace('×', '').trim();
+        });
+
+        if (hashtags.length === 0) {
+            showNotification('Error', 'Please add at least one hashtag before making it default.', 'error');
+            return;
+        }
+
+        try {
+            const response = await apiCall('/api/save-default-tiktok-hashtags', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ hashtags })
+            });
+
+            if (response.success) {
+                showNotification('Success', `Successfully saved ${hashtags.length} hashtag(s) as default.`, 'success');
+            } else {
+                throw new Error(response.error || 'Failed to save default hashtags');
+            }
+        } catch (error) {
+            console.error('Error saving default hashtags:', error);
+            showNotification('Error', 'Failed to save default hashtags. Please try again.', 'error');
+        }
+    };
+
     const handleTranscribe = async (e) => {
         const transcribeBtn = e.target.closest('.transcribe-btn');
         if (!transcribeBtn) return;
@@ -518,6 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         closeUpdateModalBtn.addEventListener('click', () => updatePoolModal.classList.add('hidden'));
         runScrapeJobBtn.addEventListener('click', handleRunScrapeJob);
+        makeDefaultHashtagsBtn.addEventListener('click', handleMakeDefaultHashtags);
         addHashtagInput.addEventListener('keydown', handleAddHashtagKeydown);
         addHashtagBtn.addEventListener('click', addHashtagFromInput);
         hashtagsContainerModal.addEventListener('click', handleRemoveHashtag);

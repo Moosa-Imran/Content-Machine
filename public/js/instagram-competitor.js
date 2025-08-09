@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updatePoolModal = document.getElementById('update-pool-modal');
     const closeUpdateModalBtn = document.getElementById('close-update-modal-btn');
     const runScrapeJobBtn = document.getElementById('run-scrape-job-btn');
+    const makeDefaultCompetitorsBtn = document.getElementById('make-default-competitors-btn');
     const competitorsContainerModal = document.getElementById('competitors-container-modal');
     const addCompetitorInput = document.getElementById('add-competitor-input');
     const addCompetitorBtn = document.getElementById('add-competitor-btn');
@@ -275,6 +276,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleMakeDefaultCompetitors = async () => {
+        const competitors = Array.from(competitorsContainerModal.children).map(tag => {
+            const text = tag.textContent.trim();
+            return text.replace('×', '').trim();
+        });
+
+        if (competitors.length === 0) {
+            showNotification('Error', 'Please add at least one competitor before making it default.', 'error');
+            return;
+        }
+
+        try {
+            const response = await apiCall('/api/save-default-ig-competitors', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ competitors })
+            });
+
+            if (response.success) {
+                showNotification('Success', `Successfully saved ${competitors.length} competitor(s) as default.`, 'success');
+            } else {
+                throw new Error(response.error || 'Failed to save default competitors');
+            }
+        } catch (error) {
+            console.error('Error saving default competitors:', error);
+            showNotification('Error', 'Failed to save default competitors. Please try again.', 'error');
+        }
+    };
+
     const updateFilterModalUI = () => {
         document.getElementById('min-views-input').value = filters.minViews;
         document.getElementById('min-likes-input').value = filters.minLikes;
@@ -484,6 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         closeUpdateModalBtn.addEventListener('click', () => updatePoolModal.classList.add('hidden'));
         runScrapeJobBtn.addEventListener('click', handleRunScrapeJob);
+        makeDefaultCompetitorsBtn.addEventListener('click', handleMakeDefaultCompetitors);
         addCompetitorInput.addEventListener('keydown', handleAddCompetitorKeydown);
         addCompetitorBtn.addEventListener('click', addCompetitorFromInput);
         competitorsContainerModal.addEventListener('click', handleRemoveCompetitor);

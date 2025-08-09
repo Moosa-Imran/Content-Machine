@@ -900,4 +900,92 @@ router.post('/transcribe-video', async (req, res) => {
 });
 
 
+router.post('/save-default-ig-hashtags', async (req, res) => {
+    const { hashtags } = req.body;
+    
+    if (!hashtags || !Array.isArray(hashtags)) {
+        return res.status(400).json({ error: 'Hashtags array is required.' });
+    }
+
+    try {
+        const db = getDB();
+        
+        // Update the default Instagram hashtags document
+        await db.collection('Keywords').updateOne(
+            { name: 'ig-hashtags' },
+            { 
+                $set: { 
+                    hashtags: hashtags,
+                    name: 'ig-hashtags'
+                }
+            },
+            { upsert: true }
+        );
+
+        res.json({ success: true, message: 'Default Instagram hashtags saved successfully.' });
+    } catch (error) {
+        console.error('Error saving default Instagram hashtags:', error);
+        res.status(500).json({ error: 'Failed to save default Instagram hashtags.' });
+    }
+});
+
+router.post('/save-default-tiktok-hashtags', async (req, res) => {
+    const { hashtags } = req.body;
+    
+    if (!hashtags || !Array.isArray(hashtags)) {
+        return res.status(400).json({ error: 'Hashtags array is required.' });
+    }
+
+    try {
+        const db = getDB();
+        
+        // Update the default TikTok hashtags document
+        await db.collection('Keywords').updateOne(
+            { name: 'tiktok-hashtags' },
+            { 
+                $set: { 
+                    hashtags: hashtags,
+                    name: 'tiktok-hashtags'
+                }
+            },
+            { upsert: true }
+        );
+
+        res.json({ success: true, message: 'Default TikTok hashtags saved successfully.' });
+    } catch (error) {
+        console.error('Error saving default TikTok hashtags:', error);
+        res.status(500).json({ error: 'Failed to save default TikTok hashtags.' });
+    }
+});
+
+router.post('/save-default-ig-competitors', async (req, res) => {
+    const { competitors } = req.body;
+    
+    if (!competitors || !Array.isArray(competitors)) {
+        return res.status(400).json({ error: 'Competitors array is required.' });
+    }
+
+    try {
+        const db = getDB();
+        
+        // Update the default Instagram competitors document
+        await db.collection('Keywords').updateOne(
+            { name: 'ig-competitors' },
+            { 
+                $set: { 
+                    competitors: competitors,
+                    name: 'ig-competitors'
+                }
+            },
+            { upsert: true }
+        );
+
+        res.json({ success: true, message: 'Default Instagram competitors saved successfully.' });
+    } catch (error) {
+        console.error('Error saving default Instagram competitors:', error);
+        res.status(500).json({ error: 'Failed to save default Instagram competitors.' });
+    }
+});
+
+
 module.exports = router;
