@@ -1,0 +1,201 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+
+<main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 dark:from-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
+                    TikTok Hashtag Scraper
+                </h1>
+                <p class="mt-1 text-slate-500 dark:text-slate-400">
+                    Discover trending posts by scraping TikTok hashtags.
+                </p>
+            </div>
+            <div class="flex items-center gap-4">
+                 <a href="/tiktok-hashtags" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    Back to Content Pool
+                </a>
+                <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none hidden">
+                    <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                    Filters
+                </button>
+                <button id="shuffle-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-950 hidden">
+                    <i data-lucide="shuffle" class="w-4 h-4"></i>
+                    Shuffle
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="relative min-h-[400px]">
+            <div id="news-loader" class="absolute inset-0 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-40 hidden">
+                <div class="flex flex-col items-center gap-4">
+                    <i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-primary-500"></i>
+                    <p class="text-slate-600 dark:text-slate-300 font-medium">Scraping TikTok for the latest posts...</p>
+                </div>
+            </div>
+            <div id="news-error" class="text-center text-red-500 p-4 mb-4 bg-red-500/10 rounded-lg border border-red-500/30 hidden"></div>
+            <div id="news-articles-container" class="space-y-4">
+                <div id="initial-search-container" class="bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div class="space-y-6">
+                        <div>
+                            <label for="initial-add-keyword-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Hashtags</label>
+                            <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
+                                <div id="initial-keywords-container" class="flex flex-wrap gap-2"></div>
+                                <input type="text" id="initial-add-keyword-input" placeholder="Type a hashtag..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
+                                <button id="initial-add-keyword-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="initial-search-depth-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Search Depth</label>
+                            <input type="number" id="initial-search-depth-input" value="10" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                            <p class="text-xs text-slate-400 mt-1">Number of posts to fetch per hashtag. More posts use more credits.</p>
+                        </div>
+                        <div id="initial-cost-estimation-container" class="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-lg text-center">
+                            <p class="text-sm text-blue-700 dark:text-blue-300">Estimated Cost:</p>
+                            <p id="initial-cost-estimation-text" class="text-2xl font-bold text-blue-800 dark:text-blue-200">$0.00</p>
+                        </div>
+                        <button id="fetch-content-btn" class="w-full bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition duration-300 font-semibold text-lg flex items-center justify-center gap-2">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                            Search Hashtags
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="pagination-container" class="mt-8">
+                <!-- Pagination controls will be injected here -->
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Filter Modal -->
+<div id="filter-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg">
+        <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Filters</h2>
+            <button id="close-filter-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label for="min-plays-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Plays</label>
+                    <input type="number" id="min-plays-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
+                </div>
+                <div>
+                    <label for="min-likes-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Likes</label>
+                    <input type="number" id="min-likes-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
+                </div>
+                <div>
+                    <label for="min-comments-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Comments</label>
+                    <input type="number" id="min-comments-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
+                </div>
+                <div>
+                    <label for="min-shares-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Shares</label>
+                    <input type="number" id="min-shares-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
+                </div>
+            </div>
+            <div>
+                <label for="date-uploaded-select" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Date Uploaded</label>
+                <select id="date-uploaded-select" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
+                    <option value="any">Any Date</option>
+                    <option value="24h">Last 24 hours</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                </select>
+            </div>
+            <div>
+                <label for="min-duration-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Duration (seconds)</label>
+                <input type="number" id="min-duration-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
+            </div>
+            <div>
+                <label for="max-duration-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Max Duration (seconds)</label>
+                <input type="number" id="max-duration-input" value="300" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm">
+            </div>
+        </div>
+        <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
+            <button id="reset-filters-btn" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg">Reset</button>
+            <button id="apply-filters-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">Apply Filters</button>
+        </div>
+    </div>
+</div>
+
+<!-- Transcription Modal -->
+<div id="transcription-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md text-center p-6 relative">
+        <button id="close-transcription-modal-btn" class="absolute top-2 right-2 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+        </button>
+        <div id="transcription-loading">
+            <i data-lucide="file-text" class="w-16 h-16 text-primary-500 mx-auto animate-pulse"></i>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Transcribing...</h2>
+            <p class="mt-2 text-slate-500 dark:text-slate-400">Please wait while we transcribe the TikTok video.</p>
+        </div>
+        <div id="transcription-error" class="hidden">
+            <i data-lucide="alert-triangle" class="w-16 h-16 text-red-500 mx-auto"></i>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Transcription Failed</h2>
+            <p class="mt-2 text-slate-500 dark:text-slate-400">TikTok blocked your request. Try again after a few minutes.</p>
+            <button id="retry-transcription-btn" class="mt-4 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg font-semibold">Try Again Now</button>
+        </div>
+    </div>
+</div>
+
+<!-- Story Generation Loader Modal -->
+<div id="story-loader-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+    <div class="flex flex-col items-center gap-4 text-white">
+        <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500"></div>
+        <h2 class="text-2xl font-bold mt-4">Generating Your Viral Script...</h2>
+        <p id="generation-status-text" class="text-slate-300 h-6"></p>
+    </div>
+</div>
+
+<!-- Framework Selection Modal -->
+<div id="framework-select-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md">
+        <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Select a Framework</h2>
+            <button id="close-framework-select-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+            </button>
+        </div>
+        <div id="framework-options-container" class="p-6 max-h-[60vh] overflow-y-auto">
+            <!-- Framework options will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script src="/js/tiktok-hashtags-live.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+        const themeToggle = document.getElementById('theme-toggle');
+        const htmlEl = document.documentElement;
+        themeToggle.addEventListener('click', () => {
+            const isDark = htmlEl.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            lucide.createIcons();
+        });
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarCloseButton = document.getElementById('sidebar-close-button');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const openSidebar = () => {
+            sidebar.classList.remove('-translate-x-full');
+            sidebarOverlay.classList.remove('hidden');
+        };
+        const closeSidebar = () => {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        };
+        mobileMenuButton.addEventListener('click', openSidebar);
+        sidebarCloseButton.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    });
+</script>
+
+<%- include('partials/footer') %>

@@ -4,13 +4,7 @@
 const { ObjectId } = require('mongodb');
 const { getDB } = require('../config/database');
 
-/**
- * Fetches a specified number of unused business cases from the database,
- * optionally filtering by origin based on the framework type.
- * @param {number} [limit=1] - The number of business cases to fetch.
- * @param {string} [frameworkType] - The type of framework being used (e.g., 'news_commentary').
- * @returns {Promise<Array>} A promise that resolves to an array of business cases.
- */
+
 const getBusinessCases = async (limit = 1, frameworkType) => {
     const db = getDB();
     const matchStage = { used: { $ne: true } };
@@ -34,13 +28,7 @@ const getBusinessCases = async (limit = 1, frameworkType) => {
     return cases;
 };
 
-/**
- * Fetches a framework by its ID. If the ID is invalid or not provided,
- * it fetches the first 'news_commentary' framework as the default.
- * @param {string} id - The ObjectId of the framework to fetch.
- * @returns {Promise<object>} A promise that resolves to a framework object.
- * @throws {Error} If no frameworks are found in the database.
- */
+
 const getFrameworkById = async (id) => {
     const db = getDB();
     let framework;
@@ -64,11 +52,6 @@ const getFrameworkById = async (id) => {
 };
 
 
-/**
- * Retrieves the active or default validation prompt from the database.
- * @returns {Promise<string>} A promise that resolves to the validation prompt string.
- * @throws {Error} If no validation prompt document is found.
- */
 const getValidationPrompt = async () => {
     try {
         const db = getDB();
@@ -86,11 +69,7 @@ const getValidationPrompt = async () => {
     }
 };
 
-/**
- * Fetches the default keywords and categories for news scanning.
- * Provides a hardcoded fallback if the database entry is not found.
- * @returns {Promise<object>} A promise that resolves to an object with keywords and categories arrays.
- */
+
 const getDefaultKeywordsAndCategories = async () => {
     try {
         const db = getDB();
@@ -115,11 +94,7 @@ const getDefaultKeywordsAndCategories = async () => {
     }
 };
 
-/**
- * Fetches the default Instagram hashtags from the database.
- * Provides a hardcoded fallback if the database entry is not found.
- * @returns {Promise<Array>} A promise that resolves to an array of hashtags.
- */
+
 const getIgHashtags = async () => {
     try {
         const db = getDB();
@@ -135,11 +110,7 @@ const getIgHashtags = async () => {
     }
 };
 
-/**
- * Fetches the default Instagram competitor usernames from the database.
- * Provides a hardcoded fallback if the database entry is not found.
- * @returns {Promise<Array>} A promise that resolves to an array of competitor usernames.
- */
+
 const getIgCompetitors = async () => {
     try {
         const db = getDB();
@@ -155,11 +126,23 @@ const getIgCompetitors = async () => {
     }
 };
 
-/**
- * Adds a new competitor username to the database if it doesn't already exist.
- * @param {string} username - The Instagram username to add.
- * @returns {Promise<object>} A promise that resolves to the result of the update operation.
- */
+
+const getTiktokHashtags = async () => {
+    try {
+        const db = getDB();
+        const doc = await db.collection('Keywords').findOne({ name: 'tiktok-hashtags' });
+        if (doc && doc.hashtags && doc.hashtags.length > 0) {
+            return doc.hashtags;
+        }
+        console.warn("Default TikTok hashtags not found in DB, using hardcoded fallback.");
+        return ["marketingpsychology", "behavioraleconomics", "neuromarketing", "cognitivebias", "pricingpsychology", "marketingtips", "psychologyfacts", "businesstips"];
+    } catch (error) {
+        console.error("Error fetching default TikTok hashtags:", error);
+        return ["marketingpsychology", "behavioraleconomics", "neuromarketing", "cognitivebias", "pricingpsychology", "marketingtips", "psychologyfacts", "businesstips"];
+    }
+};
+
+
 const addIgCompetitor = async (username) => {
     try {
         const db = getDB();
@@ -181,5 +164,6 @@ module.exports = {
     getDefaultKeywordsAndCategories,
     getIgHashtags,
     getIgCompetitors,
+    getTiktokHashtags,
     addIgCompetitor
 };

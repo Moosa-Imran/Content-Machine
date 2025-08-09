@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const frameworkOptionsContainer = document.getElementById('framework-options-container');
     const closeFrameworkSelectModalBtn = document.getElementById('close-framework-select-modal-btn');
     const fetchContentBtn = document.getElementById('fetch-content-btn');
+    const makeDefaultBtn = document.getElementById('make-default-btn');
 
     // --- STATE MANAGEMENT ---
     let DEFAULT_KEYWORDS = [];
@@ -498,6 +499,95 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleMakeDefault = async () => {
+        const makeDefaultButton = makeDefaultBtn;
+        
+        // Manually set loading state
+        const btnText = makeDefaultButton.querySelector('.btn-text');
+        const btnIcon = makeDefaultButton.querySelector('.btn-icon');
+        
+        if (!btnText || !btnIcon) {
+            console.error('Button elements not found');
+            return;
+        }
+        
+        // Store original state
+        const originalText = btnText.textContent;
+        const originalIcon = makeDefaultButton.dataset.icon || 'bookmark';
+        const originalClasses = makeDefaultButton.className;
+        
+        // Set loading state manually
+        btnText.textContent = 'Saving...';
+        btnIcon.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 animate-spin"></i>';
+        makeDefaultButton.disabled = true;
+        lucide.createIcons();
+
+        try {
+            // Get current filter values from UI
+            const currentKeywords = [...currentFilters.keywords];
+            const currentCategories = Array.from(searchCategoryContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value)
+                .filter(val => val !== 'none');
+
+            // Prepare the data to save
+            const defaultData = {
+                keywords: currentKeywords,
+                categories: currentCategories
+            };
+
+            // Send to backend
+            const response = await apiCall('/api/save-default-keywords-categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(defaultData)
+            });
+
+            if (response.success) {
+                // Update local defaults
+                DEFAULT_KEYWORDS = [...currentKeywords];
+                DEFAULT_CATEGORIES = [...currentCategories];
+                
+                // Update the filter indicator
+                updateFilterIndicator();
+                
+                // Show success state - green button
+                btnText.textContent = 'Saved!';
+                btnIcon.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+                makeDefaultButton.className = makeDefaultButton.className.replace(
+                    /bg-slate-\d+\s+dark:bg-slate-\d+\s+hover:bg-slate-\d+\s+dark:hover:bg-slate-\d+\s+text-slate-\d+\s+dark:text-slate-\d+/g,
+                    'bg-green-500 hover:bg-green-600 text-white'
+                );
+                makeDefaultButton.disabled = false;
+                lucide.createIcons();
+                
+                // Reset to original state after 2 seconds
+                setTimeout(() => {
+                    btnText.textContent = originalText;
+                    btnIcon.innerHTML = `<i data-lucide="${originalIcon}" class="w-4 h-4"></i>`;
+                    makeDefaultButton.className = originalClasses;
+                    makeDefaultButton.disabled = false;
+                    lucide.createIcons();
+                }, 2000);
+                
+            } else {
+                // Reset to original state on failure
+                btnText.textContent = originalText;
+                btnIcon.innerHTML = `<i data-lucide="${originalIcon}" class="w-4 h-4"></i>`;
+                makeDefaultButton.disabled = false;
+                lucide.createIcons();
+            }
+        } catch (error) {
+            console.error('Failed to save default settings:', error);
+            showErrorModal('general', 'Failed to save default settings. Please try again.');
+            
+            // Reset to original state on error
+            btnText.textContent = originalText;
+            btnIcon.innerHTML = `<i data-lucide="${originalIcon}" class="w-4 h-4"></i>`;
+            makeDefaultButton.disabled = false;
+            lucide.createIcons();
+        }
+    };
+
     // --- EVENT LISTENERS & INITIALIZATION ---
     const init = async () => {
         await setDefaultFilters(); // Load defaults first
@@ -519,6 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeSearchModalBtn.addEventListener('click', () => customSearchModal.classList.add('hidden'));
         executeSearchBtn.addEventListener('click', handleExecuteCustomSearch);
         resetSearchBtn.addEventListener('click', setDefaultFilters);
+        makeDefaultBtn.addEventListener('click', handleMakeDefault);
         usePromptBtn.addEventListener('click', togglePromptUI);
         generateFiltersBtn.addEventListener('click', handleGenerateFilters);
         searchCategoryContainer.addEventListener('change', handleCategorySelection);

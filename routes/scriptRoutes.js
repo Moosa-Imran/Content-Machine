@@ -228,6 +228,117 @@ router.post('/create-story-from-news', async (req, res) => {
     }
 });
 
+router.post('/create-story-from-social', async (req, res) => {
+    const { post, transcript, frameworkId } = req.body;
+    if (!post || !transcript) return res.status(400).json({ error: 'Post data and transcript are required.' });
+
+    try {
+        let prompt;
+        let sourceUrl;
+        let caption = '';
+        
+        // Determine post type and build appropriate prompt
+        if (post.ownerUsername || post.url?.includes('instagram.com')) {
+            // Instagram post
+            sourceUrl = post.url;
+            caption = post.caption || '';
+            prompt = `
+            As an expert marketing analyst, deconstruct the following Instagram reel transcript to create an insightful business case study. Extract the core marketing tactic, not just summarize the video.
+
+            **Source Content:**
+            - **URL:** ${sourceUrl}
+            - **Caption:** ${caption}
+            - **Full Transcript:** ${transcript}
+
+            **Your Task:**
+            1.  **Analyze Deeply:** Identify the underlying business strategy or psychological principle.
+            2.  **Identify the Subject:** Determine if the subject is a specific company (e.g., "Starbucks") or a general category (e.g., "high-end restaurants"). If unclear, infer a subject from the context. **Do NOT use the Instagram author's username.**
+            3.  **Extract the Tactic:** Distill the content into a clear problem, solution, and finding.
+            4.  **Curate Hashtags:** Generate 3-5 new, relevant hashtags for the business case.
+            5.  **Generate JSON:** Create a single, valid JSON object with the structure below, ensuring all fields are fully populated.
+
+            **Final JSON Structure:**
+            {
+                "company": "The identified company or business category.",
+                "industry": "The relevant industry.",
+                "psychology": "The core psychological principle or marketing tactic.",
+                "problem": "The business problem or challenge addressed.",
+                "solution": "The specific solution or strategy implemented.",
+                "realStudy": "If a study is mentioned, summarize it. Otherwise, state 'No specific study mentioned'.",
+                "findings": "The key outcomes, results, or takeaways.",
+                "verified": false,
+                "sources": ["${sourceUrl}"],
+                "source_url": "${sourceUrl}",
+                "hashtags": ["#newly_generated_hashtag1", "#hashtag2", "#hashtag3"],
+                "origin": "social"
+            }`;
+        } else if (post.authorMeta || post.webVideoUrl) {
+            // TikTok post
+            sourceUrl = post.webVideoUrl;
+            caption = post.text || '';
+            prompt = `
+            As an expert marketing analyst, deconstruct the following TikTok video transcript to create an insightful business case study. Extract the core marketing tactic, not just summarize the video.
+
+            **Source Content:**
+            - **URL:** ${sourceUrl}
+            - **Caption/Text:** ${caption}
+            - **Author:** ${post.authorMeta?.nickName || 'Unknown'}
+            - **Full Transcript:** ${transcript}
+
+            **Your Task:**
+            1.  **Analyze Deeply:** Identify the underlying business strategy or psychological principle.
+            2.  **Identify the Subject:** Determine if the subject is a specific company (e.g., "McDonald's") or a general category (e.g., "fast-food chains"). If unclear, infer a subject from the context. **Do NOT use the TikTok author's username.**
+            3.  **Extract the Tactic:** Distill the content into a clear problem, solution, and finding.
+            4.  **Curate Hashtags:** Generate 3-5 new, relevant hashtags for the business case.
+            5.  **Generate JSON:** Create a single, valid JSON object with the structure below, ensuring all fields are fully populated.
+
+            **Final JSON Structure:**
+            {
+                "company": "The identified company or business category.",
+                "industry": "The relevant industry.",
+                "psychology": "The core psychological principle or marketing tactic.",
+                "problem": "The business problem or challenge addressed.",
+                "solution": "The specific solution or strategy implemented.",
+                "realStudy": "If a study is mentioned, summarize it. Otherwise, state 'No specific study mentioned'.",
+                "findings": "The key outcomes, results, or takeaways.",
+                "verified": false,
+                "sources": ["${sourceUrl}"],
+                "source_url": "${sourceUrl}",
+                "hashtags": ["#newly_generated_hashtag1", "#hashtag2", "#hashtag3"],
+                "origin": "social"
+            }`;
+        } else {
+            return res.status(400).json({ error: 'Unsupported post type.' });
+        }
+
+        let businessCase = await callGeminiAPI(prompt, true);
+        if (Array.isArray(businessCase)) businessCase = businessCase[0];
+
+        if (businessCase && typeof businessCase === 'object' && !Array.isArray(businessCase)) {
+            const db = getDB();
+            const insertResult = await db.collection('Business_Cases').insertOne(businessCase);
+            businessCase._id = insertResult.insertedId;
+            const framework = await getFrameworkById(frameworkId);
+            const newScript = await generateScriptContent(businessCase, framework);
+            
+            // If the post came from the saved_content collection, delete it
+            if (post.savedAt) {
+                await db.collection('saved_content').deleteOne({ _id: new ObjectId(post._id) });
+            }
+
+            res.status(201).json(newScript);
+        } else {
+            throw new Error("AI failed to generate a valid story structure from the social media post.");
+        }
+    } catch (error) {
+        console.error('Error creating story from social media:', error);
+        if (error instanceof ApiError && error.status === 503) {
+            return res.status(503).json({ error: 'The AI model is currently overloaded. Please try again.' });
+        }
+        res.status(500).json({ error: 'Failed to create story from social media post.' });
+    }
+});
+
 router.post('/create-story-from-instagram', async (req, res) => {
     const { post, transcript, frameworkId } = req.body;
     if (!post || !transcript) return res.status(400).json({ error: 'Post data and transcript are required.' });

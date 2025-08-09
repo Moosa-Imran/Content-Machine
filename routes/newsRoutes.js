@@ -352,4 +352,99 @@ router.post('/reset-validation-prompt', async (req, res) => {
     }
 });
 
+router.post('/generate-filters-from-prompt', async (req, res) => {
+    const { userPrompt } = req.body;
+    if (!userPrompt || !userPrompt.trim()) {
+        return res.status(400).json({ error: 'User prompt is required.' });
+    }
+
+    try {
+        const aiPrompt = `
+You are an AI assistant that generates search filters for a news scanning system. Based on the user's description, generate appropriate keywords and categories.
+
+**CRITICAL RULES FOR YOUR OUTPUT:**
+1. **JSON ONLY:** Your entire response MUST be a single, valid JSON object. Do not include any text, explanations, or markdown before or after the JSON.
+2. **KEYWORD LIMIT:** The "keywords" field in your JSON output MUST contain a comma-separated string of up to 7 keywords maximum.
+3. **STRICT CATEGORIES:** The "categories" array in your JSON output MUST ONLY contain values from this exact list: ["arts", "business", "computers", "games", "health", "home", "recreation", "science", "shopping", "society", "sports"]. Do not invent new categories or use any other category name.
+
+**User's Request:** ${userPrompt.trim()}
+
+**Instructions:**
+1. Analyze the user's request to understand what type of news content they're looking for.
+2. Generate relevant keywords (up to 7) that would help find articles matching their interest.
+3. Select appropriate categories from the allowed list that align with their request.
+4. If the user's request doesn't clearly fit any category, choose the most relevant ones or use fewer categories.
+
+**JSON OUTPUT STRUCTURE:**
+{
+  "keywords": "keyword1, keyword2, keyword3",
+  "categories": ["category1", "category2"]
+}
+
+Generate filters now:`;
+
+        const result = await callGeminiAPI(aiPrompt, true);
+        
+        if (!result || typeof result !== 'object') {
+            throw new Error('Invalid response format from AI');
+        }
+        
+        if (!result.keywords || !result.categories) {
+            throw new Error('Missing required fields in AI response');
+        }
+        
+        // Validate categories
+        const allowedCategories = ["arts", "business", "computers", "games", "health", "home", "recreation", "science", "shopping", "society", "sports"];
+        const validCategories = result.categories.filter(cat => allowedCategories.includes(cat));
+        
+        res.json({
+            keywords: result.keywords,
+            categories: validCategories
+        });
+
+    } catch (error) {
+        console.error("Error generating filters from prompt:", error);
+        if (error instanceof ApiError && error.status === 503) {
+            return res.status(503).json({ error: 'MODEL_BUSY' });
+        }
+        res.status(500).json({ error: 'Failed to generate filters from prompt.' });
+    }
+});
+
+router.post('/save-default-keywords-categories', async (req, res) => {
+    const { keywords, categories } = req.body;
+    
+    if (!keywords || !Array.isArray(keywords) || !categories || !Array.isArray(categories)) {
+        return res.status(400).json({ error: 'Keywords and categories arrays are required.' });
+    }
+
+    try {
+        const db = getDB();
+        
+        // Update the default keywords and categories document
+        await db.collection('Keywords').updateOne(
+            { name: 'default' },
+            { 
+                $set: { 
+                    keywords: keywords,
+                    categories: categories,
+                    name: 'default'
+                }
+            },
+            { upsert: true }
+        );
+
+        res.json({ 
+            success: true, 
+            message: 'Default keywords and categories updated successfully.',
+            keywords: keywords,
+            categories: categories
+        });
+
+    } catch (error) {
+        console.error("Error saving default keywords and categories:", error);
+        res.status(500).json({ error: 'Failed to save default settings.' });
+    }
+});
+
 module.exports = router;
