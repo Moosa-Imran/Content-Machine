@@ -11,7 +11,7 @@ const { ObjectId } = require('mongodb');
 // --- MODULE IMPORTS ---
 const { getDB } = require('../config/database');
 const { callGeminiAPI } = require('../services/aiService');
-const { getIgHashtags, getIgCompetitors, getTiktokHashtags, addIgCompetitor } = require('../utils/dbHelpers');
+const { getIgHashtags, getIgCompetitors, getTiktokHashtags, getYoutubeHashtags, addIgCompetitor } = require('../utils/dbHelpers');
 
 // Initialize the ApifyClient with token from environment
 const client = new ApifyClient({
@@ -232,7 +232,7 @@ router.post('/save-live-post', async (req, res) => {
 
     try {
         const db = getDB();
-        await db.collection('saved_live_content').insertOne({ 
+        await db.collection('saved_content').insertOne({ 
             ...post, 
             savedAt: new Date()
         });
@@ -243,37 +243,6 @@ router.post('/save-live-post', async (req, res) => {
     }
 });
 
-router.post('/add-tiktok-competitor', async (req, res) => {
-    const { username } = req.body;
-    if (!username) {
-        return res.status(400).json({ error: 'Username is required.' });
-    }
-
-    try {
-        const db = getDB();
-        const existing = await db.collection('Keywords').findOne({ 
-            name: 'tiktok-competitors', 
-            competitors: username 
-        });
-        if (existing) {
-            return res.json({ 
-                success: true, 
-                alreadyExists: true, 
-                message: `${username} is already in the TikTok competitor list.` 
-            });
-        }
-
-        await db.collection('Keywords').updateOne(
-            { name: 'tiktok-competitors' },
-            { $addToSet: { competitors: username } },
-            { upsert: true }
-        );
-        res.json({ success: true, message: `${username} added to TikTok competitors.` });
-    } catch (error) {
-        console.error("Error adding TikTok competitor:", error);
-        res.status(500).json({ error: 'Failed to add TikTok competitor.' });
-    }
-});
 
 router.get('/default-ig-hashtags', async (req, res) => {
     try {
@@ -290,6 +259,15 @@ router.get('/default-tiktok-hashtags', async (req, res) => {
         res.json({ hashtags });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch default hashtags.' });
+    }
+});
+
+router.get('/default-youtube-hashtags', async (req, res) => {
+    try {
+        const keywords = await getYoutubeHashtags();
+        res.json({ keywords });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch default keywords.' });
     }
 });
 
@@ -789,7 +767,7 @@ router.get('/saved-posts', async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        const platform = req.query.platform || 'all'; // 'instagram', 'tiktok', or 'all'
+        const platform = req.query.platform || 'all'; // 'instagram', 'tiktok', 'youtube', or 'all'
 
         // Build filter based on platform
         let filter = {};
@@ -806,6 +784,14 @@ router.get('/saved-posts', async (req, res) => {
                 { authorMeta: { $exists: true } },
                 { platform: 'tiktok' },
                 { webVideoUrl: { $exists: true } }
+            ];
+        } else if (platform === 'youtube') {
+            // YouTube posts have properties like 'channelTitle', 'title', 'isShorts', etc.
+            filter.$or = [
+                { channelTitle: { $exists: true } },
+                { platform: 'youtube' },
+                { isShorts: { $exists: true } },
+                { url: { $regex: 'youtube.com|youtu.be' } }
             ];
         }
         // 'all' doesn't add any filter
@@ -984,6 +970,300 @@ router.post('/save-default-ig-competitors', async (req, res) => {
     } catch (error) {
         console.error('Error saving default Instagram competitors:', error);
         res.status(500).json({ error: 'Failed to save default Instagram competitors.' });
+    }
+});
+
+// --- YOUTUBE CONTENT POOL ROUTES ---
+
+router.post('/scrape-youtube-keywords', async (req, res) => {
+    res.setTimeout(600000);
+
+    const { keywords, resultsLimit, duration, uploadDate } = req.body;
+
+    if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+        return res.status(400).json({ error: 'Keywords array is required.' });
+    }
+
+    const input = {
+        "keywords": keywords,
+        "maxItems": resultsLimit || 20,
+        "duration": "s", // "s" for short (< 4 minutes) - this will include Shorts
+        "uploadDate": uploadDate || "w", // "w" for this week
+        "sort": "r", // "r" for relevance to keywords
+        "gl": "us", // Geographic location
+        "hl": "en", // Language
+        "features": "all" // Include all features
+    };
+
+    try {
+        const run = await client.actor("apidojo/youtube-scraper").call(input);
+        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+
+        // Filter to ensure we only get shorts (duration < 60 seconds)
+        const shortsOnly = items.filter(video => {
+            const duration = video.duration || video.lengthSeconds || 0;
+            return duration <= 60; // Only videos 60 seconds or less
+        });
+
+        const fetchedUrls = shortsOnly.map(post => post.url);
+        let uniquePosts = [];
+
+        if (fetchedUrls.length > 0) {
+            const db = getDB();
+            const existingCases = await db.collection('Business_Cases').find({
+                source_url: { $in: fetchedUrls }
+            }).project({ source_url: 1 }).toArray();
+            
+            const existingUrls = new Set(existingCases.map(caseDoc => caseDoc.source_url));
+            uniquePosts = shortsOnly.filter(post => !existingUrls.has(post.url));
+        } else {
+            uniquePosts = shortsOnly;
+        }
+
+        const processedPostsPromises = uniquePosts.map(async (post) => {
+            const processedPost = {
+                ...post,
+                viewCount: post.views || 0,
+                likeCount: post.likes || 0,
+                commentCount: post.comments || 0,
+                channelTitle: post.channel?.name || 'Unknown Channel',
+                channelThumbnail: post.channel?.thumbnails?.[0]?.url,
+                thumbnail: post.thumbnails?.find(t => t.width >= 480)?.url || post.thumbnails?.[0]?.url,
+                publishedAt: post.publishDate || post.uploadDate,
+                platform: 'youtube',
+                duration: post.duration || post.lengthSeconds || 0,
+                isShorts: true // Mark as YouTube Shorts
+            };
+            
+            return processedPost;
+        });
+
+        const processedPosts = await Promise.all(processedPostsPromises);
+        res.json(processedPosts);
+    } catch (error) {
+        console.error("Error running YouTube scraper:", error);
+        res.status(500).json({ error: 'Failed to scrape YouTube videos.' });
+    }
+});
+
+router.get('/youtube-posts', async (req, res) => {
+    try {
+        const db = getDB();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const minViews = parseInt(req.query.minViews) || 0;
+        const minLikes = parseInt(req.query.minLikes) || 0;
+        const minComments = parseInt(req.query.minComments) || 0;
+        const dateFilter = req.query.dateFilter || 'any';
+        const minDuration = parseInt(req.query.minDuration) || 0;
+        const maxDuration = parseInt(req.query.maxDuration) || 0;
+
+        let mongoQuery = { used: { $ne: true }, platform: 'youtube' };
+
+        if (minViews > 0) {
+            mongoQuery.viewCount = { $gte: minViews };
+        }
+        if (minLikes > 0) {
+            mongoQuery.likeCount = { $gte: minLikes };
+        }
+        if (minComments > 0) {
+            mongoQuery.commentCount = { $gte: minComments };
+        }
+        if (minDuration > 0) {
+            mongoQuery.duration = { $gte: minDuration };
+        }
+        if (maxDuration > 0) {
+            if (mongoQuery.duration) {
+                mongoQuery.duration.$lte = maxDuration;
+            } else {
+                mongoQuery.duration = { $lte: maxDuration };
+            }
+        }
+
+        if (dateFilter !== 'any') {
+            let dateThreshold = new Date();
+            switch (dateFilter) {
+                case 'h':
+                    dateThreshold.setHours(dateThreshold.getHours() - 1);
+                    break;
+                case 'd':
+                    dateThreshold.setDate(dateThreshold.getDate() - 1);
+                    break;
+                case 'w':
+                    dateThreshold.setDate(dateThreshold.getDate() - 7);
+                    break;
+                case 'm':
+                    dateThreshold.setMonth(dateThreshold.getMonth() - 1);
+                    break;
+                case 'y':
+                    dateThreshold.setFullYear(dateThreshold.getFullYear() - 1);
+                    break;
+            }
+            mongoQuery.publishedAt = { $gte: dateThreshold.toISOString() };
+        }
+
+        const posts = await db.collection('youtube_posts').find(mongoQuery).sort({ publishedAt: -1 }).skip(skip).limit(limit).toArray();
+        const totalPosts = await db.collection('youtube_posts').countDocuments(mongoQuery);
+
+        res.json({
+            posts,
+            totalPages: Math.ceil(totalPosts / limit),
+            currentPage: page
+        });
+    } catch (error) {
+        console.error("Error fetching YouTube posts from DB:", error);
+        res.status(500).json({ error: 'Failed to fetch posts from the content pool.' });
+    }
+});
+
+router.post('/run-youtube-keyword-scrape-job', async (req, res) => {
+    res.setTimeout(600000);
+
+    const { keywords, resultsLimit } = req.body;
+    try {
+        const db = getDB();
+        const keywordsToScrape = keywords || await getYoutubeHashtags();
+        const limit = resultsLimit || 20;
+
+        const input = {
+            "keywords": keywordsToScrape,
+            "maxItems": limit,
+            "duration": "s", // "s" for short (< 4 minutes) - includes Shorts
+            "uploadDate": "w", // "w" for this week
+            "sort": "r", // "r" for relevance to keywords
+            "gl": "us",
+            "hl": "en",
+            "features": "all"
+        };
+
+        const run = await client.actor("apidojo/youtube-scraper").call(input);
+        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+
+        // Filter to ensure we only get shorts (duration < 60 seconds)
+        const shortsOnly = items.filter(video => {
+            const duration = video.duration || video.lengthSeconds || 0;
+            return duration <= 60;
+        });
+
+        let newPostsCount = 0;
+        for (const post of shortsOnly) {
+            const existingPost = await db.collection('youtube_posts').findOne({ id: post.id });
+            if (!existingPost) {
+                const processedPost = {
+                    ...post,
+                    viewCount: post.views || 0,
+                    likeCount: post.likes || 0,
+                    commentCount: post.comments || 0,
+                    channelTitle: post.channel?.name || 'Unknown Channel',
+                    channelThumbnail: post.channel?.thumbnails?.[0]?.url,
+                    thumbnail: post.thumbnails?.find(t => t.width >= 480)?.url || post.thumbnails?.[0]?.url,
+                    publishedAt: post.publishDate || post.uploadDate,
+                    platform: 'youtube',
+                    duration: post.duration || post.lengthSeconds || 0,
+                    isShorts: true,
+                    timestamp: new Date(),
+                    used: false
+                };
+                await db.collection('youtube_posts').insertOne(processedPost);
+                newPostsCount++;
+            }
+        }
+        res.json({ success: true, message: `Scraping complete. Added ${newPostsCount} new YouTube Shorts to the content pool.` });
+    } catch (error) {
+        console.error("Error running YouTube keyword scrape job:", error);
+        res.status(500).json({ error: 'Failed to run the YouTube scraping job.' });
+    }
+});
+
+router.post('/save-youtube-post-pool', async (req, res) => {
+    const { post } = req.body;
+    if (!post || !post._id) {
+        return res.status(400).json({ error: 'Post data is required.' });
+    }
+
+    try {
+        const db = getDB();
+        const postId = new ObjectId(post._id);
+
+        await db.collection('saved_content').insertOne({ ...post, originalId: postId, savedAt: new Date() });
+        const result = await db.collection('youtube_posts').updateOne({ _id: postId }, { $set: { used: true } });
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ error: 'YouTube post not found.' });
+        }
+        res.json({ success: true, message: 'YouTube video successfully saved and marked as used.' });
+    } catch (error) {
+        console.error("Error saving YouTube post:", error);
+        res.status(500).json({ error: 'Failed to save the YouTube video.' });
+    }
+});
+
+router.delete('/youtube-posts/:id', async (req, res) => {
+    try {
+        const db = getDB();
+        const postId = new ObjectId(req.params.id);
+        const result = await db.collection('youtube_posts').updateOne({ _id: postId }, { $set: { used: true } });
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ error: 'YouTube post not found.' });
+        }
+        res.json({ success: true, message: 'YouTube video marked as used.' });
+    } catch (error) {
+        console.error("Error marking YouTube post as used:", error);
+        res.status(500).json({ error: 'Failed to mark the YouTube video as used.' });
+    }
+});
+
+router.post('/transcribe-youtube-video', async (req, res) => {
+    const { url } = req.body;
+    if (!url) {
+        return res.status(400).json({ error: 'URL is required for transcription.' });
+    }
+    try {
+        const response = await fetch('http://localhost:3050/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        if (!response.ok) {
+            throw new Error(`Transcription service responded with status ${response.status}`);
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('YouTube transcription proxy error:', error);
+        res.status(500).json({ error: 'Failed to transcribe YouTube video.' });
+    }
+});
+
+router.post('/save-default-youtube-keywords', async (req, res) => {
+    const { keywords } = req.body;
+    
+    if (!keywords || !Array.isArray(keywords)) {
+        return res.status(400).json({ error: 'Keywords array is required.' });
+    }
+
+    try {
+        const db = getDB();
+        
+        // Update the default YouTube keywords document
+        await db.collection('Keywords').updateOne(
+            { name: 'youtube-hashtags' },
+            { 
+                $set: { 
+                    hashtags: keywords,
+                    name: 'youtube-hashtags'
+                }
+            },
+            { upsert: true }
+        );
+
+        res.json({ success: true, message: 'Default YouTube keywords saved successfully.' });
+    } catch (error) {
+        console.error('Error saving default YouTube keywords:', error);
+        res.status(500).json({ error: 'Failed to save default YouTube keywords.' });
     }
 });
 

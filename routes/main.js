@@ -24,6 +24,8 @@ router.get('/instagram-competitor', (req, res) => res.render('instagram-competit
 router.get('/instagram-competitor-live', (req, res) => res.render('instagram-competitors-live', { title: 'Instagram Competitor Live' }));
 router.get('/tiktok-hashtags-live', (req, res) => res.render('tiktok-hashtags-live', { title: 'TikTok Hashtag Scraper' }));
 router.get('/tiktok-hashtags', (req, res) => res.render('tiktok-hashtags', { title: 'TikTok Content Pool' }));
+router.get('/youtube-hashtags-live', (req, res) => res.render('youtube-hashtags-live', { title: 'YouTube Live Scraper' }));
+router.get('/youtube-hashtags', (req, res) => res.render('youtube-hashtags', { title: 'YouTube Content Pool' }));
 router.get('/reels', (req, res) => res.render('reels', { title: 'Viral Scripts', contentFeed: [] }));
 router.get('/framework', (req, res) => res.render('framework', { title: 'Script Framework Editor' }));
 

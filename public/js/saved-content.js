@@ -110,6 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return renderInstagramPost(post);
             } else if (platform === 'tiktok' || post.authorMeta || post.webVideoUrl) {
                 return renderTikTokPost(post);
+            } else if (platform === 'youtube' || post.url?.includes('youtube.com') || post.url?.includes('youtu.be')) {
+                return renderYouTubePost(post);
             } else {
                 // Fallback to Instagram format for unknown posts
                 return renderInstagramPost(post);
@@ -184,6 +186,46 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${post.transcript}</p>
                     </div>
                      <a href="${post.webVideoUrl}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on TikTok</a>
+                     <div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${post._id}">Generate Story</button></div>
+                </div>
+            </div>
+        </div>`;
+    };
+
+    const renderYouTubePost = (post) => {
+        const title = post.title || 'Unknown Title';
+        const channelName = post.channelTitle || post.channel?.name || 'Unknown Channel';
+        const viewCount = post.viewCount || post.views || 0;
+        const likeCount = post.likeCount || post.likes || 0;
+        const commentCount = post.commentCount || post.comments || 0;
+        const thumbnail = post.thumbnail || (post.thumbnails && post.thumbnails[0]?.url) || 'https://placehold.co/96x96/e2e8f0/475569?text=YT';
+        const uploadDate = post.uploadDate || post.publishedAt || post.savedAt;
+        
+        return `
+        <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post._id}">
+            <div class="flex items-start gap-4">
+                <img src="${thumbnail}" alt="Video by ${channelName}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=YT';">
+                <div class="flex-grow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-slate-800 dark:text-white">${channelName}</p>
+                            <p class="text-xs text-slate-400">${new Date(uploadDate).toLocaleString()}</p>
+                        </div>
+                        <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+                            <span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${viewCount}</span>
+                            <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${likeCount}</span>
+                            <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${commentCount}</span>
+                            <button class="delete-post-btn p-1.5 rounded-full hover:bg-red-500/10 text-red-500" data-post-id="${post._id}" title="Delete Post">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${title}</p>
+                    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Transcript</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${post.transcript}</p>
+                    </div>
+                     <a href="${post.url}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on YouTube</a>
                      <div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${post._id}">Generate Story</button></div>
                 </div>
             </div>
@@ -343,9 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Platform tab event listeners
         instagramTab?.addEventListener('click', () => handleTabClick('instagram'));
         tiktokTab?.addEventListener('click', () => handleTabClick('tiktok'));
-        youtubeTab?.addEventListener('click', () => {
-            showNotification('Coming Soon', 'YouTube integration is temporarily disabled and will be available soon.', 'info');
-        });
+        youtubeTab?.addEventListener('click', () => handleTabClick('youtube'));
     };
     
     init();

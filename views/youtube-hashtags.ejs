@@ -4,39 +4,35 @@
 <main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
     <div class="max-w-5xl mx-auto">
         <!-- Page Header -->
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-            <div class="w-full">
-                <div>
-                    <h1 class="text-3xl font-bold bg-gradient-to-r from-teal-500 to-cyan-500 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                        Instagram Content Pool
-                    </h1>
-                    <p class="mt-1 text-slate-500 dark:text-slate-400">
-                        Explore your database of pre-scraped Instagram content.
-                    </p>
-                </div>
-                <div class="flex items-center gap-2 sm:gap-4 mt-4 flex-wrap justify-center sm:justify-start">
-                    <a href="/social-scrape" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                        Back
-                    </a>
-                    <a href="/instagram-hashtags-live" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg focus:outline-none">
-                        <i data-lucide="zap" class="w-4 h-4"></i>
-                        Live Mode
-                    </a>
-                    <button id="filter-btn" class="relative flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none">
-                        <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
-                        Filters
-                        <span id="filter-indicator" class="hidden absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-primary-500 ring-2 ring-white dark:ring-slate-900"></span>
-                    </button>
-                    <button id="shuffle-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none">
-                        <i data-lucide="shuffle" class="w-4 h-4"></i>
-                        Shuffle
-                    </button>
-                    <button id="update-pool-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg focus:outline-none">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                        Update Pool
-                    </button>
-                </div>
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-red-500 to-pink-500 dark:from-red-400 dark:to-pink-400 bg-clip-text text-transparent">
+                YouTube Content Pool
+            </h1>
+            <p class="mt-1 text-slate-500 dark:text-slate-400">
+                Explore your database of pre-scraped YouTube content.
+            </p>
+            <div class="flex items-center gap-2 sm:gap-4 mt-4 flex-wrap justify-center sm:justify-start">
+                <a href="/social-scrape" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    Back
+                </a>
+                <a href="/youtube-hashtags-live" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg focus:outline-none">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    Live Mode
+                </a>
+                <button id="filter-btn" class="relative flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none">
+                    <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                    Filters
+                    <span id="filter-indicator" class="hidden absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-primary-500 ring-2 ring-white dark:ring-slate-900"></span>
+                </button>
+                <button id="shuffle-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none">
+                    <i data-lucide="shuffle" class="w-4 h-4"></i>
+                    Shuffle
+                </button>
+                <button id="update-pool-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg focus:outline-none">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Update Pool
+                </button>
             </div>
         </div>
 
@@ -73,27 +69,39 @@
                 <div>
                     <label for="min-views-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Views</label>
                     <input type="number" id="min-views-input" value="10000" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
-                    <p class="text-xs text-slate-400 mt-1">Only show posts with at least this many views.</p>
-                </div>
-                <div>
-                    <label for="min-comments-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Comments</label>
-                    <input type="number" id="min-comments-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
-                    <p class="text-xs text-slate-400 mt-1">Only show posts with at least this many comments.</p>
+                    <p class="text-xs text-slate-400 mt-1">Only show videos with at least this many views.</p>
                 </div>
                 <div>
                     <label for="min-likes-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Likes</label>
                     <input type="number" id="min-likes-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
-                    <p class="text-xs text-slate-400 mt-1">Only show posts with at least this many likes.</p>
+                    <p class="text-xs text-slate-400 mt-1">Only show videos with at least this many likes.</p>
+                </div>
+                <div>
+                    <label for="min-comments-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Comments</label>
+                    <input type="number" id="min-comments-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                    <p class="text-xs text-slate-400 mt-1">Only show videos with at least this many comments.</p>
                 </div>
                 <div>
                     <label for="date-uploaded-select" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Date Uploaded</label>
                     <select id="date-uploaded-select" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
                         <option value="any">Any Date</option>
-                        <option value="24h">Last 24 hours</option>
-                        <option value="7d">Last 7 days</option>
-                        <option value="30d">Last 30 days</option>
+                        <option value="h">Last Hour</option>
+                        <option value="d">Today</option>
+                        <option value="w">This Week</option>
+                        <option value="m">This Month</option>
+                        <option value="y">This Year</option>
                     </select>
-                    <p class="text-xs text-slate-400 mt-1">Filter posts by their upload date.</p>
+                    <p class="text-xs text-slate-400 mt-1">Filter videos by their upload date.</p>
+                </div>
+                <div>
+                    <label for="min-duration-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Min Duration (seconds)</label>
+                    <input type="number" id="min-duration-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                    <p class="text-xs text-slate-400 mt-1">Only show videos with at least this duration.</p>
+                </div>
+                <div>
+                    <label for="max-duration-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Max Duration (seconds)</label>
+                    <input type="number" id="max-duration-input" value="0" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                    <p class="text-xs text-slate-400 mt-1">Only show videos with at most this duration (0 = no limit).</p>
                 </div>
             </div>
         </div>
@@ -108,24 +116,24 @@
 <div id="update-pool-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
     <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl" style="min-width:0;">
         <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Update Content Pool Settings</h2>
+            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Update YouTube Content Pool Settings</h2>
             <button id="close-update-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
                 <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
             </button>
         </div>
         <div class="p-2 sm:p-4 md:p-6 space-y-6">
             <div>
-                <label for="add-hashtag-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Hashtags to Scrape</label>
+                <label for="add-keyword-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Keywords to Scrape</label>
                 <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
-                    <div id="hashtags-container-modal" class="flex flex-wrap gap-2"></div>
-                    <input type="text" id="add-hashtag-input" placeholder="Type a hashtag..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
-                    <button id="add-hashtag-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
+                    <div id="keywords-container-modal" class="flex flex-wrap gap-2"></div>
+                    <input type="text" id="add-keyword-input" placeholder="Type a keyword..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
+                    <button id="add-keyword-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
                 </div>
             </div>
             <div>
                 <label for="search-depth-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Search Depth</label>
-                <input type="number" id="search-depth-input" value="5" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
-                <p class="text-xs text-slate-400 mt-1">This is the number of posts to fetch per hashtag. A higher number will use more credits.</p>
+                <input type="number" id="search-depth-input" value="20" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                <p class="text-xs text-slate-400 mt-1">This is the number of videos to fetch per keyword. A higher number will use more credits.</p>
             </div>
             <div id="cost-estimation-container" class="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-lg text-center">
                 <p class="text-sm text-blue-700 dark:text-blue-300">Estimated Cost:</p>
@@ -133,7 +141,7 @@
             </div>
         </div>
         <div class="p-2 sm:p-4 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-end items-center gap-2 sm:gap-4">
-            <button id="make-default-hashtags-btn" title="Make these hashtags default" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg" data-icon="bookmark" data-original-text="Make Default">
+            <button id="make-default-keywords-btn" title="Make these keywords default" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg" data-icon="bookmark" data-original-text="Make Default">
                 <i data-lucide="bookmark" class="w-4 h-4"></i>
                 <span>Make Default</span>
             </button>
@@ -224,7 +232,7 @@
     </div>
 </div>
 
-<script src="/js/instagram-hashtags.js"></script>
+<script src="/js/youtube-hashtags.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();

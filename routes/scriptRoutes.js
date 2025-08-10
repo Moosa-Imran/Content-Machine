@@ -307,6 +307,42 @@ router.post('/create-story-from-social', async (req, res) => {
                 "hashtags": ["#newly_generated_hashtag1", "#hashtag2", "#hashtag3"],
                 "origin": "social"
             }`;
+        } else if (post.channelTitle || post.platform === 'youtube' || post.url?.includes('youtube.com') || post.url?.includes('youtu.be')) {
+            // YouTube post
+            sourceUrl = post.url;
+            caption = post.title || '';
+            const channelName = post.channelTitle || post.channel?.name || 'Unknown Channel';
+            prompt = `
+            As an expert marketing analyst, deconstruct the following YouTube video transcript to create an insightful business case study. Extract the core marketing tactic, not just summarize the video.
+
+            **Source Content:**
+            - **URL:** ${sourceUrl}
+            - **Title:** ${caption}
+            - **Channel:** ${channelName}
+            - **Full Transcript:** ${transcript}
+
+            **Your Task:**
+            1.  **Analyze Deeply:** Identify the underlying business strategy or psychological principle.
+            2.  **Identify the Subject:** Determine if the subject is a specific company (e.g., "Coca-Cola") or a general category (e.g., "beverage brands"). If unclear, infer a subject from the context. **Do NOT use the YouTube channel name.**
+            3.  **Extract the Tactic:** Distill the content into a clear problem, solution, and finding.
+            4.  **Curate Hashtags:** Generate 3-5 new, relevant hashtags for the business case.
+            5.  **Generate JSON:** Create a single, valid JSON object with the structure below, ensuring all fields are fully populated.
+
+            **Final JSON Structure:**
+            {
+                "company": "The identified company or business category.",
+                "industry": "The relevant industry.",
+                "psychology": "The core psychological principle or marketing tactic.",
+                "problem": "The business problem or challenge addressed.",
+                "solution": "The specific solution or strategy implemented.",
+                "realStudy": "If a study is mentioned, summarize it. Otherwise, state 'No specific study mentioned'.",
+                "findings": "The key outcomes, results, or takeaways.",
+                "verified": false,
+                "sources": ["${sourceUrl}"],
+                "source_url": "${sourceUrl}",
+                "hashtags": ["#newly_generated_hashtag1", "#hashtag2", "#hashtag3"],
+                "origin": "social"
+            }`;
         } else {
             return res.status(400).json({ error: 'Unsupported post type.' });
         }

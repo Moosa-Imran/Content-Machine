@@ -142,6 +142,20 @@ const getTiktokHashtags = async () => {
     }
 };
 
+const getYoutubeHashtags = async () => {
+    try {
+        const db = getDB();
+        const doc = await db.collection('Keywords').findOne({ name: 'youtube-hashtags' });
+        if (doc && doc.hashtags && doc.hashtags.length > 0) {
+            return doc.hashtags;
+        }
+        console.warn("Default YouTube hashtags not found in DB, using hardcoded fallback.");
+        return ["marketingpsychology", "behavioraleconomics", "neuromarketing", "cognitivebias", "pricingpsychology", "marketingtips", "psychologyfacts", "businesstips"];
+    } catch (error) {
+        console.error("Error fetching default YouTube hashtags:", error);
+        return ["marketingpsychology", "behavioraleconomics", "neuromarketing", "cognitivebias", "pricingpsychology", "marketingtips", "psychologyfacts", "businesstips"];
+    }
+};
 
 const addIgCompetitor = async (username) => {
     try {
@@ -165,5 +179,6 @@ module.exports = {
     getIgHashtags,
     getIgCompetitors,
     getTiktokHashtags,
+    getYoutubeHashtags,
     addIgCompetitor
 };
