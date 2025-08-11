@@ -3,124 +3,199 @@
     <%- include('partials/header') %>
 
         <main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
-            <div class="max-w-5xl mx-auto">
-                <!-- Page Header -->
-                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-                    <div>
-                        <h1
-                            class="text-3xl font-bold bg-gradient-to-r from-yellow-500 to-orange-500 dark:from-yellow-400 dark:to-orange-400 bg-clip-text text-transparent">
-                            Industry News</h1>
-                        <p class="mt-1 text-slate-500 dark:text-slate-400">Find breaking news and turn it into viral
-                            content.</p>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <button id="custom-search-btn"
-                            class="relative flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg focus:outline-none">
-                            <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
-                            Filters
-                            <span id="filter-indicator" class="hidden absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-primary-500 ring-2 ring-white dark:ring-slate-900"></span>
-                        </button>
-                        <button id="shuffle-news-btn"
-                            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
-                            data-icon="shuffle" data-original-text="Shuffle News">
-                            <span class="btn-icon"><i data-lucide="shuffle" class="w-4 h-4"></i></span>
-                            <span class="btn-text">Shuffle News</span>
-                        </button>
+            <div class="max-w-6xl mx-auto">
+                <!-- Enhanced Hero Section -->
+                <div class="relative bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-red-500/10 dark:from-amber-400/10 dark:via-orange-400/5 dark:to-red-400/10 rounded-3xl p-8 mb-8 overflow-hidden border border-amber-200/50 dark:border-amber-700/30">
+                    <!-- Background decoration -->
+                    <div class="absolute top-4 right-4 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
+                    <div class="absolute bottom-4 left-4 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl"></div>
+                    
+                    <div class="relative z-10 text-center lg:text-left">
+                        <div class="flex items-center justify-center lg:justify-start gap-3 mb-3">
+                            <div class="bg-gradient-to-r from-amber-500 to-orange-500 p-2.5 rounded-xl shadow-lg">
+                                <i data-lucide="newspaper" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <h1 class="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 dark:from-amber-400 dark:via-orange-400 dark:to-red-400 bg-clip-text text-transparent">
+                                Industry News
+                            </h1>
+                        </div>
+                        <p class="text-base text-slate-600 dark:text-slate-300 max-w-2xl mx-auto lg:mx-0 mb-6">
+                            Discover breaking news and transform it into viral content. Stay ahead of trends with AI-powered content analysis.
+                        </p>
+                        
+                        <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+                            <button id="custom-search-btn"
+                                class="group relative flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-slate-800/90 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-amber-200/50 dark:border-amber-700/30 hover:border-amber-300 dark:hover:border-amber-600">
+                                <i data-lucide="sliders-horizontal" class="w-4 h-4 group-hover:rotate-180 transition-transform"></i>
+                                Advanced Filters
+                                <span id="filter-indicator" class="hidden absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
+                            </button>
+                            <button id="shuffle-news-btn"
+                                class="group flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                                data-icon="shuffle" data-original-text="Shuffle News">
+                                <span class="btn-icon"><i data-lucide="shuffle" class="w-4 h-4 group-hover:rotate-180 transition-transform"></i></span>
+                                <span class="btn-text">Shuffle News</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- AI Validation Toggle -->
-                <div class="flex items-center justify-center mb-6 bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg gap-4">
-                    <label for="validate-news-toggle" class="flex items-center cursor-pointer">
-                        <span class="mr-3 text-sm font-medium text-slate-700 dark:text-slate-300">Validate News with AI</span>
-                        <div class="relative">
-                            <input type="checkbox" id="validate-news-toggle" class="sr-only peer" checked>
-                            <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-8 rounded-full peer-checked:bg-primary-600"></div>
-                            <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition peer-checked:translate-x-6"></div>
+                <!-- Enhanced AI Validation Toggle -->
+                <div class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl p-6 mb-8 border border-white/20 dark:border-slate-800/50 shadow-xl">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-gradient-to-r from-purple-500 to-blue-500 p-2.5 rounded-xl shadow-lg">
+                                <i data-lucide="brain" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-semibold text-slate-800 dark:text-white">AI Content Validation</h3>
+                                <p class="text-sm text-slate-600 dark:text-slate-300">Filter news using advanced AI analysis</p>
+                            </div>
                         </div>
-                    </label>
-                    <a href="/validate" id="edit-prompt-btn" class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-md shadow-sm border border-slate-200 dark:border-slate-600">
-                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                        Edit Prompt
-                    </a>
+                        <div class="flex items-center gap-4">
+                            <label for="validate-news-toggle" class="flex items-center cursor-pointer">
+                                <div class="relative">
+                                    <input type="checkbox" id="validate-news-toggle" class="sr-only peer" checked>
+                                    <div class="block bg-slate-200 dark:bg-slate-700 w-14 h-7 rounded-full peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500 transition-all duration-300"></div>
+                                    <div class="dot absolute left-0.5 top-0.5 bg-white w-6 h-6 rounded-full transition-all peer-checked:translate-x-7 shadow-lg"></div>
+                                </div>
+                                <span class="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Enable AI Validation</span>
+                            </label>
+                            <a href="/validate" id="edit-prompt-btn" class="group flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg shadow-sm border border-slate-200/50 dark:border-slate-600/50 transition-all hover:scale-105">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5 group-hover:rotate-12 transition-transform"></i>
+                                Customize Prompt
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
 
-                <!-- Main Content Area -->
-                <div class="relative min-h-[400px]">
+                <!-- Enhanced Main Content Area -->
+                <div class="relative min-h-[500px]">
+                    <!-- Enhanced Loading State -->
                     <div id="news-loader"
-                        class="absolute inset-0 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-40 hidden">
-                        <div class="flex flex-col items-center gap-4">
-                            <i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-primary-500"></i>
-                            <p class="text-slate-600 dark:text-slate-300 font-medium">Scanning the latest headlines...
-                            </p>
+                        class="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md flex justify-center items-center z-40 hidden rounded-2xl">
+                        <div class="relative bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl p-12 text-center border border-white/20 dark:border-slate-800/50 shadow-2xl">
+                            <div class="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-red-500/5 animate-pulse rounded-2xl"></div>
+                            <div class="relative z-10">
+                                <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl mb-6 shadow-xl animate-bounce">
+                                    <i data-lucide="newspaper" class="w-8 h-8 text-white"></i>
+                                </div>
+                                <h3 class="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-200 bg-clip-text text-transparent mb-2">
+                                    Scanning Headlines...
+                                </h3>
+                                <p class="text-slate-600 dark:text-slate-300">Finding the latest trending stories</p>
+                                <div class="flex justify-center gap-2 mt-4">
+                                    <div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce"></div>
+                                    <div class="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                    <div class="w-2 h-2 bg-red-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    
                     <div id="news-error"
-                        class="text-center text-red-500 p-4 mb-4 bg-red-500/10 rounded-lg border border-red-500/30 hidden">
+                        class="text-center text-red-500 p-4 mb-4 bg-red-500/10 rounded-xl border border-red-500/30 backdrop-blur-sm hidden">
                     </div>
-                    <div id="news-articles-container" class="space-y-4">
+                    
+                    <div id="news-articles-container" class="space-y-6">
                         <div id="initial-fetch-container" class="text-center py-20">
-                            <button id="fetch-content-btn" class="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition duration-300 font-semibold text-lg">
-                                Click to Fetch News
-                            </button>
+                            <div class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl p-12 border border-white/20 dark:border-slate-800/50 shadow-2xl max-w-md mx-auto">
+                                <div class="bg-gradient-to-r from-amber-500 to-orange-500 p-4 rounded-2xl w-20 h-20 mx-auto mb-6 shadow-xl">
+                                    <i data-lucide="rss" class="w-12 h-12 text-white"></i>
+                                </div>
+                                <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-3">Ready to Discover</h3>
+                                <p class="text-slate-600 dark:text-slate-300 mb-6 text-sm">Click below to fetch the latest industry news and trending stories</p>
+                                <button id="fetch-content-btn" class="group bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                                    <i data-lucide="play" class="w-5 h-5 inline mr-2 group-hover:translate-x-1 transition-transform"></i>
+                                    Fetch Latest News
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
         
-        <!-- Custom Search Modal -->
-        <div id="custom-search-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[51] hidden flex items-center justify-center p-4">
-             <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl">
-                <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
-                    <h2 class="text-lg font-semibold text-slate-800 dark:text-white">News Filters & Search</h2>
-                     <button id="close-search-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
-                    </button>
+        <!-- Enhanced Custom Search Modal -->
+        <div id="custom-search-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[51] hidden flex items-center justify-center p-4">
+             <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] border border-white/20 dark:border-slate-800/50 overflow-hidden">
+                <div class="bg-gradient-to-r from-amber-500/10 to-orange-500/10 p-4 sm:p-6 border-b border-slate-200/50 dark:border-slate-800/50">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <div class="bg-gradient-to-r from-amber-500 to-orange-500 p-2 sm:p-2.5 rounded-xl">
+                                <i data-lucide="search" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
+                            </div>
+                            <h2 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-200 bg-clip-text text-transparent">Advanced Filters</h2>
+                        </div>
+                        <button id="close-search-modal-btn" class="p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <i data-lucide="x" class="w-4 h-4 sm:w-5 sm:h-5 text-slate-500"></i>
+                        </button>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-300 mt-2 text-sm sm:text-base">Customize your news search with AI-powered filters or manual settings</p>
                 </div>
-                <div class="p-6 space-y-6">
-                    <!-- Prompt Section -->
+                <div class="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-h-[70vh] overflow-y-auto">
+                    <!-- Enhanced AI Prompt Section -->
                     <div class="text-center">
-                        <button id="use-prompt-btn" class="w-full flex items-center justify-center gap-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-500/20 dark:hover:bg-purple-500/30 text-purple-700 dark:text-purple-300 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors">
-                            <i data-lucide="wand-2" class="w-4 h-4"></i>
-                            Generate Filters with AI
+                        <button id="use-prompt-btn" class="group w-full flex items-center justify-center gap-2 sm:gap-3 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 dark:hover:from-purple-800/30 dark:hover:to-blue-800/30 text-purple-700 dark:text-purple-300 px-4 sm:px-6 py-3 sm:py-4 rounded-2xl font-semibold transition-all duration-300 border-2 border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300 dark:hover:border-purple-600">
+                            <div class="bg-gradient-to-r from-purple-500 to-blue-500 p-1.5 sm:p-2 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
+                                <i data-lucide="wand-2" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
+                            </div>
+                            <span class="text-sm sm:text-base">Generate Filters with AI Magic</span>
+                            <i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-12 transition-transform"></i>
                         </button>
                     </div>
-                    <div id="prompt-container" class="hidden space-y-2">
-                        <label for="prompt-textarea" class="block text-sm font-medium text-slate-700 dark:text-slate-200">Your Prompt</label>
-                        <textarea id="prompt-textarea" placeholder="e.g., 'Find me news about how luxury brands use scarcity to drive sales'" class="w-full h-24 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 focus:outline-none"></textarea>
-                        <button id="generate-filters-btn" class="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors" data-icon="wand-2" data-original-text="Generate Filters">
-                            <span class="btn-icon"><i data-lucide="wand-2" class="w-4 h-4"></i></span>
-                            <span class="btn-text">Generate Filters</span>
-                        </button>
+                    
+                    <div id="prompt-container" class="hidden space-y-3 sm:space-y-4">
+                        <div class="bg-gradient-to-r from-purple-500/5 to-blue-500/5 p-4 sm:p-6 rounded-2xl border border-purple-200/30 dark:border-purple-700/30">
+                            <label for="prompt-textarea" class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 sm:mb-3">Describe what news you're looking for</label>
+                            <textarea id="prompt-textarea" placeholder="e.g., 'Find me news about how luxury brands use scarcity to drive sales and create urgency in their marketing campaigns'" class="w-full h-24 sm:h-32 p-3 sm:p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-300/50 dark:border-slate-700/50 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 focus:outline-none text-sm resize-none"></textarea>
+                            <button id="generate-filters-btn" class="group w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 mt-3 sm:mt-4 transform hover:scale-105" data-icon="wand-2" data-original-text="Generate Filters">
+                                <span class="btn-icon"><i data-lucide="wand-2" class="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-12 transition-transform"></i></span>
+                                <span class="btn-text text-sm sm:text-base">Generate Smart Filters</span>
+                            </button>
+                        </div>
                     </div>
         
-                    <!-- Divider -->
-                    <div class="relative flex py-1 items-center">
-                        <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
-                        <span class="flex-shrink mx-4 text-xs text-slate-400 dark:text-slate-500 uppercase">Or</span>
-                        <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+                    <!-- Enhanced Divider -->
+                    <div class="relative flex py-2 items-center">
+                        <div class="flex-grow border-t border-gradient-to-r from-slate-200/50 via-slate-300 to-slate-200/50 dark:from-slate-700/50 dark:via-slate-600 dark:to-slate-700/50"></div>
+                        <span class="flex-shrink mx-6 text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">Or Customize Manually</span>
+                        <div class="flex-grow border-t border-gradient-to-r from-slate-200/50 via-slate-300 to-slate-200/50 dark:from-slate-700/50 dark:via-slate-600 dark:to-slate-700/50"></div>
                     </div>
         
-                    <!-- Manual Filters Section -->
-                    <div id="manual-filters-container" class="space-y-6">
-                        <div>
-                            <label for="add-keyword-input" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Keywords</label>
-                            <div class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 flex flex-wrap gap-2 items-center">
-                                <div id="keywords-container" class="flex flex-wrap gap-2">
+                    <!-- Enhanced Manual Filters Section -->
+                    <div id="manual-filters-container" class="space-y-6 sm:space-y-8">
+                        <!-- Keywords Section -->
+                        <div class="bg-gradient-to-r from-slate-50/50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-900/50 p-4 sm:p-6 rounded-2xl border border-slate-200/50 dark:border-slate-700/50">
+                            <label for="add-keyword-input" class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 sm:mb-3 flex items-center gap-2">
+                                <i data-lucide="hash" class="w-4 h-4 text-indigo-500"></i>
+                                Search Keywords
+                            </label>
+                            <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-3 flex flex-wrap gap-2 items-center min-h-[3rem] focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                                <div id="keywords-container" class="flex flex-wrap gap-1 sm:gap-2">
                                     <!-- Keyword bubbles will be injected here -->
                                 </div>
-                                <input type="text" id="add-keyword-input" placeholder="Type a keyword..." class="flex-grow bg-transparent focus:outline-none text-sm p-1">
-                                <button id="add-keyword-btn" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-md">Add</button>
+                                <input type="text" id="add-keyword-input" placeholder="Type keywords..." class="flex-grow bg-transparent focus:outline-none text-sm p-1 min-w-[150px] sm:min-w-[200px]">
+                                <button id="add-keyword-btn" class="group flex-shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105">
+                                    <i data-lucide="plus" class="w-3 h-3 group-hover:rotate-90 transition-transform"></i>
+                                </button>
                             </div>
-                            <p class="text-xs text-slate-400 mt-1">Press Enter or click 'Add' to include a keyword.</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+                                <i data-lucide="lightbulb" class="w-3 h-3"></i>
+                                Press Enter, comma, or click Add
+                            </p>
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">News Within</label>
-                                <select id="date-filter-select" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                        <!-- Filter Options Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                            <!-- Date Filter -->
+                            <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-4 sm:p-5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 sm:mb-3 flex items-center gap-2">
+                                    <i data-lucide="calendar" class="w-4 h-4 text-blue-500"></i>
+                                    Time Range
+                                </label>
+                                <select id="date-filter-select" class="w-full p-2 sm:p-3 bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none text-sm font-medium">
                                     <option value="1">Last 24 hours</option>
                                     <option value="3">Last 3 days</option>
                                     <option value="7">Last 7 days</option>
@@ -128,95 +203,147 @@
                                     <option value="31" selected>Last month</option>
                                 </select>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Sort By</label>
-                                <div id="sort-by-container" class="flex items-center gap-4">
-                                    <label for="sort-rel" class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" id="sort-rel" name="sort_by" value="rel" checked class="w-4 h-4 text-primary-600 focus:ring-primary-500">
-                                        <span class="text-sm text-slate-700 dark:text-slate-300">Relevancy</span>
+                            
+                            <!-- Sort Options -->
+                            <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-4 sm:p-5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 sm:mb-3 flex items-center gap-2">
+                                    <i data-lucide="arrow-up-down" class="w-4 h-4 text-green-500"></i>
+                                    Sort By
+                                </label>
+                                <div id="sort-by-container" class="space-y-1 sm:space-y-2">
+                                    <label for="sort-rel" class="flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer">
+                                        <input type="radio" id="sort-rel" name="sort_by" value="rel" checked class="w-4 h-4 text-green-600 focus:ring-green-500 focus:ring-2">
+                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Relevancy</span>
                                     </label>
-                                    <label for="sort-date" class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" id="sort-date" name="sort_by" value="date" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
-                                        <span class="text-sm text-slate-700 dark:text-slate-300">Date</span>
+                                    <label for="sort-date" class="flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer">
+                                        <input type="radio" id="sort-date" name="sort_by" value="date" class="w-4 h-4 text-green-600 focus:ring-green-500 focus:ring-2">
+                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Newest First</span>
                                     </label>
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Search In</label>
-                                <div id="keyword-loc-container" class="flex items-center gap-4">
-                                    <label for="loc-body" class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" id="loc-body" name="keyword_loc" value="body" checked class="w-4 h-4 text-primary-600 focus:ring-primary-500">
-                                        <span class="text-sm text-slate-700 dark:text-slate-300">Body</span>
+                            
+                            <!-- Search Location -->
+                            <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-4 sm:p-5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 sm:mb-3 flex items-center gap-2">
+                                    <i data-lucide="target" class="w-4 h-4 text-purple-500"></i>
+                                    Search In
+                                </label>
+                                <div id="keyword-loc-container" class="space-y-1 sm:space-y-2">
+                                    <label for="loc-body" class="flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer">
+                                        <input type="radio" id="loc-body" name="keyword_loc" value="body" checked class="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2">
+                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Full Article</span>
                                     </label>
-                                    <label for="loc-title" class="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" id="loc-title" name="keyword_loc" value="title" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
-                                        <span class="text-sm text-slate-700 dark:text-slate-300">Title</span>
+                                    <label for="loc-title" class="flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer">
+                                        <input type="radio" id="loc-title" name="keyword_loc" value="title" class="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2">
+                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Title Only</span>
                                     </label>
                                 </div>
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Categories</label>
-                            <div id="search-category-container" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <label for="cat-none" class="col-span-full flex items-center gap-2 p-2 rounded-md border-2 border-slate-300 dark:border-slate-700 has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 cursor-pointer">
-                                    <input type="checkbox" id="cat-none" name="search_category" value="none" class="w-4 h-4 text-primary-600 bg-slate-100 border-slate-300 rounded focus:ring-primary-500">
-                                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">None (Search All Categories)</span>
+                        <!-- Enhanced Categories Section -->
+                        <div class="bg-gradient-to-r from-slate-50/50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-900/50 p-4 sm:p-6 rounded-2xl border border-slate-200/50 dark:border-slate-700/50">
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 sm:mb-4 flex items-center gap-2">
+                                <i data-lucide="folder" class="w-4 h-4 text-orange-500"></i>
+                                News Categories
+                            </label>
+                            <div id="search-category-container" class="space-y-3">
+                                <label for="cat-none" class="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50 dark:has-[:checked]:bg-orange-500/10 cursor-pointer hover:border-orange-400 transition-all">
+                                    <input type="checkbox" id="cat-none" name="search_category" value="none" class="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 bg-white border-slate-300 rounded focus:ring-orange-500 focus:ring-2">
+                                    <div>
+                                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">All Categories</span>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Search across all news categories</p>
+                                    </div>
                                 </label>
-                                <% const categories = ["business", "technology", "entertainment", "general", "health", "science", "sports"]; %>
-                                <% categories.forEach(cat => { %>
-                                    <label for="cat-<%= cat %>" class="flex items-center gap-2 p-2 rounded-md border border-slate-300 dark:border-slate-700 has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-500/10 has-[:checked]:border-primary-500 cursor-pointer">
-                                        <input type="checkbox" id="cat-<%= cat %>" name="search_category" value="<%= cat %>" class="w-4 h-4 text-primary-600 bg-slate-100 border-slate-300 rounded focus:ring-primary-500">
-                                        <span class="text-sm text-slate-700 dark:text-slate-300 capitalize"><%= cat %></span>
-                                    </label>
-                                <% }); %>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+                                    <% const categories = ["business", "technology", "entertainment", "general", "health", "science", "sports"]; %>
+                                    <% categories.forEach(cat => { %>
+                                        <label for="cat-<%= cat %>" class="group flex items-center gap-2 p-2 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-700 has-[:checked]:bg-orange-50 dark:has-[:checked]:bg-orange-500/10 has-[:checked]:border-orange-500 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+                                            <input type="checkbox" id="cat-<%= cat %>" name="search_category" value="<%= cat %>" class="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 bg-white border-slate-300 rounded focus:ring-orange-500 focus:ring-2">
+                                            <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 capitalize group-hover:text-orange-600 transition-colors"><%= cat %></span>
+                                        </label>
+                                    <% }); %>
+                                </div>
                             </div>
-                             <p class="text-xs text-slate-400 mt-1">Select 'None' for broader results across all categories.</p>
+                             <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 sm:mt-3 flex items-center gap-1">
+                                <i data-lucide="info" class="w-3 h-3"></i>
+                                Select 'All Categories' for comprehensive coverage
+                            </p>
                         </div>
                     </div>
                 </div>
-                <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                    <button id="reset-search-btn" title="Reset Filters" class="flex-shrink-0 p-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
-                        <i data-lucide="rotate-ccw" class="w-5 h-5 text-slate-600 dark:text-slate-300"></i>
-                    </button>
-                    <button id="make-default-btn" title="Make these settings default" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg" data-icon="bookmark" data-original-text="Make Default">
-                        <span class="btn-icon"><i data-lucide="bookmark" class="w-4 h-4"></i></span>
-                        <span class="btn-text">Make Default</span>
-                    </button>
-                    <button id="execute-search-btn" class="flex-1 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-lg font-semibold">
-                        <i data-lucide="search" class="w-5 h-5"></i>
-                        Apply Filters & Search
-                    </button>
+                <div class="bg-slate-50/50 dark:bg-slate-800/50 p-4 sm:p-6">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+                        <button id="reset-search-btn" title="Reset to defaults" class="group flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/80 dark:bg-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4 text-slate-600 dark:text-slate-300 group-hover:-rotate-180 transition-transform duration-300"></i>
+                            <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Reset</span>
+                        </button>
+                        <button id="make-default-btn" title="Save current settings as default" class="group flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/80 dark:bg-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all" data-icon="bookmark" data-original-text="Save as Default">
+                            <span class="btn-icon"><i data-lucide="bookmark" class="w-4 h-4 group-hover:scale-110 transition-transform"></i></span>
+                            <span class="btn-text">Save Default</span>
+                        </button>
+                        <button id="execute-search-btn" class="group flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                            <i data-lucide="search" class="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform"></i>
+                            <span class="text-sm sm:text-base">Apply Filters</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Prompt Update Loader Modal -->
-        <div id="prompt-update-loader-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
-            <div class="flex flex-col items-center gap-4 text-white">
-                <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-secondary-500"></div>
-                <h2 class="text-2xl font-bold mt-4">Updating AI prompt...</h2>
-                <p class="text-slate-300">The AI is learning your preferences.</p>
+        <!-- Enhanced Loading Modals -->
+        <div id="prompt-update-loader-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+            <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center border border-white/20 max-w-md">
+                <div class="relative mb-8">
+                    <div class="w-20 h-20 border-4 border-dashed rounded-full animate-spin border-purple-400 mx-auto"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <i data-lucide="brain" class="w-8 h-8 text-purple-400 animate-pulse"></i>
+                    </div>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-4">Learning Your Preferences...</h2>
+                <p class="text-slate-300">The AI is adapting to your feedback to improve future results.</p>
+                <div class="flex justify-center gap-2 mt-6">
+                    <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                </div>
             </div>
         </div>
 
-        <!-- Story Generation Loader Modal -->
-        <div id="story-loader-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
-            <div class="flex flex-col items-center gap-4 text-white">
-                <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500"></div>
-                <h2 class="text-2xl font-bold mt-4">Generating Your Viral Script...</h2>
-                <p id="generation-status-text" class="text-slate-300 h-6"></p>
+        <div id="story-loader-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+            <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center border border-white/20 max-w-md">
+                <div class="relative mb-8">
+                    <div class="w-20 h-20 border-4 border-dashed rounded-full animate-spin border-amber-400 mx-auto"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <i data-lucide="zap" class="w-8 h-8 text-amber-400 animate-pulse"></i>
+                    </div>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-4">Crafting Viral Content...</h2>
+                <p id="generation-status-text" class="text-slate-300 h-6">Transforming news into engaging scripts</p>
+                <div class="flex justify-center gap-2 mt-6">
+                    <div class="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-2 bg-red-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                </div>
             </div>
         </div>
         
-        <!-- Framework Selection Modal -->
-        <div id="framework-select-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
-            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md">
-                <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
-                    <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Select a Framework</h2>
-                    <button id="close-framework-select-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
-                    </button>
+        <!-- Enhanced Framework Selection Modal -->
+        <div id="framework-select-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[70] hidden flex items-center justify-center p-4">
+            <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-lg border border-white/20 dark:border-slate-800/50 overflow-hidden">
+                <div class="bg-gradient-to-r from-purple-500/10 to-blue-500/10 p-6 border-b border-slate-200/50 dark:border-slate-800/50">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-gradient-to-r from-purple-500 to-blue-500 p-2.5 rounded-xl">
+                                <i data-lucide="settings" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <h2 class="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-200 bg-clip-text text-transparent">Choose Framework</h2>
+                        </div>
+                        <button id="close-framework-select-modal-btn" class="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                        </button>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-300 mt-2">Select the writing style for your viral script</p>
                 </div>
                 <div id="framework-options-container" class="p-6 max-h-[60vh] overflow-y-auto">
                     <!-- Framework options will be loaded here by news.js -->
@@ -224,20 +351,26 @@
             </div>
         </div>
 
-        <!-- Graceful Error Modal -->
-        <div id="error-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center p-4">
-            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md text-center p-6">
+        <!-- Enhanced Error Modal -->
+        <div id="error-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[80] hidden flex items-center justify-center p-4">
+            <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md text-center p-8 border border-white/20 dark:border-slate-800/50">
                 <div id="general-error-content">
-                    <i data-lucide="alert-triangle" class="w-16 h-16 text-red-500 mx-auto"></i>
-                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Something Went Wrong</h2>
-                    <p class="mt-2 text-slate-500 dark:text-slate-400">Please check the console for more details (F12 &gt; Console).</p>
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-r from-red-500/10 to-orange-500/10 border-2 border-red-200 dark:border-red-800/50 mb-6">
+                        <i data-lucide="alert-triangle" class="h-8 w-8 text-red-500"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-3">Something Went Wrong</h2>
+                    <p class="text-slate-600 dark:text-slate-300 mb-6">Please check the console for more details (F12 > Console).</p>
                 </div>
                 <div id="model-busy-content" class="hidden">
-                    <i data-lucide="bot" class="w-16 h-16 text-yellow-500 mx-auto"></i>
-                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mt-4">Oops! Model Is Busy</h2>
-                    <p class="mt-2 text-slate-500 dark:text-slate-400">This is not your fault. The AI is currently overloaded. Please try again in a few seconds.</p>
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border-2 border-yellow-200 dark:border-yellow-800/50 mb-6">
+                        <i data-lucide="bot" class="h-8 w-8 text-yellow-500"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-3">AI is Busy</h2>
+                    <p class="text-slate-600 dark:text-slate-300 mb-6">The AI model is currently overloaded. Please try again in a few moments.</p>
                 </div>
-                <button id="close-error-modal-btn" class="mt-6 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg font-semibold">Close</button>
+                <button id="close-error-modal-btn" class="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-200 hover:scale-105">
+                    Got it
+                </button>
             </div>
         </div>
 

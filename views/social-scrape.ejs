@@ -2,56 +2,220 @@
     <%- include('partials/header') %>
 
         <main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
-            <div class="max-w-4xl mx-auto">
-                <div class="text-center mb-10">
-                    <h1 class="text-3xl md:text-4xl font-bold mb-2 text-slate-800 dark:text-white">Social Media Scrape
-                    </h1>
-                    <p class="text-lg text-slate-500 dark:text-slate-400">Explore trending posts and insights from top
-                        social platforms.</p>
+            <div class="max-w-6xl mx-auto">
+                <!-- Enhanced Hero Section -->
+                <div class="relative bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-blue-500/10 dark:from-purple-400/10 dark:via-pink-400/5 dark:to-blue-400/10 rounded-3xl p-8 lg:p-12 mb-8 overflow-hidden border border-purple-200/50 dark:border-purple-700/30">
+                    <!-- Background decoration -->
+                    <div class="absolute top-4 right-4 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl"></div>
+                    <div class="absolute bottom-4 left-4 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl"></div>
+                    <div class="absolute top-1/2 left-1/2 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+                    
+                    <div class="relative z-10 text-center">
+                        <div class="flex items-center justify-center gap-4 mb-6">
+                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 p-3 rounded-2xl shadow-lg">
+                                <i data-lucide="share-2" class="w-8 h-8 text-white"></i>
+                            </div>
+                            <h1 class="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 dark:from-purple-400 dark:via-pink-400 dark:to-blue-400 bg-clip-text text-transparent">
+                                Social Media Intelligence
+                            </h1>
+                        </div>
+                    </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Enhanced Social Media Platforms Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <!-- Instagram Scrape Card -->
                     <a href="/instagram-hashtags" class="group">
-                        <div class="bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow flex flex-col items-start transition-shadow hover:shadow-lg">
-                            <div class="flex items-center gap-3 mb-2">
-                                <i data-lucide="instagram" class="w-8 h-8 text-pink-400"></i>
-                                <span class="font-bold text-slate-800 dark:text-white">Instagram Scrape</span>
+                        <div class="relative bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl border border-white/20 dark:border-slate-800/50 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:scale-105">
+                            <!-- Gradient background -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-pink-500/5 via-purple-500/5 to-orange-500/5"></div>
+                            
+                            <div class="relative z-10 p-8">
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div class="bg-gradient-to-r from-pink-500 to-purple-600 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                                        <i data-lucide="instagram" class="w-8 h-8 text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-slate-800 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">Instagram Intelligence</h3>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">Hashtag & Content Analysis</p>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                                    Discover viral posts, trending hashtags, and content strategies from Instagram's most successful creators.
+                                </p>
+                                
+                                <!-- Features -->
+                                <div class="space-y-2 mb-6">
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="hash" class="w-4 h-4 text-pink-500"></i>
+                                        <span>Trending hashtags analysis</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="trending-up" class="w-4 h-4 text-purple-500"></i>
+                                        <span>Viral content discovery</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="target" class="w-4 h-4 text-orange-500"></i>
+                                        <span>Engagement optimization</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <span class="text-pink-600 dark:text-pink-400 font-semibold group-hover:underline">Start Scraping →</span>
+                                    <div class="flex items-center gap-1">
+                                        <div class="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+                                        <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                                        <div class="w-2 h-2 bg-orange-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-slate-500 dark:text-slate-400 mb-2">Discover viral posts, hashtags, and insights from Instagram.</p>
-                            <span class="text-primary-600 dark:text-primary-300 font-medium hover:underline">Scrape Instagram</span>
                         </div>
                     </a>
+
                     <!-- Instagram Competitor Scrape Card -->
                     <a href="/instagram-competitor" class="group">
-                        <div class="bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow flex flex-col items-start transition-shadow hover:shadow-lg">
-                            <div class="flex items-center gap-3 mb-2">
-                                <i data-lucide="users" class="w-8 h-8 text-pink-500"></i>
-                                <span class="font-bold text-slate-800 dark:text-white">Instagram Competitor Scrape</span>
+                        <div class="relative bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl border border-white/20 dark:border-slate-800/50 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:scale-105">
+                            <!-- Gradient background -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5"></div>
+                            
+                            <div class="relative z-10 p-8">
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                                        <i data-lucide="users" class="w-8 h-8 text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-slate-800 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Competitor Analysis</h3>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">Instagram Strategy Insights</p>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                                    Analyze competitor accounts, uncover their top-performing content strategies, and stay ahead of the competition.
+                                </p>
+                                
+                                <!-- Features -->
+                                <div class="space-y-2 mb-6">
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="eye" class="w-4 h-4 text-indigo-500"></i>
+                                        <span>Competitor monitoring</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-purple-500"></i>
+                                        <span>Performance metrics</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="lightbulb" class="w-4 h-4 text-pink-500"></i>
+                                        <span>Strategy insights</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <span class="text-indigo-600 dark:text-indigo-400 font-semibold group-hover:underline">Analyze Competitors →</span>
+                                    <div class="flex items-center gap-1">
+                                        <div class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                                        <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                                        <div class="w-2 h-2 bg-pink-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-slate-500 dark:text-slate-400 mb-2">Analyze competitor accounts and their top-performing content on Instagram.</p>
-                            <span class="text-primary-600 dark:text-primary-300 font-medium hover:underline">Scrape Competitors</span>
                         </div>
                     </a>
+
                     <!-- TikTok Scrape Card -->
                     <a href="/tiktok-hashtags" class="group">
-                        <div class="bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow flex flex-col items-start transition-shadow hover:shadow-lg">
-                            <div class="flex items-center gap-3 mb-2">
-                                <i data-lucide="film" class="w-8 h-8 text-green-400"></i>
-                                <span class="font-bold text-slate-800 dark:text-white">TikTok Scrape</span>
+                        <div class="relative bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl border border-white/20 dark:border-slate-800/50 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:scale-105">
+                            <!-- Gradient background -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-green-500/5 via-teal-500/5 to-blue-500/5"></div>
+                            
+                            <div class="relative z-10 p-8">
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div class="bg-gradient-to-r from-green-500 to-teal-600 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                                        <i data-lucide="video" class="w-8 h-8 text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-slate-800 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">TikTok Trends</h3>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">Viral Video Discovery</p>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                                    Find trending TikTok videos, popular hashtags, and viral content formats to inspire your next big hit.
+                                </p>
+                                
+                                <!-- Features -->
+                                <div class="space-y-2 mb-6">
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="play" class="w-4 h-4 text-green-500"></i>
+                                        <span>Viral video analysis</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="music" class="w-4 h-4 text-teal-500"></i>
+                                        <span>Trending sounds & effects</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="zap" class="w-4 h-4 text-blue-500"></i>
+                                        <span>Format optimization</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <span class="text-green-600 dark:text-green-400 font-semibold group-hover:underline">Explore TikTok →</span>
+                                    <div class="flex items-center gap-1">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                        <div class="w-2 h-2 bg-teal-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-slate-500 dark:text-slate-400 mb-2">Find trending TikTok videos and hashtags for inspiration.</p>
-                            <span class="text-primary-600 dark:text-primary-300 font-medium hover:underline">Scrape TikTok</span>
                         </div>
                     </a>
+
                     <!-- YouTube Scrape Card -->
                     <a href="/youtube-hashtags" class="group">
-                        <div class="bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow flex flex-col items-start transition-shadow hover:shadow-lg">
-                            <div class="flex items-center gap-3 mb-2">
-                                <i data-lucide="youtube" class="w-8 h-8 text-red-500"></i>
-                                <span class="font-bold text-slate-800 dark:text-white">YouTube Scrape</span>
+                        <div class="relative bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl border border-white/20 dark:border-slate-800/50 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:scale-105">
+                            <!-- Gradient background -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-red-500/5 via-orange-500/5 to-yellow-500/5"></div>
+                            
+                            <div class="relative z-10 p-8">
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div class="bg-gradient-to-r from-red-500 to-orange-600 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                                        <i data-lucide="youtube" class="w-8 h-8 text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-slate-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">YouTube Analytics</h3>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">Creator & Content Insights</p>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                                    Discover trending YouTube videos, successful creators, and optimization strategies for maximum reach.
+                                </p>
+                                
+                                <!-- Features -->
+                                <div class="space-y-2 mb-6">
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="search" class="w-4 h-4 text-red-500"></i>
+                                        <span>SEO optimization</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="users" class="w-4 h-4 text-orange-500"></i>
+                                        <span>Top creator analysis</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <i data-lucide="trending-up" class="w-4 h-4 text-yellow-500"></i>
+                                        <span>Growth strategies</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <span class="text-red-600 dark:text-red-400 font-semibold group-hover:underline">Dive into YouTube →</span>
+                                    <div class="flex items-center gap-1">
+                                        <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                        <div class="w-2 h-2 bg-orange-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                                        <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-slate-500 dark:text-slate-400 mb-2">Find trending videos and creators on YouTube.</p>
-                            <span class="text-primary-600 dark:text-primary-300 font-medium hover:underline">Scrape YouTube</span>
                         </div>
                     </a>
                 </div>

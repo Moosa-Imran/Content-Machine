@@ -87,7 +87,45 @@ router.post('/logout', (req, res) => {
 });
 
 // --- PROTECTED PAGE RENDERING ROUTES ---
-router.get('/', requireAuth, (req, res) => res.render('index', { title: 'Dashboard', user: req.session.user }));
+router.get('/', requireAuth, async (req, res) => {
+    try {
+        // Get real stats from database
+        const [businessCasesCount, igPostsCount, tiktokPostsCount, youtubePostsCount, usersCount] = await Promise.all([
+            db.collection('Business_Cases').countDocuments(),
+            db.collection('ig_posts').countDocuments(),
+            db.collection('tiktok_posts').countDocuments(),
+            db.collection('youtube_posts').countDocuments(),
+            db.collection('Users').countDocuments({ role: 'admin' })
+        ]);
+
+        const totalContentFetched = igPostsCount + tiktokPostsCount + youtubePostsCount;
+
+        const stats = {
+            scriptsGenerated: businessCasesCount,
+            contentFetched: totalContentFetched,
+            activeUsers: usersCount
+        };
+
+        res.render('index', { 
+            title: 'Dashboard', 
+            user: req.session.user, 
+            stats: stats 
+        });
+    } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        // Fallback stats if database error occurs
+        const stats = {
+            scriptsGenerated: 0,
+            contentFetched: 0,
+            activeUsers: 0
+        };
+        res.render('index', { 
+            title: 'Dashboard', 
+            user: req.session.user, 
+            stats: stats 
+        });
+    }
+});
 router.get('/breakdown', requireAuth, (req, res) => res.render('breakdown', { title: 'Tactic Breakdowns', user: req.session.user }));
 router.get('/sheet', requireAuth, (req, res) => res.render('sheet', { title: 'Analyze Sheet', user: req.session.user }));
 router.get('/news', requireAuth, (req, res) => res.render('news', { title: 'Industry News', user: req.session.user }));

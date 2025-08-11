@@ -76,6 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmCallback = null;
     };
 
+    // Redirect to social scrape page
+    const redirectToSocialScrape = () => {
+        window.location.href = '/social-scrape';
+    };
+
+    // Make function global so it can be called from HTML
+    window.redirectToSocialScrape = redirectToSocialScrape;
+
     const apiCall = async (endpoint, options = {}) => {
         try {
             const response = await fetch(endpoint, options);
@@ -170,10 +178,15 @@ document.addEventListener('DOMContentLoaded', () => {
         ).join('');
 
         dropdownContainer.innerHTML = `
-            <label for="framework-selector" class="text-sm font-medium text-slate-600 dark:text-slate-400">Framework:</label>
-            <select id="framework-selector" class="ml-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md p-2 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
-                ${optionsHTML}
-            </select>
+            <div class="flex items-center gap-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm px-4 py-2.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="settings" class="w-4 h-4 text-purple-500"></i>
+                    <label for="framework-selector" class="text-sm font-semibold text-slate-700 dark:text-slate-300">Framework:</label>
+                </div>
+                <select id="framework-selector" class="bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-0 focus:outline-none cursor-pointer">
+                    ${optionsHTML}
+                </select>
+            </div>
         `;
         document.getElementById('framework-selector').addEventListener('change', handleFrameworkChange);
     };
@@ -226,22 +239,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!sec || !sec.type) return '';
         const options = story[sec.type] || [];
         const colors = colorMap[sec.color] || colorMap.blue;
-        return `<div class="section-block rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-                    <div class="flex items-center justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800" data-color="${sec.color}">
-                        <div class="flex items-center gap-2.5">
-                            <i data-lucide="${sec.icon}" class="w-5 h-5 ${colors.icon}"></i>
-                            <span class="font-semibold text-sm text-slate-700 dark:text-slate-200">${sec.title}</span>
+        return `<div class="section-block rounded-2xl border-2 border-slate-200/50 dark:border-slate-800/50 overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm hover:border-${sec.color}-200 dark:hover:border-${sec.color}-800/50 transition-all duration-300 hover:shadow-lg">
+                    <div class="flex items-center justify-between gap-3 p-4 bg-gradient-to-r from-slate-50/80 to-slate-100/80 dark:from-slate-800/80 dark:to-slate-900/80 border-b border-slate-200/50 dark:border-slate-800/50" data-color="${sec.color}">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-gradient-to-r from-${sec.color}-500 to-${sec.color}-600 p-2.5 rounded-xl shadow-lg">
+                                <i data-lucide="${sec.icon}" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <div>
+                                <span class="font-bold text-slate-800 dark:text-white text-lg">${sec.title}</span>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Choose your preferred option</p>
+                            </div>
                         </div>
-                        <button class="regenerate-section-btn p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700" data-section-type="${sec.type}" title="Regenerate">
-                            <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-500"></i>
+                        <button class="regenerate-section-btn group p-2.5 rounded-xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200" data-section-type="${sec.type}" title="Regenerate options">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-500 group-hover:text-${sec.color}-600 group-hover:rotate-180 transition-all duration-300"></i>
                         </button>
                     </div>
-                    <div class="p-3 space-y-2" data-section-type="${sec.type}">
-                        ${options.map((option, index) => `<div class="p-3 rounded-md border cursor-pointer transition-all" onclick="selectOption(this, '${sec.type}')">
-                                <label class="flex items-start text-sm cursor-pointer">
+                    <div class="p-4 space-y-3" data-section-type="${sec.type}">
+                        ${options.map((option, index) => `<div class="option-card p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-md" onclick="selectOption(this, '${sec.type}')">
+                                <label class="flex items-start cursor-pointer">
                                     <input type="radio" name="${story.id}-${sec.type}" data-index="${index}" ${index === 0 ? 'checked' : ''} class="sr-only" />
-                                    <div class="check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all"></div>
-                                    <span class="flex-grow text-slate-600 dark:text-slate-300">${(option || '').replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-primary-600 dark:text-primary-400">$1</strong>')}</span>
+                                    <div class="check-icon-container flex-shrink-0 w-6 h-6 rounded-full border-2 mt-0.5 mr-4 flex items-center justify-center transition-all duration-200"></div>
+                                    <div class="flex-grow">
+                                        <span class="text-slate-700 dark:text-slate-300 leading-relaxed">${(option || '').replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')}</span>
+                                    </div>
                                 </label>
                             </div>`).join('')}
                     </div>
@@ -251,24 +271,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const generateCardHeaderHTML = (story) => {
         let titleHTML = '';
         if (story.type === 'news_commentary') {
-            titleHTML = `<h3 class="text-2xl font-bold text-slate-800 dark:text-white">News Commentary: <span class="text-primary-600 dark:text-primary-400">${story.company}</span></h3>`;
+            titleHTML = `<h3 class="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-200 bg-clip-text text-transparent">News Commentary: <span class="bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-400 bg-clip-text text-transparent">${story.company}</span></h3>`;
         } else {
-            titleHTML = `<h3 class="text-2xl font-bold text-slate-800 dark:text-white">Principle: <span class="text-primary-600 dark:text-primary-400">${story.psychology}</span></h3>`;
+            titleHTML = `<h3 class="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-200 bg-clip-text text-transparent">Psychology: <span class="bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent">${story.psychology}</span></h3>`;
         }
 
-        return `<div class="flex justify-between items-start gap-4 mb-4">
-                    <div class="flex-grow">
-                        ${titleHTML}
-                        <div class="flex flex-wrap items-center gap-2 mt-2">
-                           <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.company}</span>
-                           <span class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full text-xs font-medium">${story.industry}</span>
+        return `<div class="relative mb-8">
+                    <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-blue-500/5 rounded-2xl"></div>
+                    <div class="relative flex flex-col lg:flex-row justify-between items-start gap-6 p-6">
+                        <div class="flex-grow">
+                            ${titleHTML}
+                            <div class="flex flex-wrap items-center gap-3 mt-4">
+                               <span class="inline-flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                                   <i data-lucide="building" class="w-4 h-4 text-emerald-500"></i>
+                                   ${story.company}
+                               </span>
+                               <span class="inline-flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                                   <i data-lucide="tag" class="w-4 h-4 text-blue-500"></i>
+                                   ${story.industry}
+                               </span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="framework-dropdown-container flex-shrink-0"></div>
-                        <button class="delete-case-btn p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-md" data-business-case-id="${story._id}" title="Delete this case">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
+                        <div class="flex items-center gap-3">
+                            <div class="framework-dropdown-container"></div>
+                            <button class="delete-case-btn group p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 border border-transparent hover:border-red-200 dark:hover:border-red-800" data-business-case-id="${story._id}" title="Delete this case">
+                                <i data-lucide="trash-2" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>`;
     };
@@ -281,11 +310,25 @@ document.addEventListener('DOMContentLoaded', () => {
             { type: 'psychologies', title: 'Psychology', icon: 'brain-circuit', color: 'purple' },
             { type: 'ctas', title: 'Call to Action', icon: 'megaphone', color: 'orange' }
         ];
-        return `<div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 card-glow max-w-4xl mx-auto" data-story-id="${story.id}" data-business-case-id="${story._id}">
-                ${generateCardHeaderHTML(story)}
-                <div class="space-y-4">${sections.map(sec => generateSectionHTML(story, sec)).join('')}</div>
-                <div class="flex justify-center mt-8"><button class="build-script-btn flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg"><i data-lucide="file-text" class="w-5 h-5"></i> Build Script</button></div>
-                <div class="script-editor-container mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 hidden"></div>
+        return `<div class="relative bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl p-8 border border-white/20 dark:border-slate-800/50 shadow-2xl max-w-6xl mx-auto overflow-hidden" data-story-id="${story.id}" data-business-case-id="${story._id}">
+                <!-- Background decorations -->
+                <div class="absolute top-4 right-4 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl"></div>
+                <div class="absolute bottom-4 left-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl"></div>
+                
+                <div class="relative z-10">
+                    ${generateCardHeaderHTML(story)}
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        ${sections.map(sec => generateSectionHTML(story, sec)).join('')}
+                    </div>
+                    <div class="flex justify-center pt-6 border-t border-slate-200/50 dark:border-slate-800/50">
+                        <button class="build-script-btn group flex items-center gap-3 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                            <i data-lucide="file-text" class="w-6 h-6 group-hover:rotate-12 transition-transform"></i>
+                            <span>Build My Script</span>
+                            <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+                    </div>
+                    <div class="script-editor-container mt-8 pt-6 border-t border-slate-200/50 dark:border-slate-800/50 hidden"></div>
+                </div>
             </div>`;
     };
 
@@ -297,11 +340,25 @@ document.addEventListener('DOMContentLoaded', () => {
             { type: 'patterns', title: 'Pattern', icon: 'git-compare-arrows', color: 'teal' },
             { type: 'ctas', title: 'Call to Action', icon: 'megaphone', color: 'orange' }
         ];
-        return `<div class="bg-white dark:bg-slate-900/50 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 card-glow max-w-4xl mx-auto" data-story-id="${story.id}" data-business-case-id="${story._id}">
-                ${generateCardHeaderHTML(story)}
-                <div class="space-y-4">${sections.map(sec => generateSectionHTML(story, sec)).join('')}</div>
-                <div class="flex justify-center mt-8"><button class="build-script-btn flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg"><i data-lucide="file-text" class="w-5 h-5"></i> Build Script</button></div>
-                <div class="script-editor-container mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 hidden"></div>
+        return `<div class="relative bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl p-8 border border-white/20 dark:border-slate-800/50 shadow-2xl max-w-6xl mx-auto overflow-hidden" data-story-id="${story.id}" data-business-case-id="${story._id}">
+                <!-- Background decorations -->
+                <div class="absolute top-4 right-4 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl"></div>
+                <div class="absolute bottom-4 left-4 w-24 h-24 bg-orange-500/5 rounded-full blur-2xl"></div>
+                
+                <div class="relative z-10">
+                    ${generateCardHeaderHTML(story)}
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        ${sections.map(sec => generateSectionHTML(story, sec)).join('')}
+                    </div>
+                    <div class="flex justify-center pt-6 border-t border-slate-200/50 dark:border-slate-800/50">
+                        <button class="build-script-btn group flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                            <i data-lucide="file-text" class="w-6 h-6 group-hover:rotate-12 transition-transform"></i>
+                            <span>Build Commentary</span>
+                            <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+                    </div>
+                    <div class="script-editor-container mt-8 pt-6 border-t border-slate-200/50 dark:border-slate-800/50 hidden"></div>
+                </div>
             </div>`;
     };
 
@@ -309,17 +366,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const sectionContainer = element.closest(`[data-section-type="${type}"]`);
         const color = element.closest('.section-block').querySelector('[data-color]').dataset.color;
         const colors = colorMap[color] || colorMap.blue;
-        sectionContainer.querySelectorAll('.p-3').forEach(div => {
-            div.className = 'p-3 rounded-md border cursor-pointer transition-all border-slate-200 dark:border-slate-700';
-            const iconContainer = div.querySelector('.check-icon-container');
-            iconContainer.innerHTML = '';
-            iconContainer.className = 'check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all border-slate-400 dark:border-slate-500';
+        
+        // Reset all options in this section
+        sectionContainer.querySelectorAll('.option-card').forEach(div => {
+            div.className = 'option-card p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-md border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50';
+            const checkDiv = div.querySelector('.check-icon-container');
+            checkDiv.className = 'check-icon-container flex-shrink-0 w-6 h-6 rounded-full border-2 mt-0.5 mr-4 flex items-center justify-center transition-all duration-200 border-slate-300 dark:border-slate-600';
+            checkDiv.innerHTML = '';
         });
+        
+        // Activate selected option
         element.querySelector('input[type="radio"]').checked = true;
-        element.className = `p-3 rounded-md border-2 cursor-pointer transition-all ${colors.border} ${colors.bg}`;
+        element.className = `option-card p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-md border-${color}-300 dark:border-${color}-600 bg-gradient-to-r from-${color}-50/50 to-${color}-100/50 dark:from-${color}-900/20 dark:to-${color}-800/20 shadow-lg transform scale-[1.02]`;
+        
         const checkDiv = element.querySelector('.check-icon-container');
-        checkDiv.className = `check-icon-container flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 mr-3 flex items-center justify-center transition-all ${colors.checkBorder} ${colors.checkBg}`;
-        checkDiv.innerHTML = '<i data-lucide="check" class="w-3 h-3 text-white"></i>';
+        checkDiv.className = `check-icon-container flex-shrink-0 w-6 h-6 rounded-full border-2 mt-0.5 mr-4 flex items-center justify-center transition-all duration-200 border-${color}-400 dark:border-${color}-500 bg-gradient-to-r from-${color}-500 to-${color}-600 shadow-lg`;
+        checkDiv.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-white"></i>';
         lucide.createIcons();
     };
 
@@ -424,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="ml-auto text-right">
                                      <div class="text-xs text-slate-500 dark:text-slate-400">Confidence</div>
-                                     <div class="text-2xl font-bold text-slate-800 dark:text-white">${result.confidence_score}%</div>
+                                     <div class="text-lg font-bold text-slate-800 dark:text-white">${result.confidence_score}%</div>
                                 </div>
                             </div>
                         </div>
@@ -660,11 +722,22 @@ document.addEventListener('DOMContentLoaded', () => {
             paginationContainer.innerHTML = '';
             return;
         }
+        
         paginationContainer.innerHTML = `
-            <div class="flex items-center justify-between">
-                <button id="prev-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800" ${currentFeedIndex === 0 ? 'disabled' : ''}><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-                <span class="text-sm font-medium text-slate-500">Script ${currentFeedIndex + 1} of ${totalCases}</span>
-                <button id="next-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800" ${currentFeedIndex + 1 >= totalCases ? 'disabled' : ''}><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
+            <div class="inline-flex items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-2 border border-white/20 dark:border-slate-800/50 shadow-xl">
+                <button id="prev-btn" class="group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" ${currentFeedIndex === 0 ? 'disabled' : ''}>
+                    <i data-lucide="chevron-left" class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"></i>
+                    <span class="hidden sm:inline">Previous</span>
+                </button>
+                <div class="flex items-center px-4 py-2">
+                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 mx-2">
+                        Script <span class="text-emerald-600 dark:text-emerald-400">${currentFeedIndex + 1}</span> of <span class="text-blue-600 dark:text-blue-400">${totalCases}</span>
+                    </span>
+                </div>
+                <button id="next-btn" class="group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" ${currentFeedIndex + 1 >= totalCases ? 'disabled' : ''}>
+                    <span class="hidden sm:inline">Next</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 group-hover:translate-x-0.5 transition-transform"></i>
+                </button>
             </div>`;
         lucide.createIcons();
     };

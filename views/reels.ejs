@@ -2,36 +2,88 @@
 
 <%- include('partials/header') %>
 
-<main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
-    <div class="max-w-5xl mx-auto">
-        <!-- Page Header -->
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-            <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-green-500 to-blue-500 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent">Viral Scripts</h1>
-                <p class="mt-1 text-slate-500 dark:text-slate-400">Generate fact-based scripts from verified case studies or the latest news.</p>
+<main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8 bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 dark:from-slate-950 dark:via-indigo-950/30 dark:to-purple-950/30 min-h-screen">
+    <div class="max-w-6xl mx-auto">
+        <!-- Enhanced Page Header -->
+        <div class="relative mb-12">
+            <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 rounded-3xl blur-3xl"></div>
+            <div class="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl p-8 border border-white/20 dark:border-slate-800/50 shadow-2xl">
+                <div class="flex flex-col lg:flex-row justify-between items-center gap-6">
+                    <div class="text-center lg:text-left">
+                        <div class="flex items-center justify-center lg:justify-start gap-3 mb-3">
+                            <div class="bg-gradient-to-r from-emerald-500 to-blue-500 p-2.5 rounded-xl shadow-lg">
+                                <i data-lucide="zap" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <h1 class="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 dark:from-emerald-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                                Viral Scripts
+                            </h1>
+                        </div>
+                        <p class="text-base text-slate-600 dark:text-slate-300 max-w-2xl">
+                            Generate psychology-driven scripts from verified case studies and trending news. Each script is crafted using proven conversion tactics.
+                        </p>
+                        <div class="flex flex-wrap justify-center lg:justify-start gap-3 mt-4">
+                            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                <i data-lucide="brain" class="w-3 h-3 mr-1.5"></i>
+                                Psychology-Based
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                <i data-lucide="database" class="w-3 h-3 mr-1.5"></i>
+                                Verified Data
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                <i data-lucide="trending-up" class="w-3 h-3 mr-1.5"></i>
+                                High Converting
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <a href="/" class="group flex items-center gap-2 px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-200 bg-white/60 dark:bg-slate-800/60 rounded-xl backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 hover:border-emerald-200 dark:hover:border-emerald-800">
+                            <i data-lucide="arrow-left" class="w-4 h-4 group-hover:-translate-x-1 transition-transform"></i>
+                            Dashboard
+                        </a>
+                        <button id="find-new-scripts-btn" class="group flex items-center gap-3 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105" data-icon="sparkles" data-original-text="Create New Script">
+                            <span class="btn-icon">
+                                <i data-lucide="sparkles" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                            </span>
+                            <span class="btn-text font-semibold">Create New Script</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="flex items-center gap-4">
-                <a href="/" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                    Back to Dashboard
-                </a>
-                <button id="find-new-scripts-btn" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed" data-icon="search" data-original-text="Find New Scripts">
-                    <span class="btn-icon"><i data-lucide="search" class="w-4 h-4"></i></span>
-                    <span class="btn-text">Find New Scripts</span>
-                </button>
-            </div>
+        </div>
+
+        <!-- Enhanced Navigation & Controls -->
+        <div class="mb-8">
+            <div id="pagination-container" class="flex justify-center"></div>
         </div>
 
         <!-- Main Content Area -->
         <div class="relative" id="reels-container">
-            <div id="pagination-container" class="w-full max-w-4xl mx-auto mb-6"></div>
             <div id="reel-card-container">
-                <!-- New Animated Loader -->
-                <div id="reels-skeleton-loader" class="max-w-4xl mx-auto">
-                    <div class="bg-white dark:bg-slate-900/50 rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 text-center">
-                         <i data-lucide="brain-circuit" class="w-16 h-16 text-primary-500 mx-auto animate-bounce"></i>
-                         <h2 class="text-2xl font-bold text-slate-800 dark:text-white mt-4">Crafting Your Viral Scripts...</h2>
-                         <p id="loading-text-animation" class="mt-2 text-slate-500 dark:text-slate-400 h-6 transition-opacity duration-500"></p>
+                <!-- Enhanced Loading State -->
+                <div id="reels-skeleton-loader" class="max-w-5xl mx-auto">
+                    <div class="relative bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl p-12 border border-white/20 dark:border-slate-800/50 shadow-2xl text-center overflow-hidden">
+                        <!-- Animated Background -->
+                        <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-blue-500/5 to-purple-500/5 animate-pulse"></div>
+                        <div class="absolute top-4 right-4 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
+                        <div class="absolute bottom-4 left-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl animate-pulse"></div>
+                        
+                        <div class="relative z-10">
+                            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-3xl mb-6 shadow-xl animate-bounce">
+                                <i data-lucide="brain-circuit" class="w-10 h-10 text-white"></i>
+                            </div>
+                            <h2 class="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-200 bg-clip-text text-transparent mb-4">
+                                Crafting Your Viral Script...
+                            </h2>
+                            <div class="flex items-center justify-center gap-2 mb-6">
+                                <div class="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+                                <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                            </div>
+                            <p id="loading-text-animation" class="text-lg text-slate-600 dark:text-slate-300 max-w-md mx-auto">
+                                Analyzing psychological triggers and verified case studies...
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -44,73 +96,124 @@
     </div>
 </main>
 
-<!-- Create From Modal -->
-<div id="create-from-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md">
-        <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Create New Content</h2>
-            <button id="close-create-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
-            </button>
+<!-- Enhanced Create From Modal -->
+<div id="create-from-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-lg border border-white/20 dark:border-slate-800/50 overflow-hidden">
+        <div class="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 p-6 border-b border-slate-200/50 dark:border-slate-800/50">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-r from-emerald-500 to-blue-500 p-2.5 rounded-xl">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <h2 class="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-200 bg-clip-text text-transparent">Create New Script</h2>
+                </div>
+                <button id="close-create-modal-btn" class="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                </button>
+            </div>
+            <p class="text-slate-600 dark:text-slate-300 mt-2">Choose your content source to generate a viral script</p>
         </div>
         <div class="p-6 space-y-4">
-            <button id="create-from-news-btn" class="w-full flex items-center text-left gap-4 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="newspaper" class="w-8 h-8 text-primary-500"></i>
-                <div>
-                    <h3 class="font-semibold text-slate-800 dark:text-white">From Industry News</h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Scan the latest headlines for viral story ideas.</p>
+            <button id="create-from-news-btn" class="group w-full flex items-center gap-4 p-6 rounded-2xl hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 dark:hover:from-amber-900/20 dark:hover:to-orange-900/20 transition-all duration-300 border-2 border-transparent hover:border-amber-200 dark:hover:border-amber-800">
+                <div class="bg-gradient-to-r from-amber-500 to-orange-500 p-3 rounded-2xl group-hover:scale-110 transition-transform shadow-lg">
+                    <i data-lucide="newspaper" class="w-8 h-8 text-white"></i>
                 </div>
-            </button>
-            <button class="w-full flex items-center text-left gap-4 p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-50 cursor-not-allowed" disabled title="Coming Soon!">
-                <i data-lucide="at-sign" class="w-8 h-8 text-slate-400"></i>
-                <div>
-                    <h3 class="font-semibold text-slate-500 dark:text-slate-400">From Social Media Content</h3>
-                    <p class="text-sm text-slate-400 dark:text-slate-500">Analyze a post or video to create a script. (Coming Soon)</p>
+                <div class="text-left flex-1">
+                    <h3 class="font-bold text-base text-slate-800 dark:text-white mb-1">From Industry News</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300">Scan trending headlines and create viral content from breaking news stories.</p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                            <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i>
+                            Trending
+                        </span>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                            <i data-lucide="zap" class="w-3 h-3 mr-1"></i>
+                            Fast
+                        </span>
+                    </div>
                 </div>
+                <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition-all"></i>
             </button>
-        </div>
-    </div>
-</div>
-
-<!-- Custom Confirmation Modal -->
-<div id="confirm-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md">
-        <div class="p-6 text-center">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-500/20">
-                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>
+            
+            <div class="relative">
+                <button onclick="redirectToSocialScrape()" class="group w-full flex items-center gap-4 p-6 rounded-2xl hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all duration-300 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800">
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 p-3 rounded-2xl group-hover:scale-110 transition-transform shadow-lg">
+                        <i data-lucide="at-sign" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <div class="text-left flex-1">
+                        <h3 class="font-bold text-base text-slate-800 dark:text-white mb-1">From Social Media</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-300">Analyze viral posts and videos to create similar high-performing content.</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                <i data-lucide="search" class="w-3 h-3 mr-1"></i>
+                                Discover
+                            </span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300">
+                                <i data-lucide="zap" class="w-3 h-3 mr-1"></i>
+                                Viral
+                            </span>
+                        </div>
+                    </div>
+                    <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all"></i>
+                </button>
             </div>
-            <h3 class="mt-5 text-lg font-semibold text-slate-900 dark:text-white" id="confirm-modal-title">Are you sure?</h3>
-            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400" id="confirm-modal-message">This action cannot be undone.</p>
-        </div>
-        <div class="grid grid-cols-2 gap-4 px-6 pb-6">
-            <button id="confirm-cancel-btn" class="w-full rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 py-2.5 font-semibold text-slate-800 dark:text-white">
-                Cancel
-            </button>
-            <button id="confirm-action-btn" class="w-full rounded-lg bg-red-600 hover:bg-red-700 py-2.5 font-semibold text-white">
-                Confirm
-            </button>
         </div>
     </div>
 </div>
 
-<!-- Framework Update Loader Modal -->
-<div id="framework-update-loader" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
-    <div class="flex flex-col items-center gap-4 text-white">
-        <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-purple-500"></div>
-        <h2 class="text-2xl font-bold mt-4">Updating Framework...</h2>
-        <p class="text-slate-300">The AI is learning your new style.</p>
+<!-- Enhanced Confirmation Modal -->
+<div id="confirm-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[70] hidden flex items-center justify-center p-4">
+    <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md border border-white/20 dark:border-slate-800/50 overflow-hidden">
+        <div class="p-8 text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-r from-red-500/10 to-orange-500/10 border-2 border-red-200 dark:border-red-800/50 mb-6">
+                <i data-lucide="alert-triangle" class="h-8 w-8 text-red-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3" id="confirm-modal-title">Are you sure?</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-8" id="confirm-modal-message">This action cannot be undone.</p>
+        </div>
+        <div class="bg-slate-50/50 dark:bg-slate-800/50 p-6">
+            <div class="grid grid-cols-2 gap-4">
+                <button id="confirm-cancel-btn" class="px-6 py-3 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all duration-200 hover:scale-105">
+                    Cancel
+                </button>
+                <button id="confirm-action-btn" class="px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105">
+                    Confirm
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Graceful Error/Notification Modal -->
-<div id="notification-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md text-center p-6">
-        <div id="notification-icon-container" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20">
-             <i id="notification-icon" data-lucide="check-circle" class="h-6 w-6 text-green-600 dark:text-green-400"></i>
+<!-- Enhanced Framework Update Loader Modal -->
+<div id="framework-update-loader" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+    <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center border border-white/20">
+        <div class="relative mb-8">
+            <div class="w-20 h-20 border-4 border-dashed rounded-full animate-spin border-purple-400 mx-auto"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <i data-lucide="brain" class="w-8 h-8 text-purple-400 animate-pulse"></i>
+            </div>
         </div>
-        <h2 id="notification-title" class="text-xl font-bold text-slate-800 dark:text-white mt-4">Success</h2>
-        <p id="notification-message" class="mt-2 text-slate-500 dark:text-slate-400">Your action was successful.</p>
-        <button id="notification-ok-btn" class="mt-6 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg font-semibold">OK</button>
+        <h2 class="text-xl font-bold text-white mb-4">Evolving AI Framework...</h2>
+        <p class="text-slate-300 max-w-md mx-auto">The AI is learning and adapting to your new writing style preferences.</p>
+        <div class="flex justify-center gap-2 mt-6">
+            <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+            <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+            <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Notification Modal -->
+<div id="notification-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[80] hidden flex items-center justify-center p-4">
+    <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md text-center p-8 border border-white/20 dark:border-slate-800/50">
+        <div id="notification-icon-container" class="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-green-500/10 border-2 border-green-200 dark:border-green-800/50 mb-6">
+             <i id="notification-icon" data-lucide="check-circle" class="h-8 w-8 text-green-500"></i>
+        </div>
+        <h2 id="notification-title" class="text-xl font-bold text-slate-800 dark:text-white mb-3">Success</h2>
+        <p id="notification-message" class="text-slate-600 dark:text-slate-300 mb-8">Your action was successful.</p>
+        <button id="notification-ok-btn" class="w-full bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-200 hover:scale-105">
+            Got it!
+        </button>
     </div>
 </div>
 

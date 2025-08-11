@@ -1,63 +1,91 @@
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200">
 
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 md:hidden hidden"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 md:hidden hidden backdrop-blur-sm"></div>
 
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-900/70 backdrop-blur-lg border-r border-slate-200 dark:border-slate-800 transition-transform duration-300 ease-in-out z-40 md:translate-x-0 -translate-x-full">
+        <aside id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 transition-transform duration-300 ease-in-out z-40 md:translate-x-0 -translate-x-full shadow-2xl">
             <div class="flex items-center justify-between h-20 border-b border-slate-200 dark:border-slate-800 px-6">
-                <a href="/" class="flex items-center gap-3">
-                    <img src="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" alt="Logo" class="h-8 w-8">
-                    <h1 class="text-xl font-bold text-slate-800 dark:text-white">Content Machine</h1>
+                <a href="/" class="flex items-center gap-3 group">
+                    <img src="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" alt="Logo" class="h-8 w-8 group-hover:scale-110 transition-transform">
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">Content Machine</h1>
                 </a>
-                 <button id="sidebar-close-button" class="md:hidden text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">
-                    <i data-lucide="x" class="h-6 w-6"></i>
+                 <button id="sidebar-close-button" class="md:hidden text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x" class="h-5 w-5"></i>
                 </button>
             </div>
-            <nav class="p-4 space-y-2">
-                <a href="/" class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg">
-                    <i data-lucide="layout-dashboard" class="h-5 w-5 mr-3"></i>
+            <nav class="p-4 space-y-1">
+                <a href="/" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 group">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mr-3 group-hover:bg-indigo-100 group-hover:dark:bg-indigo-900/30 transition-colors">
+                        <i data-lucide="layout-dashboard" class="h-4 w-4 group-hover:text-indigo-600 group-hover:dark:text-indigo-400 transition-colors"></i>
+                    </div>
                     Dashboard
                 </a>
-                <a href="/reels" class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg">
-                    <i data-lucide="video" class="h-5 w-5 mr-3"></i>
+                <a href="/reels" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 group">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mr-3 group-hover:bg-emerald-100 group-hover:dark:bg-emerald-900/30 transition-colors">
+                        <i data-lucide="video" class="h-4 w-4 group-hover:text-emerald-600 group-hover:dark:text-emerald-400 transition-colors"></i>
+                    </div>
                     Viral Scripts
                 </a>
-                <a href="/breakdown" class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg">
-                    <i data-lucide="brain" class="h-5 w-5 mr-3"></i>
-                    Tactic Breakdowns
-                </a>
-                <a href="/sheet" class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg">
-                    <i data-lucide="sheet" class="h-5 w-5 mr-3"></i>
-                    Analyze Sheet
-                </a>
-                <a href="/news" class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg">
-                    <i data-lucide="newspaper" class="h-5 w-5 mr-3"></i>
+                <a href="/news" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 group">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mr-3 group-hover:bg-amber-100 group-hover:dark:bg-amber-900/30 transition-colors">
+                        <i data-lucide="newspaper" class="h-4 w-4 group-hover:text-amber-600 group-hover:dark:text-amber-400 transition-colors"></i>
+                    </div>
                     Industry News
                 </a>
-                <a href="/framework" class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg">
-                    <i data-lucide="file-text" class="h-5 w-5 mr-3"></i>
+                <a href="/social-scrape" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 group">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mr-3 group-hover:bg-rose-100 group-hover:dark:bg-rose-900/30 transition-colors">
+                        <i data-lucide="users" class="h-4 w-4 group-hover:text-rose-600 group-hover:dark:text-rose-400 transition-colors"></i>
+                    </div>
+                    Social Scraping
+                </a>
+                <a href="/saved-content" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 group">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mr-3 group-hover:bg-slate-200 group-hover:dark:bg-slate-700 transition-colors">
+                        <i data-lucide="bookmark" class="h-4 w-4 group-hover:text-slate-700 group-hover:dark:text-slate-300 transition-colors"></i>
+                    </div>
+                    Saved Content
+                </a>
+                <a href="/breakdown" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 group">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mr-3 group-hover:bg-blue-100 group-hover:dark:bg-blue-900/30 transition-colors">
+                        <i data-lucide="brain" class="h-4 w-4 group-hover:text-blue-600 group-hover:dark:text-blue-400 transition-colors"></i>
+                    </div>
+                    Tactic Breakdowns
+                </a>
+                <a href="/sheet" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 group">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mr-3 group-hover:bg-violet-100 group-hover:dark:bg-violet-900/30 transition-colors">
+                        <i data-lucide="sheet" class="h-4 w-4 group-hover:text-violet-600 group-hover:dark:text-violet-400 transition-colors"></i>
+                    </div>
+                    Analyze Sheet
+                </a>
+                <a href="/framework" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 group">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mr-3 group-hover:bg-cyan-100 group-hover:dark:bg-cyan-900/30 transition-colors">
+                        <i data-lucide="file-text" class="h-4 w-4 group-hover:text-cyan-600 group-hover:dark:text-cyan-400 transition-colors"></i>
+                    </div>
                     Framework
                 </a>
-                <a href="https://saved-stories.fctoz.com" class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg">
-                    <i data-lucide="book-open" class="h-5 w-5 mr-3"></i>
-                    Saved Stories
+                <div class="border-t border-slate-200 dark:border-slate-800 my-4"></div>
+                <a href="https://saved-stories.fctoz.com" target="_blank" rel="noopener" class="flex items-center px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-all duration-200 group">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg mr-3 group-hover:bg-teal-100 group-hover:dark:bg-teal-900/30 transition-colors">
+                        <i data-lucide="book-open" class="h-4 w-4 group-hover:text-teal-600 group-hover:dark:text-teal-400 transition-colors"></i>
+                    </div>
+                    <span class="flex-1">Saved Stories</span>
+                    <i data-lucide="external-link" class="h-3 w-3 text-slate-400"></i>
                 </a>
             </nav>
             <div class="absolute bottom-0 w-full p-4 border-t border-slate-200 dark:border-slate-800">
-                <div class="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+                <div class="flex items-center justify-between p-4 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800/50 dark:to-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
                     <div class="flex items-center">
-                        <div class="h-10 w-10 bg-primary-500 rounded-full flex items-center justify-center">
+                        <div class="h-10 w-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
                             <i data-lucide="user" class="h-5 w-5 text-white"></i>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm font-semibold"><%= typeof user !== 'undefined' && user ? user.username : 'Guest' %></p>
+                            <p class="text-sm font-semibold text-slate-900 dark:text-white"><%= typeof user !== 'undefined' && user ? user.username : 'Guest' %></p>
                             <p class="text-xs text-slate-500 dark:text-slate-400">Admin</p>
                         </div>
                     </div>
                     <% if (typeof user !== 'undefined' && user) { %>
                         <form action="/logout" method="POST" class="ml-2">
-                            <button type="submit" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Logout">
+                            <button type="submit" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Logout">
                                 <i data-lucide="log-out" class="h-4 w-4"></i>
                             </button>
                         </form>
@@ -69,29 +97,43 @@
         <!-- Main Content -->
         <div class="flex-1 md:ml-64 flex flex-col">
             <!-- Header/Navbar -->
-            <header class="fixed top-0 left-0 md:left-64 right-0 h-20 bg-white/70 dark:bg-slate-950/70 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800 z-30">
+            <header class="fixed top-0 left-0 md:left-64 right-0 h-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 z-30 shadow-sm">
                 <div class="flex items-center justify-between h-full px-6">
                     <!-- Mobile sidebar toggle -->
-                    <button id="mobile-menu-button" class="md:hidden text-slate-600 dark:text-slate-300">
+                    <button id="mobile-menu-button" class="md:hidden text-slate-600 dark:text-slate-300 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         <i data-lucide="menu" class="h-6 w-6"></i>
                     </button>
-                    <!-- Search bar (optional) -->
+                    
+                    <!-- Search bar (enhanced) -->
                     <div class="hidden md:flex items-center">
                         <div class="relative">
                             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400"></i>
-                            <input type="text" placeholder="Search tools..." class="w-64 pl-10 pr-4 py-2 text-sm bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-primary-500 focus:ring-0 rounded-lg">
+                            <input type="text" placeholder="Search tools and content..." class="w-80 pl-10 pr-4 py-3 text-sm bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-0 rounded-xl transition-all duration-200 hover:bg-white dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 focus:shadow-lg">
                         </div>
                     </div>
+                    
                     <!-- Right side icons -->
-                    <div class="flex items-center space-x-4">
-                        <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+                    <div class="flex items-center space-x-3">
+                        <!-- Quick Actions -->
+                        <div class="hidden lg:flex items-center space-x-2 mr-4">
+                            <a href="/reels" class="inline-flex items-center px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors">
+                                <i data-lucide="zap" class="w-3 h-3 mr-1"></i>
+                                Quick Script
+                            </a>
+                        </div>
+                        
+                        <button id="theme-toggle" class="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
                             <i data-lucide="sun" class="h-5 w-5 hidden dark:block"></i>
                             <i data-lucide="moon" class="h-5 w-5 block dark:hidden"></i>
                         </button>
-                        <button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 relative">
+                        <button class="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 relative transition-colors">
                             <i data-lucide="bell" class="h-5 w-5"></i>
-                            <span class="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full"></span>
+                            <span class="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
                         </button>
+                        <div class="w-px h-6 bg-slate-200 dark:bg-slate-800"></div>
+                        <div class="flex items-center">
+                            <img src="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" alt="User Avatar" class="h-8 w-8 rounded-lg">
+                        </div>
                     </div>
                 </div>
             </header>
@@ -102,21 +144,70 @@
                     const path = window.location.pathname;
                     const navLinks = document.querySelectorAll('aside nav a');
                     
-                    const activeClasses = ['bg-primary-50', 'dark:bg-primary-500/10', 'text-primary-600', 'dark:text-primary-300', 'active-nav-glow', 'border-l-2', 'border-primary-500', 'dark:border-primary-400'];
+                    const activeClasses = ['bg-gradient-to-r', 'from-indigo-50', 'to-purple-50', 'dark:from-indigo-900/20', 'dark:to-purple-900/20', 'text-indigo-700', 'dark:text-indigo-300', 'border-l-4', 'border-indigo-500', 'shadow-sm'];
                     const inactiveClasses = ['text-slate-600', 'dark:text-slate-400', 'hover:bg-slate-100', 'dark:hover:bg-slate-800/50'];
 
                     navLinks.forEach(link => {
-                        const linkPath = new URL(link.href).pathname;
+                        // Skip external links
+                        if (link.href.includes('saved-stories.fctoz.com')) return;
+                        
+                        const linkPath = new URL(link.href, window.location.origin).pathname;
                         
                         // Reset classes
-                        link.classList.remove(...activeClasses);
+                        link.classList.remove(...activeClasses, ...inactiveClasses);
                         link.classList.add(...inactiveClasses);
 
-                        // Apply active classes if path matches
-                        if (path === linkPath || (path.startsWith(linkPath) && linkPath !== '/')) {
-                           if(linkPath === '/' && path !== '/') return;
-                            link.classList.add(...activeClasses);
+                        // Special handling for root path
+                        if (linkPath === '/') {
+                            if (path === '/') {
+                                link.classList.remove(...inactiveClasses);
+                                link.classList.add(...activeClasses);
+                                // Update icon container for active state
+                                const iconContainer = link.querySelector('div');
+                                if (iconContainer) {
+                                    iconContainer.classList.remove('bg-slate-100', 'dark:bg-slate-800');
+                                    iconContainer.classList.add('bg-indigo-100', 'dark:bg-indigo-900/30');
+                                }
+                                const icon = link.querySelector('i');
+                                if (icon) {
+                                    icon.classList.add('text-indigo-600', 'dark:text-indigo-400');
+                                }
+                            }
+                            return;
+                        }
+
+                        // For other paths
+                        if (path.startsWith(linkPath) && linkPath !== '/') {
                             link.classList.remove(...inactiveClasses);
+                            link.classList.add(...activeClasses);
+                            // Update icon container for active state
+                            const iconContainer = link.querySelector('div');
+                            if (iconContainer) {
+                                iconContainer.classList.remove('bg-slate-100', 'dark:bg-slate-800');
+                                // Set appropriate color based on the link
+                                if (linkPath.includes('/reels')) {
+                                    iconContainer.classList.add('bg-emerald-100', 'dark:bg-emerald-900/30');
+                                    link.querySelector('i').classList.add('text-emerald-600', 'dark:text-emerald-400');
+                                } else if (linkPath.includes('/news')) {
+                                    iconContainer.classList.add('bg-amber-100', 'dark:bg-amber-900/30');
+                                    link.querySelector('i').classList.add('text-amber-600', 'dark:text-amber-400');
+                                } else if (linkPath.includes('/social-scrape')) {
+                                    iconContainer.classList.add('bg-rose-100', 'dark:bg-rose-900/30');
+                                    link.querySelector('i').classList.add('text-rose-600', 'dark:text-rose-400');
+                                } else if (linkPath.includes('/breakdown')) {
+                                    iconContainer.classList.add('bg-blue-100', 'dark:bg-blue-900/30');
+                                    link.querySelector('i').classList.add('text-blue-600', 'dark:text-blue-400');
+                                } else if (linkPath.includes('/sheet')) {
+                                    iconContainer.classList.add('bg-violet-100', 'dark:bg-violet-900/30');
+                                    link.querySelector('i').classList.add('text-violet-600', 'dark:text-violet-400');
+                                } else if (linkPath.includes('/framework')) {
+                                    iconContainer.classList.add('bg-cyan-100', 'dark:bg-cyan-900/30');
+                                    link.querySelector('i').classList.add('text-cyan-600', 'dark:text-cyan-400');
+                                } else {
+                                    iconContainer.classList.add('bg-indigo-100', 'dark:bg-indigo-900/30');
+                                    link.querySelector('i').classList.add('text-indigo-600', 'dark:text-indigo-400');
+                                }
+                            }
                         }
                     });
                 });

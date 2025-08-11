@@ -3,100 +3,273 @@
 <%- include('partials/header') %>
 
             <main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
-                <div class="max-w-5xl mx-auto">
-                     <div class="text-center mb-12">
-                        <h1 class="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-primary-600 via-blue-400 to-cyan-400 dark:from-primary-400 dark:via-sky-300 dark:to-teal-200 bg-clip-text text-transparent">
-                            Welcome to the Content Machine
-                        </h1>
-                        <p class="text-lg text-slate-500 dark:text-slate-400">Select a tool below to begin generating powerful, psychology-driven content.</p>
+                <div class="max-w-7xl mx-auto">
+                    <!-- Hero Section -->
+                    <div class="text-center mb-16">
+                        <div class="flex justify-center items-center mb-6">
+                            <img src="https://storage.googleapis.com/msgsndr/9YMghAA74uMWC9r1DCA8/media/684c4fc8fbe6f491c182c144.png" alt="Content Machine Logo" class="h-16 w-16 mr-4">
+                            <h1 class="text-5xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                                Content Machine
+                            </h1>
+                        </div>
+                        <p class="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto">
+                            Unlock the power of AI-driven content creation. Generate viral scripts, analyze trends, and create compelling content that converts.
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-4 mb-12">
+                            <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                <i data-lucide="zap" class="w-4 h-4 mr-2"></i>
+                                AI-Powered
+                            </span>
+                            <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                                <i data-lucide="trending-up" class="w-4 h-4 mr-2"></i>
+                                Data-Driven
+                            </span>
+                            <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300">
+                                <i data-lucide="target" class="w-4 h-4 mr-2"></i>
+                                Psychology-Based
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Main Tools Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
                         
-                        <!-- Card: Viral Scripts -->
-                        <a href="/reels" class="group bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow">
-                            <div class="flex items-start gap-4">
-                                <div class="bg-green-500/10 p-3 rounded-lg"><i data-lucide="video" class="w-8 h-8 text-green-500 dark:text-green-400"></i></div>
-                                <div class="flex-1">
-                                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-1">Viral Scripts</h2>
-                                    <p class="text-slate-500 dark:text-slate-400">Generate fact-based scripts from a database of verified case studies.</p>
+                        <!-- Featured Tool: Viral Scripts -->
+                        <div class="md:col-span-2 lg:col-span-1">
+                            <a href="/reels" class="group relative bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 p-8 rounded-2xl border border-emerald-200 dark:border-emerald-800 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 block overflow-hidden">
+                                <div class="absolute top-4 right-4 opacity-20 group-hover:opacity-30 transition-opacity">
+                                    <i data-lucide="video" class="w-24 h-24 text-emerald-500"></i>
                                 </div>
-                                <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform"></i>
+                                <div class="relative z-10">
+                                    <div class="flex items-center mb-4">
+                                        <div class="bg-emerald-500 p-3 rounded-xl mr-4 group-hover:scale-110 transition-transform">
+                                            <i data-lucide="video" class="w-6 h-6 text-white"></i>
+                                        </div>
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                                            Most Popular
+                                        </span>
+                                    </div>
+                                    <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-3">Viral Scripts</h3>
+                                    <p class="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">Generate fact-based scripts from a database of verified case studies and proven psychology triggers.</p>
+                                    <div class="flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group-hover:translate-x-2 transition-transform">
+                                        Start Creating
+                                        <i data-lucide="arrow-right" class="w-5 h-5 ml-2"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Social Media Scrape -->
+                        <a href="/social-scrape" class="group relative bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 p-6 rounded-2xl border border-rose-200 dark:border-rose-800 hover:shadow-2xl hover:shadow-rose-500/10 transition-all duration-500 overflow-hidden">
+                            <div class="absolute top-4 right-4 opacity-20 group-hover:opacity-30 transition-opacity">
+                                <i data-lucide="users" class="w-16 h-16 text-rose-500"></i>
                             </div>
-                        </a>
-                        <!-- Card: Saved Stories -->
-                        <a href="https://saved-stories.fctoz.com" target="_blank" rel="noopener" class="group bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow">
-                            <div class="flex items-start gap-4">
-                                <div class="bg-teal-500/10 p-3 rounded-lg"><i data-lucide="book-open" class="w-8 h-8 text-teal-500 dark:text-teal-400"></i></div>
-                                <div class="flex-1">
-                                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-1">Saved Stories</h2>
-                                    <p class="text-slate-500 dark:text-slate-400">Browse and manage your previously generated stories.</p>
+                            <div class="relative z-10">
+                                <div class="bg-rose-500 p-3 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform">
+                                    <i data-lucide="users" class="w-6 h-6 text-white"></i>
                                 </div>
-                                <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform"></i>
-                            </div>
-                        </a>
-                        <!-- Card: Social Media Scrape -->
-                        <a href="/social-scrape" class="group bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow">
-                            <div class="flex items-start gap-4">
-                                <div class="bg-pink-500/10 p-3 rounded-lg"><i data-lucide="globe" class="w-8 h-8 text-pink-500 dark:text-pink-400"></i></div>
-                                <div class="flex-1">
-                                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-1">Social Media Scrape</h2>
-                                    <p class="text-slate-500 dark:text-slate-400">Extract trending posts and insights from social platforms for content inspiration.</p>
+                                <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Social Scraping</h3>
+                                <p class="text-slate-600 dark:text-slate-300 mb-4 text-sm">Extract trending content and insights from social platforms.</p>
+                                <div class="flex items-center text-rose-600 dark:text-rose-400 font-medium group-hover:translate-x-1 transition-transform text-sm">
+                                    Explore
+                                    <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
                                 </div>
-                                <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform"></i>
-                            </div>
-                        </a>
-                        
-                        <!-- Card: Tactic Breakdowns -->
-                        <a href="/breakdown" class="group bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow">
-                            <div class="flex items-start gap-4">
-                                <div class="bg-blue-500/10 p-3 rounded-lg"><i data-lucide="brain" class="w-8 h-8 text-blue-500 dark:text-blue-400"></i></div>
-                                <div class="flex-1">
-                                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-1">Tactic Breakdowns</h2>
-                                    <p class="text-slate-500 dark:text-slate-400">Analyze any company to reveal their secret marketing psychology.</p>
-                                </div>
-                                <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform"></i>
                             </div>
                         </a>
 
-                        <!-- Card: Analyze Sheet -->
-                        <a href="/sheet" class="group bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow">
-                            <div class="flex items-start gap-4">
-                                <div class="bg-purple-500/10 p-3 rounded-lg"><i data-lucide="sheet" class="w-8 h-8 text-purple-500 dark:text-purple-400"></i></div>
-                                <div class="flex-1">
-                                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-1">Analyze Sheet</h2>
-                                    <p class="text-slate-500 dark:text-slate-400">Turn spreadsheet data into compelling content ideas instantly.</p>
+                        <!-- Tactic Breakdowns -->
+                        <a href="/breakdown" class="group relative bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-2xl border border-blue-200 dark:border-blue-800 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 overflow-hidden">
+                            <div class="absolute top-4 right-4 opacity-20 group-hover:opacity-30 transition-opacity">
+                                <i data-lucide="brain" class="w-16 h-16 text-blue-500"></i>
+                            </div>
+                            <div class="relative z-10">
+                                <div class="bg-blue-500 p-3 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform">
+                                    <i data-lucide="brain" class="w-6 h-6 text-white"></i>
                                 </div>
-                                <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform"></i>
+                                <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Tactic Breakdowns</h3>
+                                <p class="text-slate-600 dark:text-slate-300 mb-4 text-sm">Analyze companies to reveal their secret marketing psychology.</p>
+                                <div class="flex items-center text-blue-600 dark:text-blue-400 font-medium group-hover:translate-x-1 transition-transform text-sm">
+                                    Analyze
+                                    <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                                </div>
                             </div>
                         </a>
 
-
-                        <!-- Card: Saved Content -->
-                        <a href="/saved-content" class="group bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow">
-                            <div class="flex items-start gap-4">
-                                <div class="bg-blue-500/10 p-3 rounded-lg"><i data-lucide="bookmark" class="w-8 h-8 text-blue-500 dark:text-blue-400"></i></div>
-                                <div class="flex-1">
-                                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-1">Saved Content</h2>
-                                    <p class="text-slate-500 dark:text-slate-400">View and manage your saved stories, posts, and content from all platforms.</p>
+                        <!-- Industry News -->
+                        <a href="/news" class="group relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-6 rounded-2xl border border-amber-200 dark:border-amber-800 hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-500 overflow-hidden">
+                            <div class="absolute top-4 right-4 opacity-20 group-hover:opacity-30 transition-opacity">
+                                <i data-lucide="newspaper" class="w-16 h-16 text-amber-500"></i>
+                            </div>
+                            <div class="relative z-10">
+                                <div class="bg-amber-500 p-3 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform">
+                                    <i data-lucide="newspaper" class="w-6 h-6 text-white"></i>
                                 </div>
-                                <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform"></i>
+                                <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Industry News</h3>
+                                <p class="text-slate-600 dark:text-slate-300 mb-4 text-sm">Latest marketing trends turned into compelling stories.</p>
+                                <div class="flex items-center text-amber-600 dark:text-amber-400 font-medium group-hover:translate-x-1 transition-transform text-sm">
+                                    Discover
+                                    <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                                </div>
                             </div>
                         </a>
 
-                        <!-- Card: Industry News -->
-                        <a href="/news" class="group bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 card-glow">
-                            <div class="flex items-start gap-4">
-                                <div class="bg-yellow-500/10 p-3 rounded-lg"><i data-lucide="newspaper" class="w-8 h-8 text-yellow-500 dark:text-yellow-400"></i></div>
-                                <div class="flex-1">
-                                    <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-1">Industry News</h2>
-                                    <p class="text-slate-500 dark:text-slate-400">Find the latest marketing trends and turn them into stories.</p>
+                        <!-- Analyze Sheet -->
+                        <a href="/sheet" class="group relative bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 p-6 rounded-2xl border border-violet-200 dark:border-violet-800 hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500 overflow-hidden">
+                            <div class="absolute top-4 right-4 opacity-20 group-hover:opacity-30 transition-opacity">
+                                <i data-lucide="sheet" class="w-16 h-16 text-violet-500"></i>
+                            </div>
+                            <div class="relative z-10">
+                                <div class="bg-violet-500 p-3 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform">
+                                    <i data-lucide="sheet" class="w-6 h-6 text-white"></i>
                                 </div>
-                                <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform"></i>
+                                <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Analyze Sheet</h3>
+                                <p class="text-slate-600 dark:text-slate-300 mb-4 text-sm">Transform spreadsheet data into compelling content ideas.</p>
+                                <div class="flex items-center text-violet-600 dark:text-violet-400 font-medium group-hover:translate-x-1 transition-transform text-sm">
+                                    Analyze
+                                    <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                                </div>
                             </div>
                         </a>
 
+                        <!-- Framework -->
+                        <a href="/framework" class="group relative bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-900/20 dark:to-sky-900/20 p-6 rounded-2xl border border-cyan-200 dark:border-cyan-800 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-500 overflow-hidden">
+                            <div class="absolute top-4 right-4 opacity-20 group-hover:opacity-30 transition-opacity">
+                                <i data-lucide="file-text" class="w-16 h-16 text-cyan-500"></i>
+                            </div>
+                            <div class="relative z-10">
+                                <div class="bg-cyan-500 p-3 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform">
+                                    <i data-lucide="file-text" class="w-6 h-6 text-white"></i>
+                                </div>
+                                <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Framework</h3>
+                                <p class="text-slate-600 dark:text-slate-300 mb-4 text-sm">Access proven content frameworks and templates.</p>
+                                <div class="flex items-center text-cyan-600 dark:text-cyan-400 font-medium group-hover:translate-x-1 transition-transform text-sm">
+                                    Build
+                                    <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                                </div>
+                            </div>
+                        </a>
                     </div>
+
+                    <!-- Secondary Tools Section -->
+                    <div class="bg-white dark:bg-slate-900/50 rounded-3xl p-8 border border-slate-200 dark:border-slate-800">
+                        <div class="text-center mb-8">
+                            <h2 class="text-3xl font-bold text-slate-900 dark:text-white mb-3">Content Management</h2>
+                            <p class="text-slate-600 dark:text-slate-300">Organize and access your content library</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Saved Content -->
+                            <a href="/saved-content" class="group bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-700/50 p-6 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300">
+                                <div class="flex items-center mb-4">
+                                    <div class="bg-slate-600 dark:bg-slate-500 p-3 rounded-lg mr-4 group-hover:scale-105 transition-transform">
+                                        <i data-lucide="bookmark" class="w-6 h-6 text-white"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Saved Content</h3>
+                                        <p class="text-slate-600 dark:text-slate-300 text-sm">Manage your saved stories and posts</p>
+                                    </div>
+                                    <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform"></i>
+                                </div>
+                            </a>
+
+                            <!-- Saved Stories (External) -->
+                            <a href="https://saved-stories.fctoz.com" target="_blank" rel="noopener" class="group bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-900/30 dark:to-emerald-900/30 p-6 rounded-xl border border-teal-200 dark:border-teal-800 hover:shadow-xl transition-all duration-300">
+                                <div class="flex items-center mb-4">
+                                    <div class="bg-teal-600 dark:bg-teal-500 p-3 rounded-lg mr-4 group-hover:scale-105 transition-transform">
+                                        <i data-lucide="book-open" class="w-6 h-6 text-white"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center">
+                                            Saved Stories
+                                            <i data-lucide="external-link" class="w-4 h-4 ml-2 text-teal-600"></i>
+                                        </h3>
+                                        <p class="text-slate-600 dark:text-slate-300 text-sm">Browse previously generated stories</p>
+                                    </div>
+                                    <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform"></i>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Stats Dashboard -->
+                    <div class="mt-16">
+                        <div class="text-center mb-8">
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Platform Statistics</h2>
+                            <p class="text-slate-600 dark:text-slate-300">Real-time data from your content machine</p>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-slate-900 via-indigo-900 to-purple-900 dark:from-slate-800 dark:via-indigo-800 dark:to-purple-800 rounded-3xl p-8 text-white overflow-hidden relative">
+                            <!-- Background Pattern -->
+                            <div class="absolute inset-0 opacity-10">
+                                <div class="absolute top-4 right-4 w-32 h-32 bg-white rounded-full blur-3xl"></div>
+                                <div class="absolute bottom-4 left-4 w-24 h-24 bg-indigo-300 rounded-full blur-2xl"></div>
+                                <div class="absolute top-1/2 left-1/2 w-40 h-40 bg-purple-300 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+                            </div>
+                            
+                            <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <!-- Scripts Generated -->
+                                <div class="text-center">
+                                    <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 border border-white/30">
+                                        <i data-lucide="zap" class="w-8 h-8 text-yellow-300"></i>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="text-4xl font-bold mb-1"><%= typeof stats !== 'undefined' ? stats.scriptsGenerated.toLocaleString() : '0' %></div>
+                                        <div class="text-white/80 text-sm uppercase tracking-wider font-medium">Scripts Generated</div>
+                                    </div>
+                                    <div class="w-full bg-white/20 rounded-full h-2">
+                                        <div class="bg-gradient-to-r from-yellow-400 to-orange-400 h-2 rounded-full transition-all duration-1000 ease-out" style="width: 85%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Content Fetched -->
+                                <div class="text-center">
+                                    <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 border border-white/30">
+                                        <i data-lucide="database" class="w-8 h-8 text-emerald-300"></i>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="text-4xl font-bold mb-1"><%= typeof stats !== 'undefined' ? stats.contentFetched.toLocaleString() : '0' %></div>
+                                        <div class="text-white/80 text-sm uppercase tracking-wider font-medium">Content Fetched</div>
+                                    </div>
+                                    <div class="w-full bg-white/20 rounded-full h-2">
+                                        <div class="bg-gradient-to-r from-emerald-400 to-teal-400 h-2 rounded-full transition-all duration-1000 ease-out" style="width: 92%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Admin Users -->
+                                <div class="text-center">
+                                    <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 border border-white/30">
+                                        <i data-lucide="shield-check" class="w-8 h-8 text-blue-300"></i>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="text-4xl font-bold mb-1"><%= typeof stats !== 'undefined' ? stats.activeUsers.toLocaleString() : '0' %></div>
+                                        <div class="text-white/80 text-sm uppercase tracking-wider font-medium">Admin Users</div>
+                                    </div>
+                                    <div class="w-full bg-white/20 rounded-full h-2">
+                                        <div class="bg-gradient-to-r from-blue-400 to-indigo-400 h-2 rounded-full transition-all duration-1000 ease-out" style="width: 60%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bottom Summary -->
+                            <div class="relative z-10 mt-8 pt-6 border-t border-white/20">
+                                <div class="flex flex-wrap justify-center items-center gap-6 text-sm text-white/80">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                        <span>System Active</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="activity" class="w-4 h-4"></i>
+                                        <span>Real-time Data</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="clock" class="w-4 h-4"></i>
+                                        <span>Last Updated: Now</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </main>
 
@@ -134,6 +307,29 @@
                     mobileMenuButton.addEventListener('click', openSidebar);
                     sidebarCloseButton.addEventListener('click', closeSidebar);
                     sidebarOverlay.addEventListener('click', closeSidebar);
+
+                    // Add smooth scroll animation for cards
+                    const observerOptions = {
+                        threshold: 0.1,
+                        rootMargin: '0px 0px -50px 0px'
+                    };
+
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.style.opacity = '1';
+                                entry.target.style.transform = 'translateY(0)';
+                            }
+                        });
+                    }, observerOptions);
+
+                    // Observe all cards
+                    document.querySelectorAll('[class*="group"]').forEach(card => {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateY(20px)';
+                        card.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+                        observer.observe(card);
+                    });
                 });
             </script>
 
