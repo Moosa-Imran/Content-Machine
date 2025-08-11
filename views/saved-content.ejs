@@ -1,20 +1,20 @@
 <%- include('partials/head') %>
 <%- include('partials/header') %>
 
-<main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8">
+<main class="flex-grow pt-24 px-4 sm:px-6 lg:px-8 pb-8 bg-slate-900 min-h-screen">
     <div class="max-w-5xl mx-auto">
         <!-- Page Header -->
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
             <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-green-500 to-blue-500 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent">
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
                     Saved Content
                 </h1>
-                <p class="mt-1 text-slate-500 dark:text-slate-400">
+                <p class="mt-1 text-slate-400">
                     Your curated collection of transcribed posts from different platforms.
                 </p>
             </div>
             <div class="flex items-center gap-4">
-                 <a href="/social-scrape" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                 <a href="/social-scrape" class="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-green-400 transition-colors">
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     Back to Social Scrape
                 </a>
@@ -23,21 +23,21 @@
 
         <!-- Platform Tabs -->
         <div class="mb-6">
-            <div class="border-b border-slate-200 dark:border-slate-700">
+            <div class="border-b border-slate-700">
                 <nav class="-mb-px flex space-x-8">
-                    <button id="instagram-tab" class="py-2 px-1 border-b-2 border-primary-500 text-primary-600 dark:text-primary-400 font-medium text-sm focus:outline-none transition-all">
+                    <button id="instagram-tab" class="py-2 px-1 border-b-2 border-pink-500 text-pink-400 font-medium text-sm focus:outline-none transition-all">
                         <div class="flex items-center gap-2">
                             <i data-lucide="instagram" class="w-4 h-4"></i>
                             Instagram
                         </div>
                     </button>
-                    <button id="tiktok-tab" class="py-2 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium text-sm focus:outline-none transition-all">
+                    <button id="tiktok-tab" class="py-2 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium text-sm focus:outline-none transition-all">
                         <div class="flex items-center gap-2">
                             <i data-lucide="music" class="w-4 h-4"></i>
                             TikTok
                         </div>
                     </button>
-                    <button id="youtube-tab" class="py-2 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium text-sm focus:outline-none transition-all">
+                    <button id="youtube-tab" class="py-2 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-medium text-sm focus:outline-none transition-all">
                         <div class="flex items-center gap-2">
                             <i data-lucide="play" class="w-4 h-4"></i>
                             YouTube
@@ -49,13 +49,13 @@
 
         <!-- Main Content Area -->
         <div class="relative min-h-[400px]">
-            <div id="loader" class="absolute inset-0 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-40 hidden">
+            <div id="loader" class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex justify-center items-center z-40 hidden">
                 <div class="flex flex-col items-center gap-4">
-                    <i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-primary-500"></i>
-                    <p class="text-slate-600 dark:text-slate-300 font-medium">Fetching your saved posts...</p>
+                    <i data-lucide="refresh-cw" class="w-12 h-12 animate-spin text-green-400"></i>
+                    <p class="text-slate-300 font-medium">Fetching your saved posts...</p>
                 </div>
             </div>
-            <div id="error-container" class="text-center text-red-500 p-4 mb-4 bg-red-500/10 rounded-lg border border-red-500/30 hidden"></div>
+            <div id="error-container" class="text-center text-red-400 p-4 mb-4 bg-red-500/20 rounded-lg border border-red-500/30 hidden"></div>
             <div id="articles-container" class="space-y-4">
                 <!-- Saved posts will be injected here -->
             </div>
@@ -67,12 +67,12 @@
 </main>
 
 <!-- Framework Selection Modal -->
-<div id="framework-select-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md">
-        <div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Select a Framework</h2>
-            <button id="close-framework-select-modal-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+<div id="framework-select-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-xl shadow-2xl w-full max-w-md">
+        <div class="flex justify-between items-center p-4 border-b border-slate-700">
+            <h2 class="text-lg font-semibold text-white">Select a Framework</h2>
+            <button id="close-framework-select-modal-btn" class="p-2 rounded-full hover:bg-slate-700">
+                <i data-lucide="x" class="w-5 h-5 text-slate-400"></i>
             </button>
         </div>
         <div id="framework-options-container" class="p-6 max-h-[60vh] overflow-y-auto">
@@ -82,26 +82,26 @@
 </div>
 
 <!-- Story Generation Loader Modal -->
-<div id="story-loader-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+<div id="story-loader-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
     <div class="flex flex-col items-center gap-4 text-white">
-        <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500"></div>
+        <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-green-400"></div>
         <h2 class="text-2xl font-bold mt-4">Generating Your Viral Script...</h2>
         <p id="generation-status-text" class="text-slate-300 h-6"></p>
     </div>
 </div>
 
 <!-- Confirmation Modal -->
-<div id="confirm-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md">
+<div id="confirm-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-xl shadow-2xl w-full max-w-md">
         <div class="p-6 text-center">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-500/20">
-                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-500/20">
+                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-400"></i>
             </div>
-            <h3 class="mt-5 text-lg font-semibold text-slate-900 dark:text-white" id="confirm-modal-title">Are you sure?</h3>
-            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400" id="confirm-modal-message">This action cannot be undone.</p>
+            <h3 class="mt-5 text-lg font-semibold text-white" id="confirm-modal-title">Are you sure?</h3>
+            <p class="mt-2 text-sm text-slate-400" id="confirm-modal-message">This action cannot be undone.</p>
         </div>
         <div class="grid grid-cols-2 gap-4 px-6 pb-6">
-            <button id="confirm-cancel-btn" class="w-full rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 py-2.5 font-semibold text-slate-800 dark:text-white">
+            <button id="confirm-cancel-btn" class="w-full rounded-lg bg-slate-700 hover:bg-slate-600 py-2.5 font-semibold text-white">
                 Cancel
             </button>
             <button id="confirm-action-btn" class="w-full rounded-lg bg-red-600 hover:bg-red-700 py-2.5 font-semibold text-white">
@@ -112,14 +112,14 @@
 </div>
 
 <!-- Notification Modal -->
-<div id="notification-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md text-center p-6">
-        <div id="notification-icon-container" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20">
-             <i id="notification-icon" data-lucide="check-circle" class="h-6 w-6 text-green-600 dark:text-green-400"></i>
+<div id="notification-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-xl shadow-2xl w-full max-w-md text-center p-6">
+        <div id="notification-icon-container" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-500/20">
+             <i id="notification-icon" data-lucide="check-circle" class="h-6 w-6 text-green-400"></i>
         </div>
-        <h2 id="notification-title" class="text-xl font-bold text-slate-800 dark:text-white mt-4">Success</h2>
-        <p id="notification-message" class="mt-2 text-slate-500 dark:text-slate-400">Your action was successful.</p>
-        <button id="notification-ok-btn" class="mt-6 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg font-semibold">OK</button>
+        <h2 id="notification-title" class="text-xl font-bold text-white mt-4">Success</h2>
+        <p id="notification-message" class="mt-2 text-slate-400">Your action was successful.</p>
+        <button id="notification-ok-btn" class="mt-6 w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-semibold">OK</button>
     </div>
 </div>
 

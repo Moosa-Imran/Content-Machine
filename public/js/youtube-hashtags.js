@@ -71,10 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationMessage.textContent = message;
         const iconContainer = notificationIconContainer;
         if (type === 'error') {
-            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-500/20';
-            iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>';
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-500/20';
+            iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-400"></i>';
         } else {
-            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20';
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-500/20';
+            iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-400"></i>';
         }
         notificationModal.classList.remove('hidden');
         lucide.createIcons();
@@ -145,10 +146,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const renderKeywordsInModal = () => {
         keywordsContainerModal.innerHTML = keywordsToScrape.map((keyword, index) => `
-            <div class="keyword-bubble flex items-center gap-1.5 bg-primary-500 text-white text-sm font-medium px-3 py-1 rounded-full">
+            <div class="keyword-bubble flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-pink-600 text-white text-sm font-medium px-3 py-1.5 rounded-full shadow-sm">
                 <span>${keyword}</span>
                 <button class="remove-keyword-btn" data-index="${index}" title="Remove ${keyword}">
-                    <i data-lucide="x" class="w-4 h-4 hover:text-red-200"></i>
+                    <i data-lucide="x" class="w-4 h-4 hover:text-red-200 transition-colors"></i>
                 </button>
             </div>
         `).join('');
@@ -217,8 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderPosts = (posts) => {
         if (posts.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-12 text-slate-500 dark:text-slate-400">
-                    <i data-lucide="video-off" class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-slate-600"></i>
+                <div class="text-center py-12 text-slate-400">
+                    <i data-lucide="video-off" class="w-16 h-16 mx-auto mb-4 text-slate-600"></i>
                     <p class="text-lg font-medium mb-2">No YouTube videos found</p>
                     <p>Try adjusting your filters or update the content pool.</p>
                 </div>
@@ -229,20 +230,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = posts.map(post => {
             return `
-                <article class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow duration-300" data-post-id="${post._id}">
+                <article class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 hover:border-slate-600 transition-colors duration-300" data-post-id="${post._id}">
                     <div class="p-6">
                         <!-- Header with channel info -->
                         <div class="flex items-center gap-3 mb-4">
                             ${post.channelThumbnail ? `
                                 <img src="${post.channelThumbnail}" alt="${post.channelTitle}" class="w-10 h-10 rounded-full object-cover">
                             ` : `
-                                <div class="w-10 h-10 bg-slate-300 dark:bg-slate-600 rounded-full flex items-center justify-center">
-                                    <i data-lucide="user" class="w-5 h-5 text-slate-500 dark:text-slate-400"></i>
+                                <div class="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center">
+                                    <i data-lucide="user" class="w-5 h-5 text-slate-400"></i>
                                 </div>
                             `}
                             <div class="flex-grow min-w-0">
-                                <h3 class="font-semibold text-slate-900 dark:text-white truncate">${post.channelTitle || 'Unknown Channel'}</h3>
-                                <p class="text-sm text-slate-500 dark:text-slate-400">${post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : 'Unknown date'}</p>
+                                <h3 class="font-semibold text-white truncate">${post.channelTitle || 'Unknown Channel'}</h3>
+                                <p class="text-sm text-slate-400">${post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : 'Unknown date'}</p>
                             </div>
                         </div>
 
@@ -250,41 +251,41 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="grid md:grid-cols-3 gap-4">
                             <div class="md:col-span-1">
                                 ${post.thumbnail ? `
-                                    <img src="${post.thumbnail}" alt="${post.title}" class="w-full h-32 md:h-24 object-cover rounded-lg">
+                                    <img src="${post.thumbnail}" alt="${post.title}" class="w-full h-32 md:h-24 object-cover rounded-lg shadow-md">
                                 ` : `
-                                    <div class="w-full h-32 md:h-24 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+                                    <div class="w-full h-32 md:h-24 bg-slate-700 rounded-lg flex items-center justify-center">
                                         <i data-lucide="video" class="w-8 h-8 text-slate-400"></i>
                                     </div>
                                 `}
                             </div>
                             <div class="md:col-span-2">
-                                <h4 class="font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">${post.title || 'Untitled Video'}</h4>
+                                <h4 class="font-bold text-white mb-2 line-clamp-2">${post.title || 'Untitled Video'}</h4>
                                 ${post.description ? `
-                                    <p class="text-slate-600 dark:text-slate-300 text-sm mb-3 line-clamp-3">${post.description}</p>
+                                    <p class="text-slate-300 text-sm mb-3 line-clamp-3">${post.description}</p>
                                 ` : ''}
                                 
                                 <!-- Video stats -->
-                                <div class="flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
+                                <div class="flex flex-wrap items-center gap-4 text-sm mb-4">
                                     ${post.viewCount !== undefined ? `
-                                        <span class="flex items-center gap-1">
+                                        <span class="flex items-center gap-1 text-red-400">
                                             <i data-lucide="eye" class="w-4 h-4"></i>
                                             ${formatNumber(post.viewCount)} views
                                         </span>
                                     ` : ''}
                                     ${post.likeCount !== undefined ? `
-                                        <span class="flex items-center gap-1">
+                                        <span class="flex items-center gap-1 text-pink-400">
                                             <i data-lucide="heart" class="w-4 h-4"></i>
                                             ${formatNumber(post.likeCount)} likes
                                         </span>
                                     ` : ''}
                                     ${post.commentCount !== undefined ? `
-                                        <span class="flex items-center gap-1">
+                                        <span class="flex items-center gap-1 text-blue-400">
                                             <i data-lucide="message-circle" class="w-4 h-4"></i>
                                             ${formatNumber(post.commentCount)} comments
                                         </span>
                                     ` : ''}
                                     ${post.duration ? `
-                                        <span class="flex items-center gap-1">
+                                        <span class="flex items-center gap-1 text-emerald-400">
                                             <i data-lucide="clock" class="w-4 h-4"></i>
                                             ${formatDuration(post.duration)}
                                         </span>
@@ -294,21 +295,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
 
                         <!-- Action buttons -->
-                        <div class="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                        <div class="flex justify-between items-center pt-4 border-t border-slate-700 mt-4">
                             <div class="flex gap-2">
                                 ${post.url ? `
-                                    <a href="${post.url}" target="_blank" class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-md transition-colors">
+                                    <a href="${post.url}" target="_blank" class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-red-400 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors">
                                         <i data-lucide="external-link" class="w-4 h-4"></i>
                                         Watch
                                     </a>
                                 ` : ''}
-                                <button class="transcribe-btn flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-url="${post.url}">
+                                <button class="transcribe-btn flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 rounded-lg transition-colors" data-url="${post.url}">
                                     <i data-lucide="file-text" class="w-4 h-4"></i>
                                     Transcribe
                                 </button>
                             </div>
                             <div class="flex gap-2">
-                                <button class="delete-post-btn flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2" data-post-id="${post._id}">
+                                <button class="delete-post-btn flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900" data-post-id="${post._id}">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     Delete
                                 </button>
@@ -334,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let paginationHTML = '<div class="flex items-center justify-center gap-1 sm:gap-2 mt-8">';
-        paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" class="w-5 h-5"></i></button>`;
+        paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-3 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 hover:text-white transition-colors" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" class="w-5 h-5"></i></button>`;
 
         const getPaginationItems = (currentPage, totalPages, contextRange = 1) => {
             const items = [];

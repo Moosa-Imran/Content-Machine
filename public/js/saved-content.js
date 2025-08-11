@@ -41,14 +41,14 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationMessage.textContent = message;
         const iconContainer = notificationIconContainer;
         if (type === 'error') {
-            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-500/20';
-            iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>';
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-500/20';
+            iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-400"></i>';
         } else if (type === 'info') {
-            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-500/20';
-            iconContainer.innerHTML = '<i data-lucide="info" class="h-6 w-6 text-blue-600 dark:text-blue-400"></i>';
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-500/20';
+            iconContainer.innerHTML = '<i data-lucide="info" class="h-6 w-6 text-blue-400"></i>';
         } else {
-            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20';
-            iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-600 dark:text-green-400"></i>';
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-500/20';
+            iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-400"></i>';
         }
         notificationModal.classList.remove('hidden');
         lucide.createIcons();
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderPosts = (posts, platform) => {
         if (posts.length === 0) {
-            container.innerHTML = `<div class="text-center text-slate-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl">You have no saved ${platform} posts.</div>`;
+            container.innerHTML = `<div class="text-center text-slate-400 p-8 bg-slate-800 rounded-xl">You have no saved ${platform} posts.</div>`;
             return;
         }
 
@@ -122,33 +122,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderInstagramPost = (post) => {
         const captionWithoutHashtags = (post.caption || '').replace(/#\w+/g, '').trim();
-        const viewsHTML = post.videoPlayCount ? `<span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount}</span>` : '';
+        const viewsHTML = post.videoPlayCount ? `<span class="flex items-center gap-1 text-blue-400"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount}</span>` : '';
         return `
-        <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post._id}">
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700" data-post-id="${post._id}">
             <div class="flex items-start gap-4">
-                <img src="/api/image-proxy?url=${encodeURIComponent(post.displayUrl)}" alt="Post by ${post.ownerUsername}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=Error';">
+                <img src="/api/image-proxy?url=${encodeURIComponent(post.displayUrl)}" alt="Post by ${post.ownerUsername}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/475569/e2e8f0?text=Error';">
                 <div class="flex-grow">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="font-bold text-slate-800 dark:text-white">${post.ownerUsername}</p>
+                            <p class="font-bold text-white">${post.ownerUsername}</p>
                             <p class="text-xs text-slate-400">${new Date(post.timestamp || post.savedAt).toLocaleString()}</p>
                         </div>
-                        <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                            <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${post.likesCount || 0}</span>
-                            <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${post.commentsCount || 0}</span>
+                        <div class="flex items-center gap-4 text-sm text-slate-400">
+                            <span class="flex items-center gap-1 text-pink-400"><i data-lucide="heart" class="w-4 h-4"></i> ${post.likesCount || 0}</span>
+                            <span class="flex items-center gap-1 text-blue-400"><i data-lucide="message-circle" class="w-4 h-4"></i> ${post.commentsCount || 0}</span>
                             ${viewsHTML}
-                            <button class="delete-post-btn p-1.5 rounded-full hover:bg-red-500/10 text-red-500" data-post-id="${post._id}" title="Delete Post">
+                            <button class="delete-post-btn p-1.5 rounded-full hover:bg-red-500/20 text-red-400" data-post-id="${post._id}" title="Delete Post">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
-                    <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${captionWithoutHashtags}</p>
-                    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Transcript</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${post.transcript}</p>
+                    <p class="text-sm text-slate-300 mt-2 whitespace-pre-wrap">${captionWithoutHashtags}</p>
+                    <div class="mt-4 pt-4 border-t border-slate-700">
+                        <h4 class="text-sm font-bold text-slate-200 mb-2">Transcript</h4>
+                        <p class="text-xs text-slate-400 p-2 bg-slate-700 rounded-md">${post.transcript}</p>
                     </div>
-                     <a href="${post.url}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on Instagram</a>
-                     <div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${post._id}">Generate Story</button></div>
+                     <a href="${post.url}" target="_blank" class="text-pink-400 hover:text-pink-300 text-xs font-semibold mt-2 inline-block">View on Instagram</a>
+                     <div class="mt-4"><button class="generate-story-btn text-sm bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${post._id}">Generate Story</button></div>
                 </div>
             </div>
         </div>`;
@@ -156,37 +156,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderTikTokPost = (post) => {
         const author = post.authorMeta?.nickName || 'Unknown Author';
-        const avatar = post.authorMeta?.avatar || 'https://placehold.co/96x96/e2e8f0/475569?text=TT';
+        const avatar = post.authorMeta?.avatar || 'https://placehold.co/96x96/475569/e2e8f0?text=TT';
         const playCount = post.playCount || 0;
         const diggCount = post.diggCount || 0;
         const commentCount = post.commentCount || 0;
         
         return `
-        <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post._id}">
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700" data-post-id="${post._id}">
             <div class="flex items-start gap-4">
-                <img src="${avatar}" alt="Post by ${author}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=TT';">
+                <img src="${avatar}" alt="Post by ${author}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/475569/e2e8f0?text=TT';">
                 <div class="flex-grow">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="font-bold text-slate-800 dark:text-white">${author}</p>
+                            <p class="font-bold text-white">${author}</p>
                             <p class="text-xs text-slate-400">${new Date(post.createTimeISO || post.savedAt).toLocaleString()}</p>
                         </div>
-                        <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                            <span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${playCount}</span>
-                            <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${diggCount}</span>
-                            <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${commentCount}</span>
-                            <button class="delete-post-btn p-1.5 rounded-full hover:bg-red-500/10 text-red-500" data-post-id="${post._id}" title="Delete Post">
+                        <div class="flex items-center gap-4 text-sm text-slate-400">
+                            <span class="flex items-center gap-1 text-cyan-400"><i data-lucide="play-circle" class="w-4 h-4"></i> ${playCount}</span>
+                            <span class="flex items-center gap-1 text-pink-400"><i data-lucide="heart" class="w-4 h-4"></i> ${diggCount}</span>
+                            <span class="flex items-center gap-1 text-blue-400"><i data-lucide="message-circle" class="w-4 h-4"></i> ${commentCount}</span>
+                            <button class="delete-post-btn p-1.5 rounded-full hover:bg-red-500/20 text-red-400" data-post-id="${post._id}" title="Delete Post">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
-                    <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${post.text || ''}</p>
-                    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Transcript</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${post.transcript}</p>
+                    <p class="text-sm text-slate-300 mt-2 whitespace-pre-wrap">${post.text || ''}</p>
+                    <div class="mt-4 pt-4 border-t border-slate-700">
+                        <h4 class="text-sm font-bold text-slate-200 mb-2">Transcript</h4>
+                        <p class="text-xs text-slate-400 p-2 bg-slate-700 rounded-md">${post.transcript}</p>
                     </div>
-                     <a href="${post.webVideoUrl}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on TikTok</a>
-                     <div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${post._id}">Generate Story</button></div>
+                     <a href="${post.webVideoUrl}" target="_blank" class="text-cyan-400 hover:text-cyan-300 text-xs font-semibold mt-2 inline-block">View on TikTok</a>
+                     <div class="mt-4"><button class="generate-story-btn text-sm bg-gradient-to-r from-cyan-500 to-pink-500 hover:from-cyan-600 hover:to-pink-600 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${post._id}">Generate Story</button></div>
                 </div>
             </div>
         </div>`;
@@ -198,35 +198,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewCount = post.viewCount || post.views || 0;
         const likeCount = post.likeCount || post.likes || 0;
         const commentCount = post.commentCount || post.comments || 0;
-        const thumbnail = post.thumbnail || (post.thumbnails && post.thumbnails[0]?.url) || 'https://placehold.co/96x96/e2e8f0/475569?text=YT';
+        const thumbnail = post.thumbnail || (post.thumbnails && post.thumbnails[0]?.url) || 'https://placehold.co/96x96/475569/e2e8f0?text=YT';
         const uploadDate = post.uploadDate || post.publishedAt || post.savedAt;
         
         return `
-        <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post._id}">
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700" data-post-id="${post._id}">
             <div class="flex items-start gap-4">
-                <img src="${thumbnail}" alt="Video by ${channelName}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=YT';">
+                <img src="${thumbnail}" alt="Video by ${channelName}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/475569/e2e8f0?text=YT';">
                 <div class="flex-grow">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="font-bold text-slate-800 dark:text-white">${channelName}</p>
+                            <p class="font-bold text-white">${channelName}</p>
                             <p class="text-xs text-slate-400">${new Date(uploadDate).toLocaleString()}</p>
                         </div>
-                        <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                            <span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${viewCount}</span>
-                            <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${likeCount}</span>
-                            <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${commentCount}</span>
-                            <button class="delete-post-btn p-1.5 rounded-full hover:bg-red-500/10 text-red-500" data-post-id="${post._id}" title="Delete Post">
+                        <div class="flex items-center gap-4 text-sm text-slate-400">
+                            <span class="flex items-center gap-1 text-red-400"><i data-lucide="play-circle" class="w-4 h-4"></i> ${viewCount}</span>
+                            <span class="flex items-center gap-1 text-pink-400"><i data-lucide="heart" class="w-4 h-4"></i> ${likeCount}</span>
+                            <span class="flex items-center gap-1 text-blue-400"><i data-lucide="message-circle" class="w-4 h-4"></i> ${commentCount}</span>
+                            <button class="delete-post-btn p-1.5 rounded-full hover:bg-red-500/20 text-red-400" data-post-id="${post._id}" title="Delete Post">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
-                    <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${title}</p>
-                    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Transcript</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${post.transcript}</p>
+                    <p class="text-sm text-slate-300 mt-2 whitespace-pre-wrap">${title}</p>
+                    <div class="mt-4 pt-4 border-t border-slate-700">
+                        <h4 class="text-sm font-bold text-slate-200 mb-2">Transcript</h4>
+                        <p class="text-xs text-slate-400 p-2 bg-slate-700 rounded-md">${post.transcript}</p>
                     </div>
-                     <a href="${post.url}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on YouTube</a>
-                     <div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${post._id}">Generate Story</button></div>
+                     <a href="${post.url}" target="_blank" class="text-red-400 hover:text-red-300 text-xs font-semibold mt-2 inline-block">View on YouTube</a>
+                     <div class="mt-4"><button class="generate-story-btn text-sm bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${post._id}">Generate Story</button></div>
                 </div>
             </div>
         </div>`;
@@ -238,9 +238,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         let paginationHTML = '<div class="flex items-center justify-between">';
-        paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="arrow-left" class="w-5 h-5"></i></button>`;
-        paginationHTML += `<span class="text-sm font-medium text-slate-500">Page ${currentPage} of ${totalPages}</span>`;
-        paginationHTML += `<button data-page="${currentPage + 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="arrow-right" class="w-5 h-5"></i></button>`;
+        paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-2 rounded-md hover:bg-slate-700 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="arrow-left" class="w-5 h-5 text-slate-400"></i></button>`;
+        paginationHTML += `<span class="text-sm font-medium text-slate-400">Page ${currentPage} of ${totalPages}</span>`;
+        paginationHTML += `<button data-page="${currentPage + 1}" class="page-btn p-2 rounded-md hover:bg-slate-700 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="arrow-right" class="w-5 h-5 text-slate-400"></i></button>`;
         paginationHTML += '</div>';
         paginationContainer.innerHTML = paginationHTML;
         lucide.createIcons();
@@ -257,20 +257,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const handleTabClick = (platform) => {
         // Update active tab styling
-        instagramTab?.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        tiktokTab?.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
-        youtubeTab?.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        instagramTab?.classList.remove('border-pink-500', 'text-pink-400');
+        tiktokTab?.classList.remove('border-cyan-500', 'text-cyan-400');
+        youtubeTab?.classList.remove('border-red-500', 'text-red-400');
         
-        instagramTab?.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700');
-        tiktokTab?.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700');
-        youtubeTab?.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700');
+        instagramTab?.classList.add('border-transparent', 'text-slate-400', 'hover:text-slate-200');
+        tiktokTab?.classList.add('border-transparent', 'text-slate-400', 'hover:text-slate-200');
+        youtubeTab?.classList.add('border-transparent', 'text-slate-400', 'hover:text-slate-200');
 
-        // Activate selected tab
-        const activeTab = platform === 'instagram' ? instagramTab : 
-                          platform === 'tiktok' ? tiktokTab : youtubeTab;
-        if (activeTab) {
-            activeTab.classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700');
-            activeTab.classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        // Activate selected tab with platform-specific colors
+        if (platform === 'instagram' && instagramTab) {
+            instagramTab.classList.remove('border-transparent', 'text-slate-400', 'hover:text-slate-200');
+            instagramTab.classList.add('border-pink-500', 'text-pink-400');
+        } else if (platform === 'tiktok' && tiktokTab) {
+            tiktokTab.classList.remove('border-transparent', 'text-slate-400', 'hover:text-slate-200');
+            tiktokTab.classList.add('border-cyan-500', 'text-cyan-400');
+        } else if (platform === 'youtube' && youtubeTab) {
+            youtubeTab.classList.remove('border-transparent', 'text-slate-400', 'hover:text-slate-200');
+            youtubeTab.classList.add('border-red-500', 'text-red-400');
         }
 
         // Update current platform and fetch posts
@@ -301,10 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const frameworks = await apiCall('/api/frameworks');
             frameworkOptionsContainer.innerHTML = frameworks.map(fw => `
-                <button class="framework-option-btn w-full text-left p-4 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex justify-between items-center" data-id="${fw._id}">
+                <button class="framework-option-btn w-full text-left p-4 rounded-lg hover:bg-slate-700 transition-colors flex justify-between items-center" data-id="${fw._id}">
                     <span>
-                        <span class="font-semibold text-slate-800 dark:text-white">${fw.name}</span>
-                         <span class="ml-2 text-xs ${fw.type === 'news_commentary' ? 'bg-blue-500/10 text-blue-600' : 'bg-purple-500/10 text-purple-600'} px-2 py-0.5 rounded-full font-medium">${fw.type === 'news_commentary' ? 'News Commentary' : 'Viral Script'}</span>
+                        <span class="font-semibold text-white">${fw.name}</span>
+                         <span class="ml-2 text-xs ${fw.type === 'news_commentary' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'} px-2 py-0.5 rounded-full font-medium">${fw.type === 'news_commentary' ? 'News Commentary' : 'Viral Script'}</span>
                     </span>
                     <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
                 </button>
@@ -319,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         } catch (error) {
-            frameworkOptionsContainer.innerHTML = `<p class="text-red-500">Could not load frameworks. Using default.</p>`;
+            frameworkOptionsContainer.innerHTML = `<p class="text-red-400">Could not load frameworks. Using default.</p>`;
             setTimeout(() => {
                 frameworkSelectModal.classList.add('hidden');
                 onSelectCallback(null);

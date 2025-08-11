@@ -65,10 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const renderKeywords = (containerEl) => {
         containerEl.innerHTML = filters.hashtags.map((keyword, index) => `
-            <div class="keyword-bubble flex items-center gap-1.5 bg-primary-500 text-white text-sm font-medium px-3 py-1 rounded-full">
+            <div class="keyword-bubble flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium px-3 py-1.5 rounded-full shadow-sm">
                 <span>${keyword}</span>
                 <button class="remove-keyword-btn" data-index="${index}" title="Remove ${keyword}">
-                    <i data-lucide="x" class="w-4 h-4 hover:text-red-200"></i>
+                    <i data-lucide="x" class="w-4 h-4 hover:text-red-200 transition-colors"></i>
                 </button>
             </div>
         `).join('');
@@ -193,39 +193,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const duration = post.videoMeta?.duration ? `${post.videoMeta.duration}s` : 'N/A';
             const transcriptBtnHTML = `
                 <div class="mt-4">
-                    <button class="transcribe-btn text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold" data-url="${post.webVideoUrl}">
+                    <button class="transcribe-btn text-sm bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg font-semibold" data-url="${post.webVideoUrl}">
                         Transcript It
                     </button>
                 </div>
             `;
 
             return `
-            <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post.id}">
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors" data-post-id="${post.id}">
                 <div class="flex items-start gap-4">
-                    <img src="/api/image-proxy?url=${encodeURIComponent(post.videoMeta?.coverUrl || post.authorMeta?.avatar)}" alt="Post by ${post.authorMeta?.nickName}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=TikTok';">
+                    <img src="/api/image-proxy?url=${encodeURIComponent(post.videoMeta?.coverUrl || post.authorMeta?.avatar)}" alt="Post by ${post.authorMeta?.nickName}" class="w-24 h-24 object-cover rounded-lg shadow-lg" onerror="this.onerror=null;this.src='https://placehold.co/96x96/475569/64748B?text=TikTok';">
                     <div class="flex-grow">
-                        <div class="flex justify-between items-start">
+                        <div class="flex justify-between items-start mb-3">
                             <div>
-                                <div class="flex items-center gap-2">
-                                    <p class="font-bold text-slate-800 dark:text-white">${post.authorMeta?.nickName || post.authorMeta?.name || 'Unknown'}</p>
-                                    ${post.authorMeta?.verified ? '<i data-lucide="badge-check" class="w-4 h-4 text-blue-500" title="Verified"></i>' : ''}
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="font-bold text-white">${post.authorMeta?.nickName || post.authorMeta?.name || 'Unknown'}</p>
+                                    ${post.authorMeta?.verified ? '<i data-lucide="badge-check" class="w-4 h-4 text-blue-400" title="Verified"></i>' : ''}
                                 </div>
                                 <p class="text-xs text-slate-400">${new Date(post.createTimeISO).toLocaleString()}</p>
-                                <p class="text-xs text-slate-500">Duration: ${duration}</p>
+                                <p class="text-xs text-slate-400">Duration: ${duration}</p>
                             </div>
-                            <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                                <span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${formatNumber(post.playCount || 0)}</span>
-                                <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${formatNumber(post.diggCount || 0)}</span>
-                                <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${formatNumber(post.commentCount || 0)}</span>
-                                <span class="flex items-center gap-1"><i data-lucide="share" class="w-4 h-4"></i> ${formatNumber(post.shareCount || 0)}</span>
+                            <div class="flex items-center gap-4 text-sm">
+                                <span class="flex items-center gap-1 text-purple-400"><i data-lucide="play-circle" class="w-4 h-4"></i> ${formatNumber(post.playCount || 0)}</span>
+                                <span class="flex items-center gap-1 text-pink-400"><i data-lucide="heart" class="w-4 h-4"></i> ${formatNumber(post.diggCount || 0)}</span>
+                                <span class="flex items-center gap-1 text-blue-400"><i data-lucide="message-circle" class="w-4 h-4"></i> ${formatNumber(post.commentCount || 0)}</span>
+                                <span class="flex items-center gap-1 text-emerald-400"><i data-lucide="share" class="w-4 h-4"></i> ${formatNumber(post.shareCount || 0)}</span>
                             </div>
                         </div>
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${textWithoutHashtags}</p>
-                        <div class="transcript-container"></div>
-                        <div class="mt-2 flex flex-wrap gap-1">
-                            ${(post.hashtags || []).map(tag => `<span class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-full">#${tag.name || tag}</span>`).join('')}
+                        <p class="text-sm text-slate-300 mb-3 whitespace-pre-wrap leading-relaxed">${textWithoutHashtags}</p>
+                        <div class="transcript-container mb-3"></div>
+                        <div class="mb-3 flex flex-wrap gap-1">
+                            ${(post.hashtags || []).map(tag => `<span class="text-xs bg-gradient-to-r from-pink-500/10 to-purple-500/10 text-pink-300 px-2 py-1 rounded-full border border-pink-500/20">#${tag.name || tag}</span>`).join('')}
                         </div>
-                        <a href="${post.webVideoUrl}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on TikTok</a>
+                        <a href="${post.webVideoUrl}" target="_blank" class="text-pink-400 hover:text-pink-300 text-xs font-semibold inline-block transition-colors">View on TikTok</a>
                         ${transcriptBtnHTML}
                         <div class="save-container"></div>
                     </div>
@@ -242,12 +242,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         paginationContainer.innerHTML = `
-            <div class="flex items-center justify-between">
-                <button id="prev-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}>
+            <div class="flex items-center justify-between bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <button id="prev-btn" class="p-3 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 hover:text-white transition-colors" ${currentPage === 1 ? 'disabled' : ''}>
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </button>
-                <span class="text-sm font-medium text-slate-500">Page ${currentPage} of ${totalPages}</span>
-                <button id="next-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}>
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium text-slate-300">Page</span>
+                    <span class="px-3 py-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg text-sm font-bold">${currentPage}</span>
+                    <span class="text-sm font-medium text-slate-300">of ${totalPages}</span>
+                </div>
+                <button id="next-btn" class="p-3 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 hover:text-white transition-colors" ${currentPage === totalPages ? 'disabled' : ''}>
                     <i data-lucide="arrow-right" class="w-5 h-5"></i>
                 </button>
             </div>

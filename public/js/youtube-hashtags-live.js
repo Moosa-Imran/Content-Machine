@@ -64,11 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationMessage.textContent = message;
         const iconContainer = notificationIconContainer;
         if (type === 'error') {
-            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-500/20';
-            iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>';
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-500/20';
+            iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-400"></i>';
         } else {
-            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20';
-            iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-600 dark:text-green-400"></i>';
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-500/20';
+            iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-400"></i>';
         }
         notificationModal.classList.remove('hidden');
         lucide.createIcons();
@@ -129,10 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderKeywords = (containerEl = initialKeywordsContainer) => {
         if (!containerEl) return;
         containerEl.innerHTML = filters.hashtags.map((keyword, index) => `
-            <div class="keyword-bubble flex items-center gap-1.5 bg-primary-500 text-white text-sm font-medium px-3 py-1 rounded-full">
+            <div class="keyword-bubble flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-pink-600 text-white text-sm font-medium px-3 py-1.5 rounded-full shadow-sm">
                 <span>${keyword}</span>
                 <button class="remove-keyword-btn" data-index="${index}" title="Remove ${keyword}">
-                    <i data-lucide="x" class="w-4 h-4 hover:text-red-200"></i>
+                    <i data-lucide="x" class="w-4 h-4 hover:text-red-200 transition-colors"></i>
                 </button>
             </div>
         `).join('');
@@ -181,8 +181,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderVideos = (videos) => {
         if (!videos || videos.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-12 text-slate-500 dark:text-slate-400">
-                    <i data-lucide="video-off" class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-slate-600"></i>
+                <div class="text-center py-12 text-slate-400">
+                    <i data-lucide="video-off" class="w-16 h-16 mx-auto mb-4 text-slate-600"></i>
                     <p class="text-lg font-medium mb-2">No YouTube videos found</p>
                     <p>Try adjusting your hashtags or filters and scrape again.</p>
                 </div>
@@ -198,20 +198,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = paginatedVideos.map(video => {
             return `
-                <article class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow duration-300">
+                <article class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 hover:border-slate-600 transition-colors duration-300">
                     <div class="p-6">
                         <!-- Header with channel info -->
                         <div class="flex items-center gap-3 mb-4">
                             ${video.channel?.thumbnails?.[0]?.url ? `
                                 <img src="${video.channel.thumbnails[0].url}" alt="${video.channel?.name || 'Channel'}" class="w-10 h-10 rounded-full object-cover">
                             ` : `
-                                <div class="w-10 h-10 bg-slate-300 dark:bg-slate-600 rounded-full flex items-center justify-center">
-                                    <i data-lucide="user" class="w-5 h-5 text-slate-500 dark:text-slate-400"></i>
+                                <div class="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center">
+                                    <i data-lucide="user" class="w-5 h-5 text-slate-400"></i>
                                 </div>
                             `}
                             <div class="flex-grow min-w-0">
-                                <h3 class="font-semibold text-slate-900 dark:text-white truncate">${video.channel?.name || 'Unknown Channel'}</h3>
-                                <p class="text-sm text-slate-500 dark:text-slate-400">${video.publishDate || video.uploadDate || 'Unknown date'}</p>
+                                <h3 class="font-semibold text-white truncate">${video.channel?.name || 'Unknown Channel'}</h3>
+                                <p class="text-sm text-slate-400">${video.publishDate || video.uploadDate || 'Unknown date'}</p>
                             </div>
                         </div>
 
@@ -219,35 +219,35 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="grid md:grid-cols-3 gap-4">
                             <div class="md:col-span-1">
                                 ${video.thumbnails?.find(t => t.width >= 480)?.url || video.thumbnails?.[0]?.url ? `
-                                    <img src="${video.thumbnails.find(t => t.width >= 480)?.url || video.thumbnails[0].url}" alt="${video.title}" class="w-full h-32 md:h-24 object-cover rounded-lg">
+                                    <img src="${video.thumbnails.find(t => t.width >= 480)?.url || video.thumbnails[0].url}" alt="${video.title}" class="w-full h-32 md:h-24 object-cover rounded-lg shadow-md">
                                 ` : `
-                                    <div class="w-full h-32 md:h-24 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+                                    <div class="w-full h-32 md:h-24 bg-slate-700 rounded-lg flex items-center justify-center">
                                         <i data-lucide="video" class="w-8 h-8 text-slate-400"></i>
                                     </div>
                                 `}
                             </div>
                             <div class="md:col-span-2">
-                                <h4 class="font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">${video.title || 'Untitled Video'}</h4>
+                                <h4 class="font-bold text-white mb-2 line-clamp-2">${video.title || 'Untitled Video'}</h4>
                                 ${video.description ? `
-                                    <p class="text-slate-600 dark:text-slate-300 text-sm mb-3 line-clamp-3">${video.description}</p>
+                                    <p class="text-slate-300 text-sm mb-3 line-clamp-3">${video.description}</p>
                                 ` : ''}
                                 
                                 <!-- Video stats -->
-                                <div class="flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
+                                <div class="flex flex-wrap items-center gap-4 text-sm mb-4">
                                     ${video.views !== undefined || video.viewCount !== undefined ? `
-                                        <span class="flex items-center gap-1">
+                                        <span class="flex items-center gap-1 text-red-400">
                                             <i data-lucide="eye" class="w-4 h-4"></i>
                                             ${formatNumber(video.views || video.viewCount)} views
                                         </span>
                                     ` : ''}
                                     ${video.likes !== undefined || video.likeCount !== undefined ? `
-                                        <span class="flex items-center gap-1">
+                                        <span class="flex items-center gap-1 text-pink-400">
                                             <i data-lucide="heart" class="w-4 h-4"></i>
                                             ${formatNumber(video.likes || video.likeCount)} likes
                                         </span>
                                     ` : ''}
                                     ${video.comments !== undefined || video.commentCount !== undefined ? `
-                                        <span class="flex items-center gap-1">
+                                        <span class="flex items-center gap-1 text-blue-400">
                                             <i data-lucide="message-circle" class="w-4 h-4"></i>
                                             ${formatNumber(video.comments || video.commentCount)} comments
                                         </span>
