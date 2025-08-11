@@ -58,13 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const renderCompetitors = (containerEl) => {
         containerEl.innerHTML = filters.competitors.map((competitor, index) => `
-            <div class="keyword-bubble flex items-center gap-1.5 bg-primary-500 text-white text-sm font-medium px-3 py-1 rounded-full">
-                <span>${competitor}</span>
-                <button class="remove-competitor-btn" data-index="${index}" title="Remove ${competitor}">
-                    <i data-lucide="x" class="w-4 h-4 hover:text-red-200"></i>
+            <div class="group flex items-center gap-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-200/50 dark:border-indigo-700/30 text-slate-800 dark:text-slate-200 text-sm font-medium px-3 py-2 rounded-xl backdrop-blur-sm transition-all hover:from-indigo-500/20 hover:to-purple-500/20">
+                <span class="font-semibold">@${competitor}</span>
+                <button class="remove-competitor-btn opacity-70 hover:opacity-100 hover:text-red-500 transition-all" data-index="${index}" title="Remove ${competitor}">
+                    <i data-lucide="x" class="w-4 h-4 hover:scale-110 transition-transform"></i>
                 </button>
             </div>
-        `).join('');
+        `).join('') || '<div class="text-slate-500 dark:text-slate-400 text-sm italic py-2">No competitors added yet</div>';
         lucide.createIcons();
     };
 
@@ -158,7 +158,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const displayCurrentPage = () => {
         if (filteredPosts.length === 0) {
-            container.innerHTML = `<div class="text-center text-slate-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl">No posts found matching your filters.</div>`;
+            container.innerHTML = `
+                <div class="text-center py-16">
+                    <div class="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-sm rounded-3xl p-8 border border-slate-200/50 dark:border-slate-700/50">
+                        <div class="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="users" class="w-8 h-8 text-slate-400 dark:text-slate-500"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">No competitor content found</h3>
+                        <p class="text-slate-500 dark:text-slate-400">Try adjusting your filters or adding different competitors.</p>
+                    </div>
+                </div>
+            `;
             paginationContainer.innerHTML = '';
         } else {
             const startIndex = (currentPage - 1) * postsPerPage;
@@ -173,36 +183,95 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = (posts || []).map(post => {
             const captionWithoutHashtags = (post.caption || '').replace(/#\w+/g, '').trim();
             const viewsHTML = filters.contentType === 'stories' 
-                ? `<span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount || 0}</span>`
-                : '';
+                ? `<div class="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+                    <i data-lucide="play-circle" class="w-4 h-4"></i> 
+                    <span class="font-semibold">${(post.videoPlayCount || 0).toLocaleString()}</span>
+                </div>` : '';
+            
             const transcriptBtnHTML = filters.contentType === 'stories'
-                ? `<div class="mt-4"><button class="transcribe-btn text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold" data-url="${post.url}">Transcript It</button></div>`
+                ? `<button class="transcribe-btn group flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all transform hover:scale-105 shadow-lg" data-url="${post.url}">
+                    <i data-lucide="mic" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                    Analyze Content
+                </button>`
                 : '';
 
             return `
-            <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post.id}">
-                <div class="flex items-start gap-4">
-                    <img src="/api/image-proxy?url=${encodeURIComponent(post.displayUrl)}" alt="Post by ${post.ownerUsername}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=Error';">
-                    <div class="flex-grow">
-                        <div class="flex justify-between items-start">
-                             <div>
-                                <p class="font-bold text-slate-800 dark:text-white">${post.ownerUsername}</p>
-                                <p class="text-xs text-slate-400">${new Date(post.timestamp).toLocaleString()}</p>
-                            </div>
-                            <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                                <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${post.likesCount || 0}</span>
-                                <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${post.commentsCount || 0}</span>
-                                ${viewsHTML}
+            <div class="group bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl border border-white/20 dark:border-slate-800/50 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] transform" data-post-id="${post.id}">
+                <div class="flex gap-6">
+                    <!-- Competitor Post Image -->
+                    <div class="relative flex-shrink-0">
+                        <img src="/api/image-proxy?url=${encodeURIComponent(post.displayUrl)}" 
+                             alt="Post by ${post.ownerUsername}" 
+                             class="w-32 h-32 object-cover rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-700/50" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/128x128/e2e8f0/475569?text=Error';">
+                    </div>
+                    
+                    <!-- Post Content -->
+                    <div class="flex-grow min-w-0">
+                        <!-- Header with Creator Info -->
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                                        <i data-lucide="instagram" class="w-4 h-4 text-white"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-slate-800 dark:text-white">@${post.ownerUsername}</p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">${new Date(post.timestamp).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                                <div class="bg-indigo-100/80 dark:bg-indigo-900/30 px-2.5 py-1 rounded-full">
+                                    <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-400">Competitor</span>
+                                </div>
                             </div>
                         </div>
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${captionWithoutHashtags}</p>
-                        <div class="transcript-container"></div>
-                        <div class="mt-2 flex flex-wrap gap-1">
-                            ${(post.hashtags || []).map(tag => `<span class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-full">#${tag}</span>`).join('')}
+
+                        <!-- Post Caption -->
+                        ${captionWithoutHashtags ? 
+                            `<div class="mb-4">
+                                <p class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed line-clamp-3">${captionWithoutHashtags}</p>
+                            </div>` : ''
+                        }
+
+                        <!-- Engagement Stats -->
+                        <div class="flex items-center gap-6 mb-4 text-sm">
+                            <div class="flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                                <i data-lucide="heart" class="w-4 h-4"></i>
+                                <span class="font-semibold">${(post.likesCount || 0).toLocaleString()}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 text-blue-500 dark:text-blue-400">
+                                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                                <span class="font-semibold">${(post.commentsCount || 0).toLocaleString()}</span>
+                            </div>
+                            ${viewsHTML}
                         </div>
-                         <a href="${post.url}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on Instagram</a>
-                         ${transcriptBtnHTML}
-                         <div class="generate-story-container"></div>
+
+                        <!-- Hashtags -->
+                        ${(post.hashtags && post.hashtags.length > 0) ? 
+                            `<div class="flex flex-wrap gap-1.5 mb-4">
+                                ${post.hashtags.slice(0, 6).map(tag => 
+                                    `<span class="text-xs bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-full border border-slate-200/50 dark:border-slate-700/50">#${tag}</span>`
+                                ).join('')}
+                                ${post.hashtags.length > 6 ? 
+                                    `<span class="text-xs text-slate-500 dark:text-slate-400 px-2 py-1">+${post.hashtags.length - 6} more</span>` : ''
+                                }
+                            </div>` : ''
+                        }
+
+                        <!-- Transcript Container -->
+                        <div class="transcript-container mb-4"></div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <a href="${post.url}" target="_blank" class="group flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all">
+                                    <i data-lucide="external-link" class="w-4 h-4 group-hover:rotate-12 transition-transform"></i>
+                                    View Post
+                                </a>
+                                ${transcriptBtnHTML}
+                            </div>
+                            <div class="generate-story-container"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -216,15 +285,21 @@ document.addEventListener('DOMContentLoaded', () => {
             paginationContainer.innerHTML = '';
             return;
         }
+        
         paginationContainer.innerHTML = `
-            <div class="flex items-center justify-between">
-                <button id="prev-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}>
-                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                </button>
-                <span class="text-sm font-medium text-slate-500">Page ${currentPage} of ${totalPages}</span>
-                <button id="next-btn" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}>
-                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </button>
+            <div class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl p-4 border border-white/20 dark:border-slate-800/50 shadow-lg">
+                <div class="flex items-center justify-center gap-4">
+                    <button id="prev-btn" class="group p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all ${currentPage === 1 ? 'disabled' : ''}" ${currentPage === 1 ? 'disabled' : ''}>
+                        <i data-lucide="chevron-left" class="w-5 h-5 group-hover:-translate-x-0.5 transition-transform"></i>
+                    </button>
+                    <div class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl border border-indigo-200/50 dark:border-indigo-700/30">
+                        <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Page ${currentPage}</span>
+                        <span class="text-sm text-slate-500 dark:text-slate-400">of ${totalPages}</span>
+                    </div>
+                    <button id="next-btn" class="group p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all ${currentPage === totalPages ? 'disabled' : ''}" ${currentPage === totalPages ? 'disabled' : ''}>
+                        <i data-lucide="chevron-right" class="w-5 h-5 group-hover:translate-x-0.5 transition-transform"></i>
+                    </button>
+                </div>
             </div>
         `;
         lucide.createIcons();
@@ -316,13 +391,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 transcriptContainer.innerHTML = `
-                    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Transcript</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${result.transcript}</p>
+                    <div class="bg-gradient-to-r from-blue-50/80 to-purple-50/80 dark:from-blue-950/20 dark:to-purple-950/20 backdrop-blur-sm rounded-2xl p-4 border border-blue-200/50 dark:border-blue-800/30">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="bg-blue-500/20 p-1.5 rounded-lg">
+                                <i data-lucide="file-text" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-blue-800 dark:text-blue-300">Competitor Analysis</h4>
+                        </div>
+                        <p class="text-sm text-blue-700 dark:text-blue-300 leading-relaxed bg-white/50 dark:bg-slate-900/30 rounded-xl p-3 border border-blue-200/30 dark:border-blue-700/30">${result.transcript}</p>
                     </div>
                 `;
                 const generateStoryContainer = postContainer.querySelector('.generate-story-container');
-                generateStoryContainer.innerHTML = `<div class="mt-4"><button class="generate-story-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${postContainer.dataset.postId}">Generate Story</button></div>`;
+                generateStoryContainer.innerHTML = `
+                    <button class="generate-story-btn group flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105" data-post-id="${postContainer.dataset.postId}">
+                        <i data-lucide="sparkles" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                        Create Viral Script
+                    </button>
+                `;
                 transcriptionModal.classList.add('hidden');
                 transcribeBtn.style.display = 'none';
                 lucide.createIcons();

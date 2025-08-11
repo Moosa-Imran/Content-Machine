@@ -64,11 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationMessage.textContent = message;
         const iconContainer = notificationIconContainer;
         if (type === 'error') {
-            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-500/20';
-            iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>';
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-500/20 border border-red-500/30';
+            iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="h-6 w-6 text-red-400"></i>';
         } else {
-            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/20';
-            iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-600 dark:text-green-400"></i>';
+            iconContainer.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-500/20 border border-green-500/30';
+            iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-400"></i>';
         }
         notificationModal.classList.remove('hidden');
         lucide.createIcons();
@@ -111,10 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderCompetitorsInModal = () => {
         competitorsContainerModal.innerHTML = competitorsToScrape.map((username, index) => `
-            <div class="keyword-bubble flex items-center gap-1.5 bg-primary-500 text-white text-sm font-medium px-3 py-1 rounded-full">
+            <div class="keyword-bubble flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium px-3 py-1.5 rounded-full shadow-lg">
                 <span>${username}</span>
-                <button class="remove-competitor-btn" data-index="${index}" title="Remove ${username}">
-                    <i data-lucide="x" class="w-4 h-4 hover:text-red-200"></i>
+                <button class="remove-competitor-btn hover:bg-white/20 rounded-full p-0.5 transition-all duration-200" data-index="${index}" title="Remove ${username}">
+                    <i data-lucide="x" class="w-3 h-3"></i>
                 </button>
             </div>
         `).join('');
@@ -176,42 +176,81 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderPosts = (posts) => {
         if (posts.length === 0) {
-            container.innerHTML = `<div class="text-center text-slate-500 p-8 bg-white dark:bg-slate-900/50 rounded-xl">No competitor posts found matching your filters.</div>`;
+            container.innerHTML = `
+                <div class="text-center py-16 bg-slate-800 border border-slate-700 rounded-2xl shadow-xl">
+                    <div class="w-20 h-20 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <i data-lucide="search-x" class="w-10 h-10 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">No posts found</h3>
+                    <p class="text-slate-400">No competitor posts found matching your filters.</p>
+                </div>
+            `;
             return;
         }
         container.innerHTML = posts.map(post => {
             const captionWithoutHashtags = (post.caption || '').replace(/#\w+/g, '').trim();
-            const viewsHTML = post.videoPlayCount ? `<span class="flex items-center gap-1"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount}</span>` : '';
-            const transcriptBtnHTML = post.type === 'Video' ? `<div class="mt-4"><button class="transcribe-btn text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold" data-url="${post.url}">Transcript It</button></div>` : '';
+            const viewsHTML = post.videoPlayCount ? `<span class="flex items-center gap-1.5 text-purple-400"><i data-lucide="play-circle" class="w-4 h-4"></i> ${post.videoPlayCount.toLocaleString()}</span>` : '';
+            const transcriptBtnHTML = post.type === 'Video' ? `<div class="mt-4"><button class="transcribe-btn bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2" data-url="${post.url}"><i data-lucide="file-text" class="w-4 h-4"></i> Transcript It</button></div>` : '';
+            
             return `
-            <div class="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800" data-post-id="${post._id}">
-                <div class="flex items-start gap-4">
-                    <img src="/api/image-proxy?url=${encodeURIComponent(post.displayUrl)}" alt="Post by ${post.ownerUsername}" class="w-24 h-24 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/96x96/e2e8f0/475569?text=Error';">
-                    <div class="flex-grow">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <p class="font-bold text-slate-800 dark:text-white">${post.ownerUsername}</p>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all duration-300 shadow-xl" data-post-id="${post._id}">
+                <div class="flex items-start gap-6">
+                    <!-- Post Image -->
+                    <div class="relative flex-shrink-0">
+                        <img src="/api/image-proxy?url=${encodeURIComponent(post.displayUrl)}" alt="Post by ${post.ownerUsername}" class="w-24 h-24 object-cover rounded-xl border border-slate-600 shadow-lg" onerror="this.onerror=null;this.src='https://placehold.co/96x96/475569/e2e8f0?text=Error';">
+                        ${post.type === 'Video' ? '<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center"><i data-lucide="play" class="w-3 h-3 text-white"></i></div>' : ''}
+                    </div>
+                    
+                    <div class="flex-grow min-w-0">
+                        <!-- Header -->
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="min-w-0 flex-grow">
+                                <div class="flex items-center gap-3 mb-1">
+                                    <h3 class="font-bold text-white truncate">@${post.ownerUsername}</h3>
+                                    <button class="delete-btn p-1.5 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all duration-300" data-post-id="${post._id}" title="Delete Post">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
                                 </div>
-                                <p class="text-xs text-slate-400">${new Date(post.timestamp).toLocaleString()}</p>
-                            </div>
-                            <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                                <span class="flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> ${post.likesCount || 0}</span>
-                                <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> ${post.commentsCount || 0}</span>
-                                ${viewsHTML}
-                                <button class="delete-btn p-1.5 rounded-full hover:bg-red-500/10 text-red-500" data-post-id="${post._id}" title="Delete Post">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
+                                <p class="text-sm text-slate-400 flex items-center gap-2">
+                                    <i data-lucide="calendar" class="w-3 h-3"></i>
+                                    ${new Date(post.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </p>
                             </div>
                         </div>
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap">${captionWithoutHashtags}</p>
+
+                        <!-- Engagement Stats -->
+                        <div class="flex items-center gap-4 mb-3 text-sm">
+                            <span class="flex items-center gap-1.5 text-pink-400">
+                                <i data-lucide="heart" class="w-4 h-4"></i> 
+                                <span class="font-medium">${(post.likesCount || 0).toLocaleString()}</span>
+                            </span>
+                            <span class="flex items-center gap-1.5 text-blue-400">
+                                <i data-lucide="message-circle" class="w-4 h-4"></i> 
+                                <span class="font-medium">${(post.commentsCount || 0).toLocaleString()}</span>
+                            </span>
+                            ${viewsHTML ? `<span class="flex items-center gap-1.5 font-medium">${viewsHTML}</span>` : ''}
+                        </div>
+
+                        <!-- Caption -->
+                        ${captionWithoutHashtags ? `<p class="text-slate-300 text-sm leading-relaxed mb-3 bg-slate-700/50 p-3 rounded-lg">${captionWithoutHashtags.substring(0, 150)}${captionWithoutHashtags.length > 150 ? '...' : ''}</p>` : ''}
+                        
                         <div class="transcript-container"></div>
-                        <div class="mt-2 flex flex-wrap gap-1">
-                            ${(post.hashtags || []).map(tag => `<span class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-full">#${tag}</span>`).join('')}
+                        
+                        <!-- Hashtags -->
+                        <div class="flex flex-wrap gap-1 mb-3">
+                            ${(post.hashtags || []).slice(0, 6).map(tag => `<span class="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded-full">#${tag}</span>`).join('')}
+                            ${post.hashtags && post.hashtags.length > 6 ? `<span class="text-xs text-slate-500 px-2 py-1">+${post.hashtags.length - 6} more</span>` : ''}
                         </div>
-                        <a href="${post.url}" target="_blank" class="text-primary-600 dark:text-primary-400 text-xs font-semibold mt-2 inline-block">View on Instagram</a>
-                        ${transcriptBtnHTML}
-                        <div class="save-container"></div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center gap-3">
+                            <a href="${post.url}" target="_blank" class="inline-flex items-center gap-2 text-pink-400 hover:text-pink-300 font-medium text-sm bg-slate-700/50 px-3 py-2 rounded-lg hover:bg-slate-700 transition-all duration-300">
+                                <i data-lucide="external-link" class="w-3 h-3"></i>
+                                View on Instagram
+                            </a>
+                            ${transcriptBtnHTML}
+                        </div>
+                        <div class="save-container mt-3"></div>
                     </div>
                 </div>
             </div>
@@ -225,8 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
             paginationContainer.innerHTML = '';
             return;
         }
-        let paginationHTML = '<div class="flex items-center justify-center gap-1 sm:gap-2 mt-8">';
-        paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" class="w-5 h-5"></i></button>`;
+        let paginationHTML = '<div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl"><div class="flex items-center justify-center gap-1 sm:gap-2">';
+        paginationHTML += `<button data-page="${currentPage - 1}" class="page-btn p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" ${currentPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" class="w-5 h-5"></i></button>`;
         
         const getPaginationItems = (currentPage, totalPages, contextRange = 1) => {
             const pages = [];
@@ -243,14 +282,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         getPaginationItems(currentPage, totalPages).forEach(item => {
             if (item === '...') {
-                paginationHTML += `<span class="px-2 py-2 text-sm font-medium text-slate-500">...</span>`;
+                paginationHTML += `<span class="px-2 py-2 text-sm font-medium text-slate-400">...</span>`;
             } else {
-                paginationHTML += `<button data-page="${item}" class="page-btn px-4 py-2 text-sm font-medium rounded-md ${item === currentPage ? 'bg-primary-600 text-white' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}">${item}</button>`;
+                paginationHTML += `<button data-page="${item}" class="page-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${item === currentPage ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600'}">${item}</button>`;
             }
         });
 
-        paginationHTML += `<button data-page="${currentPage + 1}" class="page-btn p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" class="w-5 h-5"></i></button>`;
-        paginationHTML += '</div>';
+        paginationHTML += `<button data-page="${currentPage + 1}" class="page-btn p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" ${currentPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" class="w-5 h-5"></i></button>`;
+        paginationHTML += '</div></div>';
         paginationContainer.innerHTML = paginationHTML;
         lucide.createIcons();
     };
@@ -370,13 +409,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 transcriptContainer.innerHTML = `
-                    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Transcript</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">${result.transcript}</p>
+                    <div class="mt-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                                <i data-lucide="file-text" class="w-3 h-3 text-white"></i>
+                            </div>
+                            <h4 class="font-semibold text-blue-400">Transcript</h4>
+                        </div>
+                        <p class="text-sm text-slate-300 leading-relaxed">${result.transcript}</p>
                     </div>
                 `;
                 const saveContainer = postContainer.querySelector('.save-container');
-                saveContainer.innerHTML = `<div class="mt-4"><button class="save-btn text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold" data-post-id="${postContainer.dataset.postId}">Save It</button></div>`;
+                saveContainer.innerHTML = `<button class="save-btn bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2" data-post-id="${postContainer.dataset.postId}"><i data-lucide="save" class="w-4 h-4"></i> Save It</button>`;
                 transcriptionModal.classList.add('hidden');
                 transcribeBtn.style.display = 'none';
                 currentTranscribingBtn = null;
