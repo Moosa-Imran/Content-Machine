@@ -112,8 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const numHashtags = hashtagsToScrape.length;
         const depth = parseInt(searchDepthInput.value) || 0;
         const totalPosts = numHashtags * depth;
-        // TikTok scraping cost estimation
-        const cost = (totalPosts / 100) * 1.50;
+        // TikTok scraping cost estimation: $5 per 1000 posts
+        const cost = (totalPosts / 1000) * 5;
         costEstimationText.textContent = `$${cost.toFixed(4)}`;
     };
 

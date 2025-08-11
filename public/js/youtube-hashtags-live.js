@@ -98,8 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const numHashtags = filters.hashtags.length;
         const resultsPerHashtag = filters.resultsLimit || 10;
         const totalVideos = numHashtags * resultsPerHashtag;
-        // YouTube scraping cost estimation
-        const cost = (totalVideos / 100) * 1.50;
+        // YouTube scraping cost estimation: $0.5 per 1000 videos
+        const cost = (totalVideos / 1000) * 0.5;
         if (initialCostEstimationText) {
             initialCostEstimationText.textContent = `$${cost.toFixed(4)}`;
         }

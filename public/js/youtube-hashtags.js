@@ -117,8 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const numKeywords = keywordsToScrape.length;
         const depth = parseInt(searchDepthInput.value) || 0;
         const totalVideos = numKeywords * depth;
-        // YouTube scraping cost estimation (similar to TikTok)
-        const cost = (totalVideos / 100) * 1.50;
+        // YouTube scraping cost estimation: $0.5 per 1000 videos
+        const cost = (totalVideos / 1000) * 0.5;
         costEstimationText.textContent = `$${cost.toFixed(4)}`;
     };
 
