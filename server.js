@@ -3,7 +3,8 @@
 
 const express = require('express');
 const path = require('path');
-// const session = require('express-session'); // Removed
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const { connectDB } = require('./config/database');
 const mainRoutes = require('./routes/main');
 
@@ -28,7 +29,21 @@ app.use(express.json());
 // Add middleware to parse URL-encoded bodies (from HTML forms)
 app.use(express.urlencoded({ extended: true }));
 
-// Session Middleware has been removed.
+// Session Middleware
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI,
+        dbName: 'Data',
+        collectionName: 'Sessions'
+    }),
+    cookie: {
+        secure: false, // Set to true in production with HTTPS
+        maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
+    }
+}));
 
 // --- Routes ---
 
